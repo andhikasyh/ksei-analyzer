@@ -277,6 +277,7 @@ export default function IntelligentPage() {
         </Box>
         <Box>
           <Typography
+            component="h1"
             variant="h6"
             sx={{
               fontFamily: '"Outfit", sans-serif',
@@ -296,8 +297,22 @@ export default function IntelligentPage() {
               fontFamily: '"Plus Jakarta Sans", sans-serif',
             }}
           >
-            AI-powered daily market analysis, generated automatically every
-            trading day
+            Simple to read, full insight. Daily reports that explain what moved
+            and why—in plain language, updated every trading day.
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              fontSize: "0.6rem",
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              opacity: 0.85,
+              display: "block",
+              mt: 0.25,
+            }}
+          >
+            Untuk investor Indonesia: analisis harian yang simpel dan mendalam,
+            bahasa mudah dipahami.
           </Typography>
         </Box>
       </Box>
@@ -361,20 +376,65 @@ export default function IntelligentPage() {
               fontFamily: '"Plus Jakarta Sans", sans-serif',
               maxWidth: 400,
               mx: "auto",
+              mb: 0.5,
             }}
           >
-            Reports are generated automatically every trading day after the
+            Reports are updated every trading day after the
             market closes. Check back after 5 PM WIB.
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              color: isDark ? "rgba(220,225,235,0.55)" : "rgba(12,18,34,0.5)",
+              fontSize: "0.7rem",
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              display: "block",
+            }}
+          >
+            Laporan diperbarui tiap hari bursa setelah pasar tutup. Cek lagi
+            setelah jam 17:00 WIB.
           </Typography>
         </Paper>
       ) : (
-        <Grid container spacing={2} className="animate-in animate-in-delay-1">
+        <>
+          <Typography
+            component="p"
+            variant="body2"
+            sx={{
+              color: isDark ? "rgba(220,225,235,0.7)" : "rgba(12,18,34,0.6)",
+              fontSize: "0.8rem",
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              mb: 0.5,
+              maxWidth: 520,
+            }}
+            className="animate-in animate-in-delay-1"
+          >
+            Full analysis in plain language: what moved, why it moved, and what
+            to watch next. Pick a date to read the full report.
+          </Typography>
+          <Typography
+            component="p"
+            variant="caption"
+            sx={{
+              color: isDark ? "rgba(220,225,235,0.55)" : "rgba(12,18,34,0.5)",
+              fontSize: "0.7rem",
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              mb: 1.5,
+              maxWidth: 520,
+            }}
+            className="animate-in animate-in-delay-1"
+          >
+            Analisis lengkap bahasa sederhana: apa yang bergerak, mengapa, dan
+            yang perlu diperhatikan. Pilih tanggal untuk baca laporan penuh.
+          </Typography>
+          <Grid container spacing={2} className="animate-in animate-in-delay-1">
           {reports.map((item) => (
             <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={item.id}>
               <ReportCard item={item} />
             </Grid>
           ))}
-        </Grid>
+          </Grid>
+        </>
       )}
 
       <Box className="animate-in animate-in-delay-2">
@@ -418,11 +478,24 @@ export default function IntelligentPage() {
                 opacity: 0.7,
               }}
             >
-              Free-form questions about Indonesian stocks and market
+              Get detailed answers about Indonesian stocks and the market
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                fontSize: "0.6rem",
+                opacity: 0.6,
+                display: "block",
+                mt: 0.25,
+              }}
+            >
+              Tanya apa saja tentang saham dan pasar Indonesia—dapat jawaban
+              mendalam.
             </Typography>
           </Box>
         </Box>
-        <MarketChat placeholder="Ask anything about the Indonesian stock market..." />
+        <MarketChat placeholder="Ask about Indonesian stocks or tanya dalam Bahasa Indonesia..." />
       </Box>
     </Stack>
   );

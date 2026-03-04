@@ -4,12 +4,41 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/Navbar";
 import { LayoutShell } from "@/components/LayoutShell";
 import { FloatingChat } from "@/components/FloatingChat";
+import { getBaseUrl, SITE_NAME, SITE_DESCRIPTION, SITE_KEYWORDS } from "@/lib/site";
 import "./globals.css";
 
+const baseUrl = getBaseUrl();
+
 export const metadata: Metadata = {
-  title: "Terminal - BEI Ownership Data",
-  description:
-    "Analyze KSEI beneficial ownership data for Indonesian stock exchange",
+  metadataBase: new URL(baseUrl),
+  title: {
+    default: `${SITE_NAME} – Indonesian Stock Ownership & Market Data`,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
+  authors: [{ name: SITE_NAME }],
+  creator: SITE_NAME,
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: baseUrl,
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} – Indonesian Stock Ownership & Market Data`,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} – Indonesian Stock Ownership & Market Data`,
+    description: SITE_DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+  alternates: { canonical: baseUrl },
+  category: "Finance",
 };
 
 export default function RootLayout({
@@ -29,6 +58,35 @@ export default function RootLayout({
         <link
           href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap"
           rel="stylesheet"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  "@id": `${baseUrl}/#website`,
+                  url: baseUrl,
+                  name: SITE_NAME,
+                  description: SITE_DESCRIPTION,
+                  potentialAction: {
+                    "@type": "SearchAction",
+                    target: { "@type": "EntryPoint", urlTemplate: `${baseUrl}/?q={search_term_string}` },
+                    "query-input": "required name=search_term_string",
+                  },
+                },
+                {
+                  "@type": "Organization",
+                  "@id": `${baseUrl}/#organization`,
+                  name: SITE_NAME,
+                  url: baseUrl,
+                  description: SITE_DESCRIPTION,
+                },
+              ],
+            }),
+          }}
         />
       </head>
       <body>

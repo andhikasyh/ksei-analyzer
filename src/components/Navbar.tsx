@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useColorMode } from "@/components/ThemeProvider";
+import { SITE_NAME } from "@/lib/site";
 import { useEffect, useState } from "react";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
@@ -11,6 +12,7 @@ import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
+import LensIcon from "@mui/icons-material/Lens";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 
@@ -58,9 +60,9 @@ export function Navbar() {
           >
             <Box
               sx={{
-                width: 24,
-                height: 24,
-                borderRadius: "6px",
+                width: 28,
+                height: 28,
+                borderRadius: "8px",
                 background: isDark
                   ? "linear-gradient(135deg, #d4a843 0%, #e8c468 100%)"
                   : "linear-gradient(135deg, #a17c2f 0%, #c49a3a 100%)",
@@ -74,18 +76,12 @@ export function Navbar() {
                 transition: "box-shadow 0.3s ease",
               }}
             >
-              <Typography
+              <LensIcon
                 sx={{
-                  fontFamily: '"JetBrains Mono", monospace',
-                  fontWeight: 700,
-                  fontSize: "0.6rem",
+                  fontSize: 18,
                   color: "#060a14",
-                  lineHeight: 1,
-                  letterSpacing: "-0.02em",
                 }}
-              >
-                {">_"}
-              </Typography>
+              />
             </Box>
             <Typography
               sx={{
@@ -96,7 +92,7 @@ export function Navbar() {
                 color: "text.primary",
               }}
             >
-              Terminal
+              {SITE_NAME}
             </Typography>
           </Box>
 
