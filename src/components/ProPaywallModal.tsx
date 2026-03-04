@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
@@ -12,17 +12,16 @@ import TextField from "@mui/material/TextField";
 import Stack from "@mui/material/Stack";
 import Divider from "@mui/material/Divider";
 import Chip from "@mui/material/Chip";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import PsychologyIcon from "@mui/icons-material/Psychology";
 import GoogleIcon from "@mui/icons-material/Google";
-import EmailIcon from "@mui/icons-material/Email";
 import { useProContext } from "@/lib/pro-context";
 
-export type PaywallMode = "login" | "pro" | "signup";
+export type PaywallMode = "login" | "pro" | "signup" | "payment";
 
 interface ProPaywallModalProps {
   open: boolean;
@@ -31,14 +30,26 @@ interface ProPaywallModalProps {
   reason?: "insight" | "chat";
 }
 
-const MAYAR_PAYMENT_LINK = process.env.NEXT_PUBLIC_MAYAR_PAYMENT_LINK || "https://mayar.id/pay/bei-analyzer-pro";
+const MAYAR_EMBED_URL = process.env.NEXT_PUBLIC_MAYAR_EMBED_URL || "https://gunaa.myr.id/pl/testing-73669";
+const MAYAR_EMBED_SCRIPT = "https://mayarembed.r2.mayar.id/mayarEmbed.min.js";
 
 const PRO_FEATURES = [
-  { icon: <TrendingUpIcon sx={{ fontSize: 16 }} />, text: "Akses laporan Market Intelligence harian" },
-  { icon: <PsychologyIcon sx={{ fontSize: 16 }} />, text: "AI Chat tanpa batas—tanya apa saja tentang saham IDX" },
-  { icon: <NotificationsIcon sx={{ fontSize: 16 }} />, text: "Newsletter harian via email setiap hari bursa" },
-  { icon: <AutoAwesomeIcon sx={{ fontSize: 16 }} />, text: "Analisis mendalam: sektor, foreign flow, prediksi harga" },
+  { icon: <TrendingUpIcon sx={{ fontSize: 15 }} />, text: "Laporan Market Intelligence harian" },
+  { icon: <PsychologyIcon sx={{ fontSize: 15 }} />, text: "AI Chat tanpa batas tentang saham IDX" },
+  { icon: <NotificationsIcon sx={{ fontSize: 15 }} />, text: "Newsletter harian tiap hari bursa" },
+  { icon: <AutoAwesomeIcon sx={{ fontSize: 15 }} />, text: "Analisis sektor, foreign flow, prediksi harga" },
 ];
+
+function useMayarEmbed() {
+  useEffect(() => {
+    if (document.querySelector(`script[src="${MAYAR_EMBED_SCRIPT}"]`)) return;
+    const script = document.createElement("script");
+    script.src = MAYAR_EMBED_SCRIPT;
+    script.type = "text/javascript";
+    script.async = true;
+    document.body.appendChild(script);
+  }, []);
+}
 
 function EmailAuthForm({
   mode,
@@ -63,10 +74,8 @@ function EmailAuthForm({
     setLoading(true);
     setError("");
     setSuccess("");
-
     const fn = mode === "login" ? signInWithEmail : signUpWithEmail;
     const { error } = await fn(email.trim(), password);
-
     if (error) {
       setError(error);
       setLoading(false);
@@ -92,50 +101,21 @@ function EmailAuthForm({
 
   return (
     <Stack spacing={1.5}>
-      <TextField
-        fullWidth
-        size="small"
-        label="Email"
-        type="email"
-        value={email}
+      <TextField fullWidth size="small" label="Email" type="email" value={email}
         onChange={(e) => setEmail(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-        sx={inputSx}
-      />
-      <TextField
-        fullWidth
-        size="small"
-        label="Password"
-        type="password"
-        value={password}
+        onKeyDown={(e) => e.key === "Enter" && handleSubmit()} sx={inputSx} />
+      <TextField fullWidth size="small" label="Password" type="password" value={password}
         onChange={(e) => setPassword(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-        sx={inputSx}
-      />
+        onKeyDown={(e) => e.key === "Enter" && handleSubmit()} sx={inputSx} />
 
-      {error && (
-        <Typography sx={{ fontSize: "0.75rem", color: "#fb7185", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
-          {error}
-        </Typography>
-      )}
-      {success && (
-        <Typography sx={{ fontSize: "0.75rem", color: "#34d399", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
-          {success}
-        </Typography>
-      )}
+      {error && <Typography sx={{ fontSize: "0.75rem", color: "#fb7185", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>{error}</Typography>}
+      {success && <Typography sx={{ fontSize: "0.75rem", color: "#34d399", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>{success}</Typography>}
 
-      <Button
-        fullWidth
-        variant="contained"
-        onClick={handleSubmit}
+      <Button fullWidth variant="contained" onClick={handleSubmit}
         disabled={loading || !email.trim() || !password.trim()}
         sx={{
           bgcolor: isDark ? "#d4a843" : "#a17c2f",
-          color: "#060a14",
-          fontWeight: 700,
-          fontSize: "0.82rem",
-          borderRadius: "10px",
-          py: 1,
+          color: "#060a14", fontWeight: 700, fontSize: "0.82rem", borderRadius: "10px", py: 1,
           "&:hover": { bgcolor: isDark ? "#e8c468" : "#c49a3a" },
           "&:disabled": { opacity: 0.5 },
         }}
@@ -143,20 +123,10 @@ function EmailAuthForm({
         {loading ? "Memproses..." : mode === "login" ? "Masuk" : "Daftar"}
       </Button>
 
-      <Typography
-        sx={{
-          fontSize: "0.72rem",
-          color: "text.secondary",
-          textAlign: "center",
-          fontFamily: '"Plus Jakarta Sans", sans-serif',
-        }}
-      >
+      <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", textAlign: "center", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
         {mode === "login" ? "Belum punya akun?" : "Sudah punya akun?"}{" "}
-        <Box
-          component="span"
-          onClick={onSwitch}
-          sx={{ color: accent, cursor: "pointer", fontWeight: 600, textDecoration: "underline" }}
-        >
+        <Box component="span" onClick={onSwitch}
+          sx={{ color: accent, cursor: "pointer", fontWeight: 600, textDecoration: "underline" }}>
           {mode === "login" ? "Daftar" : "Masuk"}
         </Box>
       </Typography>
@@ -164,7 +134,44 @@ function EmailAuthForm({
   );
 }
 
-export function ProPaywallModal({ open, onClose, initialMode = "login", reason = "insight" }: ProPaywallModalProps) {
+function MayarEmbed() {
+  useMayarEmbed();
+  return (
+    <Box
+      sx={{
+        width: "100%",
+        borderRadius: "12px",
+        overflow: "hidden",
+        "& iframe": { display: "block" },
+      }}
+    >
+      <iframe
+        allowFullScreen
+        // @ts-expect-error -- non-standard allowpaymentrequest attribute
+        allowpaymentrequest="allowpaymentrequest"
+        scrolling="no"
+        frameBorder="0"
+        width="100%"
+        height="600"
+        src={MAYAR_EMBED_URL}
+        data-hide-merchant-logo="true"
+        data-hide-product-images="true"
+        data-hide-header="true"
+        data-hide-badge-secure="true"
+        data-hide-language="true"
+        data-hide-desc-product="true"
+        style={{ border: "none", display: "block" }}
+      />
+    </Box>
+  );
+}
+
+export function ProPaywallModal({
+  open,
+  onClose,
+  initialMode = "login",
+  reason = "insight",
+}: ProPaywallModalProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const { signInWithGoogle, user, isPro } = useProContext();
@@ -173,12 +180,12 @@ export function ProPaywallModal({ open, onClose, initialMode = "login", reason =
   const accent = isDark ? "#d4a843" : "#a17c2f";
   const accentLight = isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.07)";
 
+  useEffect(() => {
+    if (open) setMode(initialMode);
+  }, [open, initialMode]);
+
   const handleAuthSuccess = useCallback(() => {
     setMode("pro");
-  }, []);
-
-  const handlePayment = useCallback(() => {
-    window.open(MAYAR_PAYMENT_LINK, "_blank", "noopener,noreferrer");
   }, []);
 
   if (open && user && isPro) {
@@ -187,12 +194,16 @@ export function ProPaywallModal({ open, onClose, initialMode = "login", reason =
   }
 
   const isAuthMode = mode === "login" || mode === "signup";
+  const isPaymentMode = mode === "payment";
+  const isProMode = mode === "pro";
+
+  const dialogMaxWidth = isPaymentMode ? "sm" : "xs";
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="xs"
+      maxWidth={dialogMaxWidth}
       fullWidth
       slotProps={{
         paper: {
@@ -200,93 +211,79 @@ export function ProPaywallModal({ open, onClose, initialMode = "login", reason =
             borderRadius: "20px",
             border: `1px solid ${isDark ? "rgba(212,168,67,0.15)" : "rgba(161,124,47,0.12)"}`,
             bgcolor: isDark ? "#0d1425" : "#ffffff",
-            overflow: "visible",
             backgroundImage: "none",
+            overflow: "hidden",
           },
         },
         backdrop: {
-          sx: { backdropFilter: "blur(8px)", bgcolor: "rgba(0,0,0,0.6)" },
+          sx: { backdropFilter: "blur(8px)", bgcolor: "rgba(0,0,0,0.65)" },
         },
       }}
     >
-      <Box sx={{ position: "relative" }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          px: 2.5,
+          pt: 2,
+          pb: 0,
+          gap: 1,
+        }}
+      >
+        {isPaymentMode && (
+          <IconButton
+            size="small"
+            onClick={() => setMode("pro")}
+            sx={{ color: "text.secondary", mr: 0.5, "&:hover": { color: "text.primary" } }}
+          >
+            <ArrowBackIcon sx={{ fontSize: 17 }} />
+          </IconButton>
+        )}
+        <Box sx={{ flex: 1 }}>
+          {isPaymentMode && (
+            <Typography sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 700, fontSize: "0.88rem", letterSpacing: "-0.01em" }}>
+              Pembayaran Pro
+            </Typography>
+          )}
+        </Box>
         <IconButton
           onClick={onClose}
           size="small"
-          sx={{
-            position: "absolute",
-            top: 12,
-            right: 12,
-            zIndex: 1,
-            color: "text.secondary",
-            "&:hover": { color: "text.primary" },
-          }}
+          sx={{ color: "text.secondary", "&:hover": { color: "text.primary" } }}
         >
           <CloseIcon sx={{ fontSize: 18 }} />
         </IconButton>
       </Box>
 
-      <DialogContent sx={{ p: 3, pt: 3.5 }}>
-        {isAuthMode ? (
+      <DialogContent sx={{ p: isPaymentMode ? 2 : 3, pt: isPaymentMode ? 1.5 : 2.5 }}>
+
+        {isAuthMode && (
           <Stack spacing={2.5}>
             <Box sx={{ textAlign: "center" }}>
-              <Box
-                sx={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "14px",
-                  background: `linear-gradient(135deg, ${accentLight}, rgba(129,140,248,0.08))`,
-                  border: `1px solid ${isDark ? "rgba(212,168,67,0.2)" : "rgba(161,124,47,0.15)"}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  mx: "auto",
-                  mb: 1.5,
-                }}
-              >
+              <Box sx={{
+                width: 44, height: 44, borderRadius: "14px",
+                background: `linear-gradient(135deg, ${accentLight}, rgba(129,140,248,0.08))`,
+                border: `1px solid ${isDark ? "rgba(212,168,67,0.2)" : "rgba(161,124,47,0.15)"}`,
+                display: "flex", alignItems: "center", justifyContent: "center", mx: "auto", mb: 1.5,
+              }}>
                 <AutoAwesomeIcon sx={{ fontSize: 22, color: accent }} />
               </Box>
-              <Typography
-                sx={{
-                  fontFamily: '"Outfit", sans-serif',
-                  fontWeight: 800,
-                  fontSize: "1.1rem",
-                  letterSpacing: "-0.02em",
-                  mb: 0.5,
-                }}
-              >
+              <Typography sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, fontSize: "1.1rem", letterSpacing: "-0.02em", mb: 0.5 }}>
                 {mode === "login" ? "Masuk ke Akun" : "Buat Akun Baru"}
               </Typography>
-              <Typography
-                sx={{
-                  fontSize: "0.75rem",
-                  color: "text.secondary",
-                  fontFamily: '"Plus Jakarta Sans", sans-serif',
-                  lineHeight: 1.5,
-                }}
-              >
+              <Typography sx={{ fontSize: "0.75rem", color: "text.secondary", fontFamily: '"Plus Jakarta Sans", sans-serif', lineHeight: 1.5 }}>
                 {reason === "insight"
                   ? "Kamu sudah mencoba laporan gratis. Masuk atau daftar untuk lanjut ke Pro."
                   : "Masuk untuk akses AI Chat tanpa batas dan fitur Pro lainnya."}
               </Typography>
             </Box>
 
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<GoogleIcon sx={{ fontSize: 18 }} />}
+            <Button fullWidth variant="outlined" startIcon={<GoogleIcon sx={{ fontSize: 18 }} />}
               onClick={signInWithGoogle}
               sx={{
                 borderColor: isDark ? "rgba(107,127,163,0.25)" : "rgba(12,18,34,0.15)",
-                color: "text.primary",
-                fontWeight: 600,
-                fontSize: "0.82rem",
-                borderRadius: "10px",
-                py: 0.9,
-                "&:hover": {
-                  borderColor: accent,
-                  bgcolor: accentLight,
-                },
+                color: "text.primary", fontWeight: 600, fontSize: "0.82rem", borderRadius: "10px", py: 0.9,
+                "&:hover": { borderColor: accent, bgcolor: accentLight },
               }}
             >
               Lanjut dengan Google
@@ -294,9 +291,7 @@ export function ProPaywallModal({ open, onClose, initialMode = "login", reason =
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
               <Divider sx={{ flex: 1 }} />
-              <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", fontFamily: '"JetBrains Mono", monospace' }}>
-                atau
-              </Typography>
+              <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", fontFamily: '"JetBrains Mono", monospace' }}>atau</Typography>
               <Divider sx={{ flex: 1 }} />
             </Box>
 
@@ -306,229 +301,121 @@ export function ProPaywallModal({ open, onClose, initialMode = "login", reason =
               onSuccess={handleAuthSuccess}
             />
 
-            <Box
-              sx={{
-                p: 1.5,
-                borderRadius: "12px",
-                bgcolor: isDark ? "rgba(129,140,248,0.05)" : "rgba(99,102,241,0.04)",
-                border: `1px solid ${isDark ? "rgba(129,140,248,0.1)" : "rgba(99,102,241,0.08)"}`,
-              }}
-            >
-              <Typography
-                sx={{
-                  fontSize: "0.7rem",
-                  color: "text.secondary",
-                  textAlign: "center",
-                  fontFamily: '"Plus Jakarta Sans", sans-serif',
-                  lineHeight: 1.5,
-                }}
-              >
-                Setelah masuk, aktifkan Pro untuk akses penuh seharga{" "}
-                <Box component="span" sx={{ color: accent, fontWeight: 700 }}>
-                  Rp99.000/bulan
-                </Box>
+            <Box sx={{ p: 1.5, borderRadius: "12px", bgcolor: isDark ? "rgba(129,140,248,0.05)" : "rgba(99,102,241,0.04)", border: `1px solid ${isDark ? "rgba(129,140,248,0.1)" : "rgba(99,102,241,0.08)"}` }}>
+              <Typography sx={{ fontSize: "0.7rem", color: "text.secondary", textAlign: "center", fontFamily: '"Plus Jakarta Sans", sans-serif', lineHeight: 1.5 }}>
+                Setelah masuk, aktifkan Pro seharga{" "}
+                <Box component="span" sx={{ color: accent, fontWeight: 700 }}>Rp99.000/bulan</Box>
               </Typography>
             </Box>
           </Stack>
-        ) : (
-          <Stack spacing={2.5}>
+        )}
+
+        {isProMode && (
+          <Stack spacing={2}>
             <Box sx={{ textAlign: "center" }}>
-              <Box
-                sx={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: "14px",
-                  background: `linear-gradient(135deg, ${accentLight}, rgba(129,140,248,0.08))`,
-                  border: `1px solid ${isDark ? "rgba(212,168,67,0.2)" : "rgba(161,124,47,0.15)"}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  mx: "auto",
-                  mb: 1.5,
-                }}
-              >
-                <AutoAwesomeIcon sx={{ fontSize: 22, color: accent }} />
-              </Box>
-
               <Box sx={{ mb: 0.75 }}>
-                <Chip
-                  label="Promo Terbatas"
-                  size="small"
-                  sx={{
-                    fontSize: "0.6rem",
-                    height: 18,
-                    fontWeight: 700,
-                    bgcolor: isDark ? "rgba(251,113,133,0.12)" : "rgba(225,29,72,0.08)",
-                    color: isDark ? "#fb7185" : "#e11d48",
-                    fontFamily: '"JetBrains Mono", monospace',
-                    letterSpacing: "0.04em",
-                    mb: 1,
-                  }}
-                />
+                <Chip label="Promo Terbatas" size="small" sx={{
+                  fontSize: "0.6rem", height: 18, fontWeight: 700,
+                  bgcolor: isDark ? "rgba(251,113,133,0.12)" : "rgba(225,29,72,0.08)",
+                  color: isDark ? "#fb7185" : "#e11d48",
+                  fontFamily: '"JetBrains Mono", monospace', letterSpacing: "0.04em",
+                }} />
               </Box>
-
-              <Typography
-                sx={{
-                  fontFamily: '"Outfit", sans-serif',
-                  fontWeight: 800,
-                  fontSize: "1.15rem",
-                  letterSpacing: "-0.025em",
-                  mb: 0.5,
-                }}
-              >
+              <Typography sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, fontSize: "1.15rem", letterSpacing: "-0.025em", mb: 0.4 }}>
                 Aktifkan Pro
               </Typography>
-
-              <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 1, mb: 0.5 }}>
-                <Typography
-                  sx={{
-                    fontSize: "0.7rem",
-                    color: "text.secondary",
-                    textDecoration: "line-through",
-                    fontFamily: '"Plus Jakarta Sans", sans-serif',
-                  }}
-                >
+              <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "center", gap: 1, mb: 0.3 }}>
+                <Typography sx={{ fontSize: "0.7rem", color: "text.secondary", textDecoration: "line-through", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
                   Rp559.000
                 </Typography>
-                <Typography
-                  sx={{
-                    fontFamily: '"Outfit", sans-serif',
-                    fontWeight: 800,
-                    fontSize: "1.6rem",
-                    letterSpacing: "-0.03em",
-                    color: accent,
-                    lineHeight: 1,
-                  }}
-                >
+                <Typography sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, fontSize: "1.6rem", letterSpacing: "-0.03em", color: accent, lineHeight: 1 }}>
                   Rp99.000
                 </Typography>
                 <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
                   /bulan
                 </Typography>
               </Box>
-
-              <Typography
-                sx={{
-                  fontSize: "0.7rem",
-                  color: "text.secondary",
-                  fontFamily: '"Plus Jakarta Sans", sans-serif',
-                }}
-              >
-                Hemat 82% — harga spesial untuk early adopters
+              <Typography sx={{ fontSize: "0.68rem", color: "text.secondary", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
+                Hemat 82% — harga spesial early adopters
               </Typography>
             </Box>
 
-            <Stack spacing={1}>
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0.75 }}>
               {PRO_FEATURES.map((f, i) => (
-                <Box
-                  key={i}
-                  sx={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 1,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: "6px",
-                      bgcolor: accentLight,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      flexShrink: 0,
-                      color: accent,
-                      mt: 0.1,
-                    }}
-                  >
-                    {f.icon}
-                  </Box>
-                  <Typography
-                    sx={{
-                      fontSize: "0.78rem",
-                      color: isDark ? "rgba(232,237,245,0.85)" : "rgba(12,18,34,0.75)",
-                      fontFamily: '"Plus Jakarta Sans", sans-serif',
-                      lineHeight: 1.4,
-                    }}
-                  >
+                <Box key={i} sx={{
+                  display: "flex", alignItems: "flex-start", gap: 0.75,
+                  p: 1, borderRadius: "10px",
+                  bgcolor: isDark ? "rgba(107,127,163,0.05)" : "rgba(12,18,34,0.025)",
+                  border: `1px solid ${isDark ? "rgba(107,127,163,0.08)" : "rgba(12,18,34,0.05)"}`,
+                }}>
+                  <Box sx={{ color: accent, flexShrink: 0, mt: 0.1 }}>{f.icon}</Box>
+                  <Typography sx={{ fontSize: "0.7rem", color: isDark ? "rgba(232,237,245,0.82)" : "rgba(12,18,34,0.7)", fontFamily: '"Plus Jakarta Sans", sans-serif', lineHeight: 1.4 }}>
                     {f.text}
                   </Typography>
                 </Box>
               ))}
-            </Stack>
+            </Box>
 
             <Button
               fullWidth
               variant="contained"
-              onClick={handlePayment}
-              startIcon={<CheckCircleIcon sx={{ fontSize: 18 }} />}
+              onClick={() => setMode("payment")}
               sx={{
-                background: isDark
-                  ? "linear-gradient(135deg, #d4a843, #e8c468)"
-                  : "linear-gradient(135deg, #a17c2f, #c49a3a)",
-                color: "#060a14",
-                fontWeight: 800,
-                fontSize: "0.88rem",
-                borderRadius: "12px",
-                py: 1.2,
-                letterSpacing: "-0.01em",
+                background: isDark ? "linear-gradient(135deg, #d4a843, #e8c468)" : "linear-gradient(135deg, #a17c2f, #c49a3a)",
+                color: "#060a14", fontWeight: 800, fontSize: "0.9rem",
+                borderRadius: "12px", py: 1.25, letterSpacing: "-0.01em",
                 fontFamily: '"Outfit", sans-serif',
-                boxShadow: isDark
-                  ? "0 4px 20px rgba(212,168,67,0.25)"
-                  : "0 4px 20px rgba(161,124,47,0.2)",
+                boxShadow: isDark ? "0 4px 20px rgba(212,168,67,0.3)" : "0 4px 20px rgba(161,124,47,0.22)",
                 "&:hover": {
-                  background: isDark
-                    ? "linear-gradient(135deg, #e8c468, #f0d070)"
-                    : "linear-gradient(135deg, #c49a3a, #d4aa45)",
-                  boxShadow: isDark
-                    ? "0 6px 28px rgba(212,168,67,0.35)"
-                    : "0 6px 28px rgba(161,124,47,0.3)",
+                  background: isDark ? "linear-gradient(135deg, #e8c468, #f0d070)" : "linear-gradient(135deg, #c49a3a, #d4aa45)",
+                  boxShadow: isDark ? "0 6px 28px rgba(212,168,67,0.4)" : "0 6px 28px rgba(161,124,47,0.32)",
                 },
               }}
             >
-              Bayar via Mayar.id — Rp99.000/bln
+              Bayar Sekarang — Rp99.000/bln
             </Button>
 
-            <Typography
-              sx={{
-                fontSize: "0.65rem",
-                color: "text.secondary",
-                textAlign: "center",
-                fontFamily: '"Plus Jakarta Sans", sans-serif',
-                lineHeight: 1.5,
-              }}
-            >
-              Pembayaran diproses oleh{" "}
-              <Box component="span" sx={{ fontWeight: 600 }}>
-                Mayar.id
-              </Box>
-              {" "}· Transfer bank, QRIS, e-wallet tersedia · Aktif dalam 1x24 jam
+            <Typography sx={{ fontSize: "0.62rem", color: "text.secondary", textAlign: "center", fontFamily: '"Plus Jakarta Sans", sans-serif', lineHeight: 1.5 }}>
+              Transfer bank · QRIS · e-wallet · Diproses oleh <Box component="span" sx={{ fontWeight: 600 }}>Mayar.id</Box> · Aktif dalam 1x24 jam
             </Typography>
 
             {!user && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                 <Divider sx={{ flex: 1 }} />
-                <Button
-                  size="small"
-                  startIcon={<EmailIcon sx={{ fontSize: 14 }} />}
-                  onClick={() => setMode("login")}
-                  sx={{
-                    fontSize: "0.68rem",
-                    color: "text.secondary",
-                    fontFamily: '"Plus Jakarta Sans", sans-serif',
-                    px: 1.5,
-                    borderRadius: "8px",
-                    "&:hover": { color: accent },
-                  }}
-                >
-                  Sudah bayar? Masuk
+                <Button size="small" onClick={() => setMode("login")}
+                  sx={{ fontSize: "0.68rem", color: "text.secondary", fontFamily: '"Plus Jakarta Sans", sans-serif', px: 1.5, borderRadius: "8px", "&:hover": { color: accent } }}>
+                  Sudah punya akun? Masuk
                 </Button>
                 <Divider sx={{ flex: 1 }} />
               </Box>
             )}
           </Stack>
         )}
+
+        {isPaymentMode && (
+          <Box>
+            <Box sx={{ mb: 1.5, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <Box>
+                <Typography sx={{ fontSize: "0.7rem", color: "text.secondary", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
+                  Pro Member · 1 bulan
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.5 }}>
+                <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", textDecoration: "line-through", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
+                  Rp559.000
+                </Typography>
+                <Typography sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, fontSize: "1.1rem", color: accent, letterSpacing: "-0.02em", lineHeight: 1 }}>
+                  Rp99.000
+                </Typography>
+              </Box>
+            </Box>
+            <MayarEmbed />
+            <Typography sx={{ fontSize: "0.6rem", color: "text.secondary", textAlign: "center", fontFamily: '"Plus Jakarta Sans", sans-serif', mt: 1.5, lineHeight: 1.5 }}>
+              Setelah pembayaran dikonfirmasi, akun kamu akan diaktifkan otomatis dalam 1x24 jam.
+            </Typography>
+          </Box>
+        )}
+
       </DialogContent>
     </Dialog>
   );
