@@ -425,32 +425,9 @@ async function aggregateMarketData(
   };
 }
 
-async function fetchUnsplashImage(sentiment: string): Promise<string | null> {
-  const accessKey = process.env.UNSPLASH_ACCESS_KEY;
-  if (!accessKey) return null;
-
-  const queryMap: Record<string, string> = {
-    bullish: "stock market trading finance green",
-    bearish: "stock market finance red chart",
-    neutral: "indonesia jakarta skyline cityscape",
-    cautious: "financial district city evening",
-  };
-  const query = queryMap[sentiment] || queryMap.neutral;
-
-  try {
-    const res = await fetch(
-      `https://api.unsplash.com/photos/random?query=${encodeURIComponent(query)}&orientation=landscape&content_filter=high`,
-      {
-        headers: { Authorization: `Client-ID ${accessKey}` },
-        signal: AbortSignal.timeout(5000),
-      }
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.urls?.regular || null;
-  } catch {
-    return null;
-  }
+function generateCoverImageUrl(date: string, sentiment: string): string {
+  const hash = Array.from(date + sentiment).reduce((a, c) => a + c.charCodeAt(0), 0);
+  return `https://picsum.photos/seed/${date}-${hash}/1200/600`;
 }
 
 const REPORT_SCHEMA = `{
@@ -682,8 +659,8 @@ Generate a comprehensive daily market intelligence report including: deep techni
 
   const anthropic = new Anthropic({ apiKey });
 
-  const response = await anthropic.messages.create({
-    model: "claude-4-opus-20260630",
+  const stream = anthropic.messages.stream({
+    model: "claude-opus-4-6",
     max_tokens: 24000,
     thinking: {
       type: "enabled",
@@ -692,6 +669,8 @@ Generate a comprehensive daily market intelligence report including: deep techni
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
   });
+
+  const response = await stream.finalMessage();
 
   const textBlock = response.content.find((b) => b.type === "text");
   const text = textBlock?.type === "text" ? textBlock.text : "";
@@ -704,7 +683,7 @@ Generate a comprehensive daily market intelligence report including: deep techni
   const report = JSON.parse(cleaned);
 
   const sentiment = report.marketOutlook?.sentiment || "neutral";
-  const imageUrl = await fetchUnsplashImage(sentiment);
+  const imageUrl = generateCoverImageUrl(marketData.tradingDate, sentiment);
   const title = report.title || null;
 
   const { error: upsertError } = await supabase
