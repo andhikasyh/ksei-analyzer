@@ -17,6 +17,10 @@ import {
 import { BrokerSummaryPanel } from "@/components/BrokerSummary";
 import { CompanyProfilePanel } from "@/components/CompanyProfile";
 import { TradingViewChart } from "@/components/TradingViewChart";
+import { MarketOverviewPanel } from "@/components/MarketOverview";
+import { FinancialTrendsPanel } from "@/components/FinancialTrends";
+import { DividendHistoryPanel } from "@/components/DividendHistory";
+import { ShareholderHistoryPanel } from "@/components/ShareholderHistory";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
@@ -283,6 +287,8 @@ export default function StockDetailPage() {
 
       <TradingViewChart stockCode={code} />
 
+      <MarketOverviewPanel stockCode={code} />
+
       <CompanyProfilePanel stockCode={code} />
 
       {graphNodes.length > 0 && (
@@ -302,6 +308,12 @@ export default function StockDetailPage() {
           <OwnershipPieChart data={typeChartData} title="By Investor Type" />
         </Grid>
       </Grid>
+
+      <FinancialTrendsPanel stockCode={code} />
+
+      <DividendHistoryPanel stockCode={code} />
+
+      <ShareholderHistoryPanel stockCode={code} />
 
       <BrokerSummaryPanel stockCode={code} />
 

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
-import { supabase } from "@/lib/supabase";
+import { supabase, TABLE_NAME } from "@/lib/supabase";
 import {
+  KSEIRecord,
   IDXFinancialRatio,
   IDXCompanyPerson,
   formatBillion,
@@ -158,42 +159,135 @@ function PersonTable({ people }: { people: IDXCompanyPerson[] }) {
   );
 }
 
-function scoreMetric(value: number, low: number, high: number): number {
-  return Math.max(0, Math.min(100, ((value - low) / (high - low)) * 100));
+function clampScore(v: number): number {
+  return Math.max(0, Math.min(100, v));
+}
+
+function scoreROE(roe: number): number {
+  if (roe <= 0) return clampScore(5 + roe);
+  if (roe <= 20) return clampScore((roe / 20) * 85 + 15);
+  return clampScore(95 + (roe - 20) * 0.25);
+}
+
+function scoreROA(roa: number): number {
+  if (roa <= 0) return clampScore(5 + roa * 2);
+  if (roa <= 3) return clampScore((roa / 3) * 70 + 15);
+  if (roa <= 10) return clampScore(85 + ((roa - 3) / 7) * 15);
+  return 100;
+}
+
+function scoreNPM(npm: number): number {
+  if (npm <= 0) return clampScore(5 + npm * 0.5);
+  if (npm <= 15) return clampScore((npm / 15) * 60 + 15);
+  if (npm <= 40) return clampScore(75 + ((npm - 15) / 25) * 20);
+  return clampScore(95 + (npm - 40) * 0.1);
 }
 
 function scorePE(pe: number): number {
-  if (pe < 0) return 10;
-  if (pe <= 15) return 90 + (15 - pe);
-  if (pe <= 30) return 90 - ((pe - 15) / 15) * 40;
-  return Math.max(5, 50 - ((pe - 30) / 50) * 45);
+  if (pe < 0) return 8;
+  if (pe <= 5) return clampScore(60 + pe * 6);
+  if (pe <= 15) return clampScore(95 - (pe - 5) * 0.5);
+  if (pe <= 30) return clampScore(90 - (pe - 15) * 2);
+  if (pe <= 60) return clampScore(60 - (pe - 30) * 1.5);
+  return 10;
 }
 
 function scoreDE(de: number): number {
-  if (de < 0) return 10;
-  return Math.max(5, 100 / (1 + de * 0.8));
+  if (de < 0) return 8;
+  if (de <= 1) return clampScore(95 - de * 10);
+  if (de <= 3) return clampScore(85 - (de - 1) * 15);
+  if (de <= 7) return clampScore(55 - (de - 3) * 7);
+  return clampScore(Math.max(8, 27 - (de - 7) * 2));
 }
 
-function buildRadarData(fin: IDXFinancialRatio) {
+interface OwnershipMetrics {
+  investorCount: number;
+  foreignPct: number;
+  institutionalPct: number;
+  topHolderPct: number;
+}
+
+function computeOwnershipMetrics(records: KSEIRecord[]): OwnershipMetrics {
+  if (records.length === 0) {
+    return { investorCount: 0, foreignPct: 0, institutionalPct: 0, topHolderPct: 0 };
+  }
+
+  const totalPct = records.reduce((s, r) => s + r.PERCENTAGE, 0);
+  const foreignPct = records
+    .filter((r) => r.LOCAL_FOREIGN === "A")
+    .reduce((s, r) => s + r.PERCENTAGE, 0);
+  const institutionalTypes = new Set(["MF", "PF", "IS", "IB", "SC"]);
+  const institutionalPct = records
+    .filter((r) => institutionalTypes.has(r.INVESTOR_TYPE))
+    .reduce((s, r) => s + r.PERCENTAGE, 0);
+  const topHolderPct = Math.max(...records.map((r) => r.PERCENTAGE), 0);
+
+  const normalizedForeign = totalPct > 0 ? (foreignPct / totalPct) * 100 : 0;
+  const normalizedInstitutional = totalPct > 0 ? (institutionalPct / totalPct) * 100 : 0;
+
+  return {
+    investorCount: records.length,
+    foreignPct: normalizedForeign,
+    institutionalPct: normalizedInstitutional,
+    topHolderPct,
+  };
+}
+
+function scoreOwnership(m: OwnershipMetrics): { score: number; raw: string } {
+  if (m.investorCount === 0) return { score: 0, raw: "No data" };
+
+  const diversityScore = clampScore(Math.min(100, Math.log2(m.investorCount + 1) * 15));
+
+  let foreignScore: number;
+  if (m.foreignPct <= 5) foreignScore = 30 + m.foreignPct * 4;
+  else if (m.foreignPct <= 35) foreignScore = 50 + ((m.foreignPct - 5) / 30) * 50;
+  else foreignScore = clampScore(100 - (m.foreignPct - 35) * 0.8);
+
+  const instScore = clampScore(m.institutionalPct * 2.5);
+
+  let concScore: number;
+  if (m.topHolderPct <= 30) concScore = 90;
+  else if (m.topHolderPct <= 60) concScore = 90 - (m.topHolderPct - 30);
+  else concScore = clampScore(60 - (m.topHolderPct - 60) * 1.5);
+
+  const total = Math.round(
+    diversityScore * 0.2 + foreignScore * 0.3 + instScore * 0.25 + concScore * 0.25
+  );
+
+  const parts = [];
+  if (m.foreignPct > 0) parts.push(`${m.foreignPct.toFixed(0)}% foreign`);
+  parts.push(`${m.investorCount} investors`);
+
+  return { score: clampScore(total), raw: parts.join(", ") };
+}
+
+function buildRadarData(fin: IDXFinancialRatio, ownership?: OwnershipMetrics) {
   const roe = parseFloat(fin.roe) || 0;
   const roa = parseFloat(fin.roa) || 0;
   const npm = parseFloat(fin.npm) || 0;
   const per = parseFloat(fin.per) || 0;
   const de = parseFloat(fin.de_ratio) || 0;
 
-  return [
-    { axis: "Profitability", value: scoreMetric(roe, -10, 30), raw: `ROE ${roe.toFixed(1)}%` },
-    { axis: "Efficiency", value: scoreMetric(roa, -5, 15), raw: `ROA ${roa.toFixed(1)}%` },
-    { axis: "Margins", value: scoreMetric(npm, -10, 30), raw: `NPM ${npm.toFixed(1)}%` },
-    { axis: "Valuation", value: scorePE(per), raw: `P/E ${per.toFixed(1)}x` },
+  const data = [
+    { axis: "Profitability", value: scoreROE(roe), raw: `ROE ${roe.toFixed(2)}%` },
+    { axis: "Efficiency", value: scoreROA(roa), raw: `ROA ${roa.toFixed(2)}%` },
+    { axis: "Margins", value: scoreNPM(npm), raw: `NPM ${npm.toFixed(2)}%` },
+    { axis: "Valuation", value: scorePE(per), raw: `P/E ${per.toFixed(2)}x` },
     { axis: "Stability", value: scoreDE(de), raw: `D/E ${de.toFixed(2)}` },
   ];
+
+  if (ownership && ownership.investorCount > 0) {
+    const ow = scoreOwnership(ownership);
+    data.push({ axis: "Ownership", value: ow.score, raw: ow.raw });
+  }
+
+  return data;
 }
 
-function PerformanceRadar({ financials }: { financials: IDXFinancialRatio }) {
+function PerformanceRadar({ financials, ownership }: { financials: IDXFinancialRatio; ownership?: OwnershipMetrics }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const data = buildRadarData(financials);
+  const data = buildRadarData(financials, ownership);
   const avg = Math.round(data.reduce((s, d) => s + d.value, 0) / data.length);
 
   const gridColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
@@ -287,17 +381,19 @@ export function CompanyProfilePanel({ stockCode }: CompanyProfileProps) {
   const [directors, setDirectors] = useState<IDXCompanyPerson[]>([]);
   const [commissioners, setCommissioners] = useState<IDXCompanyPerson[]>([]);
   const [secretaries, setSecretaries] = useState<IDXCompanyPerson[]>([]);
+  const [ownershipMetrics, setOwnershipMetrics] = useState<OwnershipMetrics | undefined>();
   const [loading, setLoading] = useState(true);
   const [mgmtTab, setMgmtTab] = useState(0);
 
   useEffect(() => {
     async function fetchAll() {
       setLoading(true);
-      const [finRes, dirRes, comRes, secRes] = await Promise.all([
+      const [finRes, dirRes, comRes, secRes, ownRes] = await Promise.all([
         supabase
           .from("idx_financial_ratios")
           .select("*")
           .eq("code", stockCode)
+          .order("fs_date", { ascending: false })
           .limit(1)
           .maybeSingle(),
         supabase
@@ -315,12 +411,17 @@ export function CompanyProfilePanel({ stockCode }: CompanyProfileProps) {
           .select("*")
           .eq("kode_emiten", stockCode)
           .order("id"),
+        supabase
+          .from(TABLE_NAME)
+          .select("INVESTOR_NAME, INVESTOR_TYPE, LOCAL_FOREIGN, PERCENTAGE")
+          .eq("SHARE_CODE", stockCode),
       ]);
 
       if (finRes.data) setFinancials(finRes.data as IDXFinancialRatio);
       if (dirRes.data) setDirectors(dirRes.data as IDXCompanyPerson[]);
       if (comRes.data) setCommissioners(comRes.data as IDXCompanyPerson[]);
       if (secRes.data) setSecretaries(secRes.data as IDXCompanyPerson[]);
+      if (ownRes.data) setOwnershipMetrics(computeOwnershipMetrics(ownRes.data as KSEIRecord[]));
       setLoading(false);
     }
     fetchAll();
@@ -480,7 +581,7 @@ export function CompanyProfilePanel({ stockCode }: CompanyProfileProps) {
       )}
 
       {hasFinancials && financials && (
-        <PerformanceRadar financials={financials} />
+        <PerformanceRadar financials={financials} ownership={ownershipMetrics} />
       )}
 
       {hasMgmt && mgmtTabs.length > 0 && (

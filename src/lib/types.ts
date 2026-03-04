@@ -145,6 +145,76 @@ export interface IDXCompanyPerson {
   created_at: string;
 }
 
+export interface IDXDividend {
+  id: number;
+  code: string;
+  name: string;
+  currency: string;
+  cash_dividend: string;
+  cum_dividend: string;
+  ex_dividend: string;
+  record_date: string;
+  payment_date: string;
+  note: string;
+  created_at: string;
+}
+
+export interface IDXBrokerSummary {
+  id: number;
+  code: string;
+  date: string;
+  broker_code: string;
+  broker_name: string;
+  volume: string;
+  value: string;
+  frequency: number;
+  created_at: string;
+}
+
+export interface IDXShareholder {
+  id: number;
+  snapshot_date: string;
+  kode_emiten: string;
+  nama: string;
+  kategori: string;
+  jumlah: string;
+  persentase: string;
+  pengendali: boolean;
+  created_at: string;
+}
+
+export interface IDXStockSummary {
+  id: number;
+  date: string;
+  stock_code: string;
+  stock_name: string;
+  remarks: string;
+  previous: string;
+  open_price: string;
+  first_trade: string;
+  high: string;
+  low: string;
+  close: string;
+  change: string;
+  volume: string;
+  value: string;
+  frequency: number;
+  index_individual: string;
+  offer: string;
+  offer_volume: string;
+  bid: string;
+  bid_volume: string;
+  listed_shares: string;
+  tradeable_shares: string;
+  weight_for_index: string;
+  foreign_sell: string;
+  foreign_buy: string;
+  non_regular_volume: string;
+  non_regular_value: string;
+  non_regular_frequency: number;
+  created_at: string;
+}
+
 export function formatBillion(value: string | number): string {
   const num = typeof value === "string" ? parseFloat(value) : value;
   if (isNaN(num)) return "-";

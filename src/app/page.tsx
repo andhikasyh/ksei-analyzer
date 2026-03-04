@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { supabase, TABLE_NAME } from "@/lib/supabase";
-import { KSEIRecord, INVESTOR_TYPE_MAP, formatShares } from "@/lib/types";
+import { KSEIRecord, IDXStockSummary, INVESTOR_TYPE_MAP, formatShares, formatValue } from "@/lib/types";
 import { StatsCard, StatsCardSkeleton } from "@/components/StatsCard";
 import { GlobalSearch } from "@/components/SearchInput";
 import { InvestorTypeBadge, LocalForeignBadge } from "@/components/Badge";
@@ -25,6 +25,9 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import PeopleIcon from "@mui/icons-material/People";
 import PublicIcon from "@mui/icons-material/Public";
 import FlagIcon from "@mui/icons-material/Flag";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import TrendingDownIcon from "@mui/icons-material/TrendingDown";
+import WhatshotIcon from "@mui/icons-material/Whatshot";
 
 interface TypeBreakdown {
   code: string;
@@ -87,8 +90,20 @@ function aggregateInvestors(records: KSEIRecord[]): TopInvestor[] {
     .slice(0, 10);
 }
 
+interface MarketMover {
+  code: string;
+  name: string;
+  close: number;
+  change: number;
+  changePct: number;
+  volume: number;
+  value: number;
+  foreignNet: number;
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [movers, setMovers] = useState<{ gainers: MarketMover[]; losers: MarketMover[]; active: MarketMover[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -96,10 +111,39 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const { data: records, error: fetchError } = await supabase
-          .from(TABLE_NAME)
-          .select("*")
-          .order("PERCENTAGE", { ascending: false });
+        const [kseiRes, stockRes] = await Promise.all([
+          supabase.from(TABLE_NAME).select("*").order("PERCENTAGE", { ascending: false }),
+          supabase.from("idx_stock_summary").select("*").order("date", { ascending: false }).limit(2000),
+        ]);
+
+        if (stockRes.data) {
+          const latestMap = new Map<string, IDXStockSummary>();
+          (stockRes.data as IDXStockSummary[]).forEach((r) => {
+            const existing = latestMap.get(r.stock_code);
+            if (!existing || r.date > existing.date) latestMap.set(r.stock_code, r);
+          });
+          const all: MarketMover[] = Array.from(latestMap.values()).map((r) => {
+            const close = parseFloat(r.close) || 0;
+            const prev = parseFloat(r.previous) || 0;
+            const change = parseFloat(r.change) || 0;
+            return {
+              code: r.stock_code,
+              name: r.stock_name,
+              close,
+              change,
+              changePct: prev > 0 ? (change / prev) * 100 : 0,
+              volume: parseFloat(r.volume) || 0,
+              value: parseFloat(r.value) || 0,
+              foreignNet: (parseFloat(r.foreign_buy) || 0) - (parseFloat(r.foreign_sell) || 0),
+            };
+          });
+          const gainers = [...all].filter((m) => m.changePct > 0).sort((a, b) => b.changePct - a.changePct).slice(0, 8);
+          const losers = [...all].filter((m) => m.changePct < 0).sort((a, b) => a.changePct - b.changePct).slice(0, 8);
+          const active = [...all].sort((a, b) => b.value - a.value).slice(0, 8);
+          setMovers({ gainers, losers, active });
+        }
+
+        const { data: records, error: fetchError } = kseiRes;
 
         if (fetchError) throw fetchError;
         if (!records || records.length === 0) {
@@ -340,6 +384,21 @@ export default function DashboardPage() {
           </Typography>
         </Box>
       </Paper>
+
+      {/* MARKET MOVERS */}
+      {movers && (
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <MoverTable title="Top Gainers" icon={<TrendingUpIcon sx={{ color: "#22c55e", fontSize: 18 }} />} movers={movers.gainers} router={router} type="gain" />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <MoverTable title="Top Losers" icon={<TrendingDownIcon sx={{ color: "#ef4444", fontSize: 18 }} />} movers={movers.losers} router={router} type="loss" />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <MoverTable title="Most Active" icon={<WhatshotIcon sx={{ color: "#f59e0b", fontSize: 18 }} />} movers={movers.active} router={router} type="active" />
+          </Grid>
+        </Grid>
+      )}
 
       {/* 3. MARKET OVERVIEW */}
       <Box>
@@ -676,5 +735,79 @@ function InvestorTable({
         </Table>
       </TableContainer>
     </Box>
+  );
+}
+
+function MoverTable({
+  title,
+  icon,
+  movers,
+  router,
+  type,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  movers: MarketMover[];
+  router: ReturnType<typeof useRouter>;
+  type: "gain" | "loss" | "active";
+}) {
+  return (
+    <Paper sx={{ borderRadius: 3, overflow: "hidden", height: "100%" }}>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 2, pt: 2, pb: 1 }}>
+        {icon}
+        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+          {title}
+        </Typography>
+      </Stack>
+      <TableContainer>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Code</TableCell>
+              <TableCell align="right">Price</TableCell>
+              <TableCell align="right">{type === "active" ? "Value" : "Change"}</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {movers.map((m) => {
+              const color = m.change > 0 ? "#22c55e" : m.change < 0 ? "#ef4444" : "text.secondary";
+              return (
+                <TableRow
+                  key={m.code}
+                  hover
+                  sx={{ cursor: "pointer", "&:last-child td": { borderBottom: 0 } }}
+                  onClick={() => router.push(`/stock/${m.code}`)}
+                >
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: "monospace", color: "primary.main", fontSize: "0.8rem" }}>
+                      {m.code}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem", display: "block", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {m.name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+                      {m.close.toLocaleString()}
+                    </Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    {type === "active" ? (
+                      <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+                        {formatValue(m.value)}
+                      </Typography>
+                    ) : (
+                      <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600, color }}>
+                        {m.changePct > 0 ? "+" : ""}{m.changePct.toFixed(2)}%
+                      </Typography>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </TableContainer>
+    </Paper>
   );
 }

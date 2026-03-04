@@ -1,0 +1,112 @@
+[
+    {
+      "id": 1,
+      "snapshot_date": "2026-03-04",
+      "kode_emiten": "AADI",
+      "nama": "Budi Bowoleksono",
+      "kategori": "Komisaris",
+      "jumlah": "0.0",
+      "persentase": "0.0",
+      "pengendali": false,
+      "created_at": "2026-03-04 07:21:11.676853+00"
+    },
+    {
+      "id": 2,
+      "snapshot_date": "2026-03-04",
+      "kode_emiten": "AADI",
+      "nama": "Primus Dorimulu",
+      "kategori": "Komisaris",
+      "jumlah": "8500.0",
+      "persentase": "0.0001",
+      "pengendali": false,
+      "created_at": "2026-03-04 07:21:11.676853+00"
+    },
+    {
+      "id": 3,
+      "snapshot_date": "2026-03-04",
+      "kode_emiten": "AADI",
+      "nama": "Julius Aslan",
+      "kategori": "Direksi",
+      "jumlah": "2506265.0",
+      "persentase": "0.0322",
+      "pengendali": false,
+      "created_at": "2026-03-04 07:21:11.676853+00"
+    },
+    {
+      "id": 4,
+      "snapshot_date": "2026-03-04",
+      "kode_emiten": "AADI",
+      "nama": "Priyadi",
+      "kategori": "Direksi",
+      "jumlah": "207108.0",
+      "persentase": "0.0027",
+      "pengendali": false,
+      "created_at": "2026-03-04 07:21:11.676853+00"
+    },
+    {
+      "id": 5,
+      "snapshot_date": "2026-03-04",
+      "kode_emiten": "AADI",
+      "nama": "Lie Luckman",
+      "kategori": "Direksi",
+      "jumlah": "0.0",
+      "persentase": "0.0",
+      "pengendali": false,
+      "created_at": "2026-03-04 07:21:11.676853+00"
+    },
+    {
+      "id": 6,
+      "snapshot_date": "2026-03-04",
+      "kode_emiten": "AADI",
+      "nama": "Susanti",
+      "kategori": "Direksi",
+      "jumlah": "22700.0",
+      "persentase": "0.0003",
+      "pengendali": false,
+      "created_at": "2026-03-04 07:21:11.676853+00"
+    },
+    {
+      "id": 7,
+      "snapshot_date": "2026-03-04",
+      "kode_emiten": "AADI",
+      "nama": "Afiliasi",
+      "kategori": "Lebih dari 5%",
+      "jumlah": "1465036871.0",
+      "persentase": "18.8141",
+      "pengendali": false,
+      "created_at": "2026-03-04 07:21:11.676853+00"
+    },
+    {
+      "id": 8,
+      "snapshot_date": "2026-03-04",
+      "kode_emiten": "AADI",
+      "nama": "PT Adaro Strategic Investments",
+      "kategori": "Lebih dari 5%",
+      "jumlah": "3200142830.0",
+      "persentase": "41.0965",
+      "pengendali": true,
+      "created_at": "2026-03-04 07:21:11.676853+00"
+    },
+    {
+      "id": 9,
+      "snapshot_date": "2026-03-04",
+      "kode_emiten": "AADI",
+      "nama": "Garibaldi Thohir",
+      "kategori": "Lebih dari 5%",
+      "jumlah": "454011607.0",
+      "persentase": "5.8305",
+      "pengendali": true,
+      "created_at": "2026-03-04 07:21:11.676853+00"
+    },
+    {
+      "id": 10,
+      "snapshot_date": "2026-03-04",
+      "kode_emiten": "AADI",
+      "nama": "PT Alamtri Resources Indonesia Tbk (sebelumnya bernama PT Adaro Energy Indonesia Tbk)",
+      "kategori": "Lebih dari 5%",
+      "jumlah": "1197023942.0",
+      "persentase": "15.3723",
+      "pengendali": false,
+      "created_at": "2026-03-04 07:21:11.676853+00"
+    }
+  ]
