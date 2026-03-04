@@ -30,10 +30,10 @@ interface FinancialTrendsProps {
 
 function useChartColors(isDark: boolean) {
   return {
-    text: isDark ? "#a1a1aa" : "#71717a",
+    text: isDark ? "#6b7fa3" : "#546280",
     grid: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-    bg: isDark ? "#27272a" : "#fff",
-    border: isDark ? "#3f3f46" : "#e4e4e7",
+    bg: isDark ? "#111b30" : "#fff",
+    border: isDark ? "rgba(107,127,163,0.15)" : "#e4e4e7",
   };
 }
 
@@ -108,9 +108,9 @@ export function FinancialTrendsPanel({ stockCode }: FinancialTrendsProps) {
       border: `1px solid ${colors.border}`,
       borderRadius: "8px",
       fontSize: "12px",
-      color: isDark ? "#fafafa" : "#09090b",
+      color: isDark ? "#e8edf5" : "#0c1222",
     },
-    labelStyle: { color: isDark ? "#fafafa" : "#09090b", fontWeight: 600 },
+    labelStyle: { color: isDark ? "#e8edf5" : "#0c1222", fontWeight: 600 },
   };
 
   return (
@@ -141,9 +141,9 @@ export function FinancialTrendsPanel({ stockCode }: FinancialTrendsProps) {
                   formatter={(v: number, name: string) => [formatBillion(v), name]}
                 />
                 <Legend wrapperStyle={{ fontSize: "11px" }} iconSize={8} />
-                <Bar dataKey="assets" name="Assets" fill="#3b82f6" radius={[2, 2, 0, 0]} />
-                <Bar dataKey="liabilities" name="Liabilities" fill="#ef4444" radius={[2, 2, 0, 0]} opacity={0.7} />
-                <Bar dataKey="equity" name="Equity" fill="#22c55e" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="assets" name="Assets" fill="#d4a843" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="liabilities" name="Liabilities" fill="#fb7185" radius={[2, 2, 0, 0]} opacity={0.7} />
+                <Bar dataKey="equity" name="Equity" fill="#34d399" radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -183,9 +183,9 @@ export function FinancialTrendsPanel({ stockCode }: FinancialTrendsProps) {
                   formatter={(v: number, name: string) => [`${v.toFixed(2)}%`, name]}
                 />
                 <Legend wrapperStyle={{ fontSize: "11px" }} iconSize={8} />
-                <Line type="monotone" dataKey="roe" name="ROE" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="roa" name="ROA" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="npm" name="NPM" stroke="#f59e0b" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="roe" name="ROE" stroke="#34d399" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="roa" name="ROA" stroke="#d4a843" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="npm" name="NPM" stroke="#fbbf24" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -205,7 +205,7 @@ export function FinancialTrendsPanel({ stockCode }: FinancialTrendsProps) {
                 <Legend wrapperStyle={{ fontSize: "11px" }} iconSize={8} />
                 <Line type="monotone" dataKey="per" name="P/E" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="price_bv" name="P/BV" stroke="#ec4899" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="de_ratio" name="D/E" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="de_ratio" name="D/E" stroke="#fb7185" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
           </ChartCard>

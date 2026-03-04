@@ -45,7 +45,7 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
     script.async = true;
     script.textContent = JSON.stringify({
       width,
-      height: 610,
+      height: 420,
       symbol,
       interval: "D",
       timezone: "Asia/Jakarta",
@@ -84,7 +84,7 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
       <div
         ref={containerRef}
         className="tradingview-widget-container"
-        style={{ height: 610, width: "100%" }}
+        style={{ height: 420, width: "100%" }}
       />
     </Box>
   );

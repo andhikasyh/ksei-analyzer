@@ -112,7 +112,7 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
     return { totalValue: totVal, totalVolume: totVol, maxValue: maxVal };
   }, [brokers]);
 
-  const textColor = isDark ? "#a1a1aa" : "#71717a";
+  const textColor = isDark ? "#6b7fa3" : "#546280";
   const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
 
   if (loading) return <BrokerSummarySkeleton />;
@@ -128,12 +128,12 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
         <Chip
           label={`${brokers.length} brokers`}
           size="small"
-          sx={{ fontSize: "0.7rem", height: 22, fontFamily: "monospace" }}
+          sx={{ fontSize: "0.7rem", height: 22, fontFamily: '"JetBrains Mono", monospace' }}
         />
         <Chip
           label={`${dailyVolume.length} trading days`}
           size="small"
-          sx={{ fontSize: "0.7rem", height: 22, fontFamily: "monospace" }}
+          sx={{ fontSize: "0.7rem", height: 22, fontFamily: '"JetBrains Mono", monospace' }}
         />
       </Stack>
 
@@ -151,15 +151,15 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
                   <YAxis tick={{ fill: textColor, fontSize: 10 }} tickFormatter={(v) => formatShares(v)} />
                   <RechartsTooltip
                     contentStyle={{
-                      background: isDark ? "#27272a" : "#fff",
-                      border: `1px solid ${isDark ? "#3f3f46" : "#e4e4e7"}`,
+                      background: isDark ? "#111b30" : "#fff",
+                      border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "#e4e4e7"}`,
                       borderRadius: "8px",
                       fontSize: "12px",
-                      color: isDark ? "#fafafa" : "#09090b",
+                      color: isDark ? "#e8edf5" : "#0c1222",
                     }}
                     formatter={(v: number) => [formatShares(v), "Volume"]}
                   />
-                  <Bar dataKey="volume" fill="#3b82f6" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="volume" fill="#d4a843" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </Paper>
@@ -176,15 +176,15 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
                   <YAxis tick={{ fill: textColor, fontSize: 10 }} tickFormatter={(v) => formatValue(v)} />
                   <RechartsTooltip
                     contentStyle={{
-                      background: isDark ? "#27272a" : "#fff",
-                      border: `1px solid ${isDark ? "#3f3f46" : "#e4e4e7"}`,
+                      background: isDark ? "#111b30" : "#fff",
+                      border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "#e4e4e7"}`,
                       borderRadius: "8px",
                       fontSize: "12px",
-                      color: isDark ? "#fafafa" : "#09090b",
+                      color: isDark ? "#e8edf5" : "#0c1222",
                     }}
                     formatter={(v: number) => [formatValue(v), "Value"]}
                   />
-                  <Bar dataKey="value" fill="#22c55e" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="value" fill="#34d399" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </Paper>
@@ -228,14 +228,14 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
                 return (
                   <TableRow key={broker.code} sx={{ "&:last-child td": { borderBottom: 0 } }}>
                     <TableCell>
-                      <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
+                      <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: "text.secondary" }}>
                         {i + 1}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Tooltip title={broker.name} placement="top" arrow>
                         <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: "monospace", fontSize: "0.8rem" }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"JetBrains Mono", monospace', fontSize: "0.8rem" }}>
                             {broker.code}
                           </Typography>
                           <Typography
@@ -249,22 +249,22 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
                       </Tooltip>
                     </TableCell>
                     <TableCell align="right">
-                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                      <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         {formatShares(broker.totalVolume)}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+                      <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>
                         {formatValue(broker.totalValue)}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                      <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>
                         {broker.totalFrequency.toLocaleString()}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
-                      <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
+                      <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: "text.secondary" }}>
                         {broker.days}
                       </Typography>
                     </TableCell>
@@ -280,12 +280,12 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
                               bgcolor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
                               "& .MuiLinearProgress-bar": {
                                 borderRadius: 3,
-                                bgcolor: i < 3 ? "#3b82f6" : i < 10 ? "#60a5fa" : isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)",
+                                bgcolor: i < 3 ? "#d4a843" : i < 10 ? "#e8c468" : isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)",
                               },
                             }}
                           />
                         </Box>
-                        <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary", minWidth: 42, textAlign: "right", fontSize: "0.65rem" }}>
+                        <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: "text.secondary", minWidth: 42, textAlign: "right", fontSize: "0.65rem" }}>
                           {sharePct.toFixed(1)}%
                         </Typography>
                       </Box>

@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useTheme } from "@mui/material/styles";
 import { supabase, TABLE_NAME } from "@/lib/supabase";
 import { KSEIRecord, INVESTOR_TYPE_MAP, formatShares } from "@/lib/types";
-import { StatsCard, StatsCardSkeleton } from "@/components/StatsCard";
 import { GlobalSearch } from "@/components/SearchInput";
-import { OwnershipPieChart, ChartSkeleton } from "@/components/Charts";
+import { OwnershipPieChart } from "@/components/Charts";
 import { InvestorTypeBadge, LocalForeignBadge } from "@/components/Badge";
 import {
   ConnectionGraph,
@@ -28,6 +28,8 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
@@ -35,19 +37,18 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import PeopleIcon from "@mui/icons-material/People";
-import PublicIcon from "@mui/icons-material/Public";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import FlagIcon from "@mui/icons-material/Flag";
 
 export default function StockDetailPage() {
   const params = useParams();
   const code = params.code as string;
   const router = useRouter();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const [records, setRecords] = useState<KSEIRecord[]>([]);
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);
   const [graphLinks, setGraphLinks] = useState<GraphLink[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState(0);
 
   useEffect(() => {
     async function fetchData() {
@@ -137,25 +138,18 @@ export default function StockDetailPage() {
 
   if (loading) {
     return (
-      <Stack spacing={3}>
+      <Stack spacing={2}>
         <Skeleton variant="rounded" height={40} sx={{ borderRadius: 2 }} />
-        <Skeleton width={160} height={28} />
-        <Grid container spacing={2}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Grid size={{ xs: 6, lg: 3 }} key={i}>
-              <StatsCardSkeleton />
-            </Grid>
-          ))}
-        </Grid>
+        <Skeleton width={200} height={24} />
+        <Skeleton variant="rounded" height={48} sx={{ borderRadius: 2 }} />
         <ConnectionGraphSkeleton />
-        <Skeleton variant="rounded" height={300} sx={{ borderRadius: 3 }} />
       </Stack>
     );
   }
 
   if (records.length === 0) {
     return (
-      <Stack spacing={3}>
+      <Stack spacing={2}>
         <GlobalSearch compact />
         <Button
           startIcon={<ArrowBackIcon />}
@@ -222,145 +216,214 @@ export default function StockDetailPage() {
   const localBarWidth =
     localForeignTotal > 0 ? (localPct / localForeignTotal) * 100 : 50;
 
+  const metricCell = (label: string, value: string, color?: string) => (
+    <Box sx={{ textAlign: "center", px: 1 }}>
+      <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem", lineHeight: 1 }}>
+        {label}
+      </Typography>
+      <Typography
+        variant="body2"
+        sx={{ fontWeight: 700, fontFamily: "monospace", color: color || "text.primary", lineHeight: 1.4 }}
+      >
+        {value}
+      </Typography>
+    </Box>
+  );
+
   return (
-    <Stack spacing={3}>
+    <Stack spacing={2}>
       <GlobalSearch compact />
 
-      <Button
-        startIcon={<ArrowBackIcon />}
-        onClick={() => router.push("/")}
-        size="small"
-        sx={{ alignSelf: "flex-start", minWidth: "auto" }}
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <Button
+          startIcon={<ArrowBackIcon />}
+          onClick={() => router.push("/")}
+          size="small"
+          sx={{ minWidth: "auto", px: 1.5 }}
+        >
+          Back
+        </Button>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Stack direction="row" spacing={1} alignItems="baseline">
+            <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
+              {code}
+            </Typography>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+            >
+              {issuerName}
+            </Typography>
+          </Stack>
+        </Box>
+      </Stack>
+
+      <Paper
+        sx={{
+          px: 2,
+          py: 1.5,
+          borderRadius: 2.5,
+          display: "flex",
+          alignItems: "center",
+          gap: { xs: 1, sm: 2 },
+          flexWrap: "wrap",
+        }}
       >
-        Dashboard
-      </Button>
-
-      <Box>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          {code}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>
-          {issuerName}
-        </Typography>
-      </Box>
-
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 6, lg: 3 }}>
-          <StatsCard title="Total Investors" value={totalInvestors} icon={<PeopleIcon />} />
-        </Grid>
-        <Grid size={{ xs: 6, lg: 3 }}>
-          <StatsCard title="Local Ownership" value={`${localPct.toFixed(1)}%`} icon={<FlagIcon />} />
-        </Grid>
-        <Grid size={{ xs: 6, lg: 3 }}>
-          <StatsCard title="Foreign Ownership" value={`${foreignPct.toFixed(1)}%`} icon={<PublicIcon />} />
-        </Grid>
-        <Grid size={{ xs: 6, lg: 3 }}>
-          <StatsCard
-            title="Top Holder"
-            value={`${topHolder.PERCENTAGE}%`}
-            subtitle={topHolder.INVESTOR_NAME}
-            icon={<TrendingUpIcon />}
-          />
-        </Grid>
-      </Grid>
-
-      <Paper sx={{ p: 2.5, borderRadius: 3 }}>
-        <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
-          Local vs Foreign Ownership
-        </Typography>
-        <Box sx={{ mt: 1.5, display: "flex", alignItems: "center", gap: 2 }}>
-          <Typography variant="body2" sx={{ fontWeight: 600, color: "#22c55e", minWidth: 52 }}>
-            {localPct.toFixed(1)}%
-          </Typography>
-          <Box sx={{ flex: 1, height: 8, borderRadius: 4, bgcolor: "rgba(245,158,11,0.2)", overflow: "hidden" }}>
-            <Box sx={{ width: `${localBarWidth}%`, height: "100%", borderRadius: 4, bgcolor: "#22c55e", transition: "width 0.6s ease" }} />
+        {metricCell("Investors", String(totalInvestors))}
+        <Box
+          sx={{
+            width: "1px",
+            height: 28,
+            bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+            display: { xs: "none", sm: "block" },
+          }}
+        />
+        {metricCell("Local", `${localPct.toFixed(1)}%`, "#22c55e")}
+        <Box sx={{ flex: 1, maxWidth: 120, minWidth: 60, display: { xs: "none", md: "block" } }}>
+          <Box sx={{ height: 6, borderRadius: 3, bgcolor: "rgba(245,158,11,0.2)", overflow: "hidden" }}>
+            <Box sx={{ width: `${localBarWidth}%`, height: "100%", borderRadius: 3, bgcolor: "#22c55e", transition: "width 0.6s ease" }} />
           </Box>
-          <Typography variant="body2" sx={{ fontWeight: 600, color: "#f59e0b", minWidth: 52, textAlign: "right" }}>
-            {foreignPct.toFixed(1)}%
-          </Typography>
         </Box>
-        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.75 }}>
-          <Typography variant="caption" color="text.secondary">Local</Typography>
-          <Typography variant="caption" color="text.secondary">Foreign</Typography>
-        </Box>
+        {metricCell("Foreign", `${foreignPct.toFixed(1)}%`, "#f59e0b")}
+        <Box
+          sx={{
+            width: "1px",
+            height: 28,
+            bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
+            display: { xs: "none", sm: "block" },
+          }}
+        />
+        {metricCell("Top Holder", `${topHolder.PERCENTAGE.toFixed(1)}%`)}
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            fontSize: "0.6rem",
+            maxWidth: 120,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            display: { xs: "none", lg: "block" },
+          }}
+        >
+          {topHolder.INVESTOR_NAME}
+        </Typography>
       </Paper>
 
-      <TradingViewChart stockCode={code} />
+      <Paper sx={{ borderRadius: 2.5, overflow: "hidden" }}>
+        <Tabs
+          value={tab}
+          onChange={(_, v) => setTab(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            minHeight: 38,
+            px: 1,
+            "& .MuiTab-root": {
+              minHeight: 38,
+              py: 0,
+              px: 2,
+              fontSize: "0.8rem",
+              textTransform: "none",
+              fontWeight: 600,
+            },
+          }}
+        >
+          <Tab label="Market" />
+          <Tab label="Fundamentals" />
+          <Tab label="Ownership" />
+          <Tab label="Brokers" />
+        </Tabs>
+      </Paper>
 
-      <MarketOverviewPanel stockCode={code} />
-
-      <CompanyProfilePanel stockCode={code} />
-
-      {graphNodes.length > 0 && (
-        <ConnectionGraph
-          nodes={graphNodes}
-          links={graphLinks}
-          title="Ownership Network"
-          centerNodeId={code}
-        />
+      {tab === 0 && (
+        <Stack spacing={2}>
+          <TradingViewChart stockCode={code} />
+          <MarketOverviewPanel stockCode={code} />
+        </Stack>
       )}
 
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <OwnershipPieChart data={ownershipData} title="Ownership Breakdown" />
-        </Grid>
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <OwnershipPieChart data={typeChartData} title="By Investor Type" />
-        </Grid>
-      </Grid>
+      {tab === 1 && (
+        <Stack spacing={2}>
+          <CompanyProfilePanel stockCode={code} />
+          <FinancialTrendsPanel stockCode={code} />
+          <DividendHistoryPanel stockCode={code} />
+        </Stack>
+      )}
 
-      <FinancialTrendsPanel stockCode={code} />
+      {tab === 2 && (
+        <Stack spacing={2}>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, lg: 6 }}>
+              <OwnershipPieChart data={ownershipData} title="Ownership Breakdown" />
+            </Grid>
+            <Grid size={{ xs: 12, lg: 6 }}>
+              <OwnershipPieChart data={typeChartData} title="By Investor Type" />
+            </Grid>
+          </Grid>
 
-      <DividendHistoryPanel stockCode={code} />
+          {graphNodes.length > 0 && (
+            <ConnectionGraph
+              nodes={graphNodes}
+              links={graphLinks}
+              title="Ownership Network"
+              centerNodeId={code}
+            />
+          )}
 
-      <ShareholderHistoryPanel stockCode={code} />
+          <Box>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>
+              Shareholder Registry
+            </Typography>
+            <TableContainer component={Paper} sx={{ borderRadius: 2.5, overflow: "hidden", maxHeight: 480 }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ width: 36 }}>#</TableCell>
+                    <TableCell>Investor</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Origin</TableCell>
+                    <TableCell align="right">Shares</TableCell>
+                    <TableCell align="right">%</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {sorted.map((r, i) => (
+                    <TableRow
+                      key={`${r.INVESTOR_NAME}-${i}`}
+                      hover
+                      sx={{ cursor: "pointer", "&:last-child td": { borderBottom: 0 } }}
+                      onClick={() => router.push(`/investor/${encodeURIComponent(r.INVESTOR_NAME)}`)}
+                    >
+                      <TableCell>
+                        <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>{i + 1}</Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ fontWeight: 500, maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{r.INVESTOR_NAME}</Typography>
+                      </TableCell>
+                      <TableCell><InvestorTypeBadge type={r.INVESTOR_TYPE} /></TableCell>
+                      <TableCell><LocalForeignBadge type={r.LOCAL_FOREIGN} /></TableCell>
+                      <TableCell align="right">
+                        <Typography variant="caption" sx={{ fontFamily: "monospace" }}>{formatShares(r.TOTAL_HOLDING_SHARES)}</Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600 }}>{r.PERCENTAGE.toFixed(4)}%</Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
 
-      <BrokerSummaryPanel stockCode={code} />
+          <ShareholderHistoryPanel stockCode={code} />
+        </Stack>
+      )}
 
-      <Box>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-          Shareholder Registry
-        </Typography>
-        <TableContainer component={Paper} sx={{ borderRadius: 3, overflow: "hidden" }}>
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ width: 40 }}>#</TableCell>
-                <TableCell>Investor</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Origin</TableCell>
-                <TableCell align="right">Total Value</TableCell>
-                <TableCell align="right">Ownership</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {sorted.map((r, i) => (
-                <TableRow
-                  key={`${r.INVESTOR_NAME}-${i}`}
-                  hover
-                  sx={{ cursor: "pointer", "&:last-child td": { borderBottom: 0 } }}
-                  onClick={() => router.push(`/investor/${encodeURIComponent(r.INVESTOR_NAME)}`)}
-                >
-                  <TableCell>
-                    <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>{i + 1}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>{r.INVESTOR_NAME}</Typography>
-                  </TableCell>
-                  <TableCell><InvestorTypeBadge type={r.INVESTOR_TYPE} /></TableCell>
-                  <TableCell><LocalForeignBadge type={r.LOCAL_FOREIGN} /></TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body2" sx={{ fontFamily: "monospace" }}>{formatShares(r.TOTAL_HOLDING_SHARES)}</Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600 }}>{r.PERCENTAGE.toFixed(2)}%</Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
+      {tab === 3 && (
+        <BrokerSummaryPanel stockCode={code} />
+      )}
     </Stack>
   );
 }

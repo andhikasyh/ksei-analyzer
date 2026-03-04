@@ -70,7 +70,7 @@ export function DividendHistoryPanel({ stockCode }: DividendHistoryProps) {
     return dividends.reduce((s, d) => s + (parseFloat(d.cash_dividend) || 0), 0);
   }, [dividends]);
 
-  const textColor = isDark ? "#a1a1aa" : "#71717a";
+  const textColor = isDark ? "#6b7fa3" : "#546280";
   const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
 
   if (loading) return <DividendSkeleton />;
@@ -86,7 +86,7 @@ export function DividendHistoryPanel({ stockCode }: DividendHistoryProps) {
         <Chip
           label={`${dividends.length} records`}
           size="small"
-          sx={{ fontSize: "0.7rem", height: 22, fontFamily: "monospace" }}
+          sx={{ fontSize: "0.7rem", height: 22, fontFamily: '"JetBrains Mono", monospace' }}
         />
       </Stack>
 
@@ -106,15 +106,15 @@ export function DividendHistoryPanel({ stockCode }: DividendHistoryProps) {
                 <YAxis tick={{ fill: textColor, fontSize: 10 }} />
                 <Tooltip
                   contentStyle={{
-                    background: isDark ? "#27272a" : "#fff",
-                    border: `1px solid ${isDark ? "#3f3f46" : "#e4e4e7"}`,
+                    background: isDark ? "#111b30" : "#fff",
+                    border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "#e4e4e7"}`,
                     borderRadius: "8px",
                     fontSize: "12px",
-                    color: isDark ? "#fafafa" : "#09090b",
+                    color: isDark ? "#e8edf5" : "#0c1222",
                   }}
                   formatter={(v: number) => [`IDR ${formatRatio(v)}`, "Dividend/Share"]}
                 />
-                <Bar dataKey="dividend" fill="#22c55e" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="dividend" fill="#34d399" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Paper>
@@ -126,7 +126,7 @@ export function DividendHistoryPanel({ stockCode }: DividendHistoryProps) {
               <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
                 Payment Records
               </Typography>
-              <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+              <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}>
                 Total: IDR {formatRatio(totalDividend)}
               </Typography>
             </Box>
@@ -144,7 +144,7 @@ export function DividendHistoryPanel({ stockCode }: DividendHistoryProps) {
                   {dividends.map((d) => (
                     <TableRow key={d.id} sx={{ "&:last-child td": { borderBottom: 0 } }}>
                       <TableCell>
-                        <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
+                        <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>
                           {new Date(d.ex_dividend).toLocaleDateString("en-GB", {
                             day: "2-digit",
                             month: "short",
@@ -153,12 +153,12 @@ export function DividendHistoryPanel({ stockCode }: DividendHistoryProps) {
                         </Typography>
                       </TableCell>
                       <TableCell align="right">
-                        <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600, color: "#22c55e" }}>
+                        <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, color: "#34d399" }}>
                           {formatRatio(d.cash_dividend)}
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="caption" sx={{ fontFamily: "monospace", color: "text.secondary" }}>
+                        <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: "text.secondary" }}>
                           {new Date(d.payment_date).toLocaleDateString("en-GB", {
                             day: "2-digit",
                             month: "short",
@@ -174,9 +174,9 @@ export function DividendHistoryPanel({ stockCode }: DividendHistoryProps) {
                             fontSize: "0.6rem",
                             height: 18,
                             bgcolor: d.note === "F"
-                              ? isDark ? "rgba(59,130,246,0.15)" : "rgba(59,130,246,0.08)"
+                              ? isDark ? "rgba(212,168,67,0.15)" : "rgba(212,168,67,0.08)"
                               : isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-                            color: d.note === "F" ? "#3b82f6" : "text.secondary",
+                            color: d.note === "F" ? "#d4a843" : "text.secondary",
                           }}
                         />
                       </TableCell>

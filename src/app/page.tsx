@@ -2,8 +2,15 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@mui/material/styles";
 import { supabase, TABLE_NAME } from "@/lib/supabase";
-import { KSEIRecord, IDXStockSummary, INVESTOR_TYPE_MAP, formatShares, formatValue } from "@/lib/types";
+import {
+  KSEIRecord,
+  IDXStockSummary,
+  INVESTOR_TYPE_MAP,
+  formatShares,
+  formatValue,
+} from "@/lib/types";
 import { StatsCard, StatsCardSkeleton } from "@/components/StatsCard";
 import { GlobalSearch } from "@/components/SearchInput";
 import { InvestorTypeBadge, LocalForeignBadge } from "@/components/Badge";
@@ -66,7 +73,10 @@ interface DashboardData {
 }
 
 function aggregateInvestors(records: KSEIRecord[]): TopInvestor[] {
-  const grouped: Record<string, { stocks: Set<string>; records: KSEIRecord[] }> = {};
+  const grouped: Record<
+    string,
+    { stocks: Set<string>; records: KSEIRecord[] }
+  > = {};
   records.forEach((r) => {
     if (!grouped[r.INVESTOR_NAME]) {
       grouped[r.INVESTOR_NAME] = { stocks: new Set(), records: [] };
@@ -101,9 +111,65 @@ interface MarketMover {
   foreignNet: number;
 }
 
+function SectionHeader({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle?: string;
+}) {
+  const theme = useTheme();
+  return (
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+      <Box
+        sx={{
+          width: 3,
+          height: 18,
+          borderRadius: 2,
+          bgcolor: "primary.main",
+          opacity: 0.7,
+          flexShrink: 0,
+        }}
+      />
+      <Box>
+        <Typography
+          variant="subtitle1"
+          sx={{
+            fontFamily: '"Outfit", sans-serif',
+            fontWeight: 700,
+            fontSize: "0.95rem",
+            letterSpacing: "-0.01em",
+            lineHeight: 1.2,
+          }}
+        >
+          {title}
+        </Typography>
+        {subtitle && (
+          <Typography
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              fontSize: "0.65rem",
+              opacity: 0.7,
+            }}
+          >
+            {subtitle}
+          </Typography>
+        )}
+      </Box>
+    </Box>
+  );
+}
+
 export default function DashboardPage() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const [data, setData] = useState<DashboardData | null>(null);
-  const [movers, setMovers] = useState<{ gainers: MarketMover[]; losers: MarketMover[]; active: MarketMover[] } | null>(null);
+  const [movers, setMovers] = useState<{
+    gainers: MarketMover[];
+    losers: MarketMover[];
+    active: MarketMover[];
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -112,15 +178,23 @@ export default function DashboardPage() {
     async function fetchData() {
       try {
         const [kseiRes, stockRes] = await Promise.all([
-          supabase.from(TABLE_NAME).select("*").order("PERCENTAGE", { ascending: false }),
-          supabase.from("idx_stock_summary").select("*").order("date", { ascending: false }).limit(2000),
+          supabase
+            .from(TABLE_NAME)
+            .select("*")
+            .order("PERCENTAGE", { ascending: false }),
+          supabase
+            .from("idx_stock_summary")
+            .select("*")
+            .order("date", { ascending: false })
+            .limit(2000),
         ]);
 
         if (stockRes.data) {
           const latestMap = new Map<string, IDXStockSummary>();
           (stockRes.data as IDXStockSummary[]).forEach((r) => {
             const existing = latestMap.get(r.stock_code);
-            if (!existing || r.date > existing.date) latestMap.set(r.stock_code, r);
+            if (!existing || r.date > existing.date)
+              latestMap.set(r.stock_code, r);
           });
           const all: MarketMover[] = Array.from(latestMap.values()).map((r) => {
             const close = parseFloat(r.close) || 0;
@@ -134,12 +208,22 @@ export default function DashboardPage() {
               changePct: prev > 0 ? (change / prev) * 100 : 0,
               volume: parseFloat(r.volume) || 0,
               value: parseFloat(r.value) || 0,
-              foreignNet: (parseFloat(r.foreign_buy) || 0) - (parseFloat(r.foreign_sell) || 0),
+              foreignNet:
+                (parseFloat(r.foreign_buy) || 0) -
+                (parseFloat(r.foreign_sell) || 0),
             };
           });
-          const gainers = [...all].filter((m) => m.changePct > 0).sort((a, b) => b.changePct - a.changePct).slice(0, 8);
-          const losers = [...all].filter((m) => m.changePct < 0).sort((a, b) => a.changePct - b.changePct).slice(0, 8);
-          const active = [...all].sort((a, b) => b.value - a.value).slice(0, 8);
+          const gainers = [...all]
+            .filter((m) => m.changePct > 0)
+            .sort((a, b) => b.changePct - a.changePct)
+            .slice(0, 8);
+          const losers = [...all]
+            .filter((m) => m.changePct < 0)
+            .sort((a, b) => a.changePct - b.changePct)
+            .slice(0, 8);
+          const active = [...all]
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 8);
           setMovers({ gainers, losers, active });
         }
 
@@ -147,7 +231,9 @@ export default function DashboardPage() {
 
         if (fetchError) throw fetchError;
         if (!records || records.length === 0) {
-          setError("No data found. Check your table name in src/lib/supabase.ts");
+          setError(
+            "No data found. Check your table name in src/lib/supabase.ts"
+          );
           setLoading(false);
           return;
         }
@@ -157,7 +243,10 @@ export default function DashboardPage() {
         const uniqueTickers = new Set(typed.map((r) => r.SHARE_CODE));
         const uniqueInvestors = new Set(typed.map((r) => r.INVESTOR_NAME));
 
-        const stockOwnership = new Map<string, { local: number; foreign: number }>();
+        const stockOwnership = new Map<
+          string,
+          { local: number; foreign: number }
+        >();
         typed.forEach((r) => {
           if (!stockOwnership.has(r.SHARE_CODE)) {
             stockOwnership.set(r.SHARE_CODE, { local: 0, foreign: 0 });
@@ -168,12 +257,16 @@ export default function DashboardPage() {
         });
         const stockCount = stockOwnership.size;
         const rawAvgLocal =
-          [...stockOwnership.values()].reduce((s, v) => s + v.local, 0) / stockCount;
+          [...stockOwnership.values()].reduce((s, v) => s + v.local, 0) /
+          stockCount;
         const rawAvgForeign =
-          [...stockOwnership.values()].reduce((s, v) => s + v.foreign, 0) / stockCount;
+          [...stockOwnership.values()].reduce((s, v) => s + v.foreign, 0) /
+          stockCount;
         const rawAvgTotal = rawAvgLocal + rawAvgForeign;
-        const avgLocal = rawAvgTotal > 0 ? (rawAvgLocal / rawAvgTotal) * 100 : 0;
-        const avgForeign = rawAvgTotal > 0 ? (rawAvgForeign / rawAvgTotal) * 100 : 0;
+        const avgLocal =
+          rawAvgTotal > 0 ? (rawAvgLocal / rawAvgTotal) * 100 : 0;
+        const avgForeign =
+          rawAvgTotal > 0 ? (rawAvgForeign / rawAvgTotal) * 100 : 0;
 
         const typeGroups: Record<string, KSEIRecord[]> = {};
         typed.forEach((r) => {
@@ -202,7 +295,10 @@ export default function DashboardPage() {
         > = {};
         typed.forEach((r) => {
           if (!investorHoldings[r.INVESTOR_NAME]) {
-            investorHoldings[r.INVESTOR_NAME] = { stocks: new Set(), records: [] };
+            investorHoldings[r.INVESTOR_NAME] = {
+              stocks: new Set(),
+              records: [],
+            };
           }
           investorHoldings[r.INVESTOR_NAME].stocks.add(r.SHARE_CODE);
           investorHoldings[r.INVESTOR_NAME].records.push(r);
@@ -235,7 +331,9 @@ export default function DashboardPage() {
           conglomerates,
         });
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fetch data");
+        setError(
+          err instanceof Error ? err.message : "Failed to fetch data"
+        );
       } finally {
         setLoading(false);
       }
@@ -259,8 +357,17 @@ export default function DashboardPage() {
           minHeight: "60vh",
         }}
       >
-        <Paper sx={{ p: 4, textAlign: "center", maxWidth: 420, borderRadius: 3 }}>
-          <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+        <Paper
+          sx={{ p: 4, textAlign: "center", maxWidth: 420, borderRadius: 3 }}
+        >
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontFamily: '"Outfit", sans-serif',
+              fontWeight: 700,
+            }}
+            gutterBottom
+          >
             Connection Error
           </Typography>
           <Typography variant="body2" color="text.secondary">
@@ -273,19 +380,34 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <Stack spacing={3}>
-        <Skeleton variant="rounded" height={56} sx={{ borderRadius: 3 }} />
-        <Grid container spacing={2}>
+      <Stack spacing={2.5}>
+        <Skeleton
+          variant="rounded"
+          height={48}
+          sx={{ borderRadius: 2.5 }}
+        />
+        <Grid container spacing={1.5}>
           {Array.from({ length: 4 }).map((_, i) => (
             <Grid size={{ xs: 6, lg: 3 }} key={i}>
               <StatsCardSkeleton />
             </Grid>
           ))}
         </Grid>
-        <Skeleton variant="rounded" height={280} sx={{ borderRadius: 3 }} />
-        <Skeleton variant="rounded" height={320} sx={{ borderRadius: 3 }} />
-        <Skeleton variant="rounded" height={320} sx={{ borderRadius: 3 }} />
-        <Skeleton variant="rounded" height={280} sx={{ borderRadius: 3 }} />
+        <Skeleton
+          variant="rounded"
+          height={240}
+          sx={{ borderRadius: 2.5 }}
+        />
+        <Skeleton
+          variant="rounded"
+          height={280}
+          sx={{ borderRadius: 2.5 }}
+        />
+        <Skeleton
+          variant="rounded"
+          height={280}
+          sx={{ borderRadius: 2.5 }}
+        />
       </Stack>
     );
   }
@@ -297,13 +419,13 @@ export default function DashboardPage() {
     localForeignTotal > 0 ? (data.avgLocalPct / localForeignTotal) * 100 : 50;
 
   return (
-    <Stack spacing={3}>
-      {/* 1. MAIN SEARCH */}
-      <GlobalSearch />
+    <Stack spacing={2.5}>
+      <Box className="animate-in">
+        <GlobalSearch />
+      </Box>
 
-      {/* 2. STAT CARDS */}
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 6, lg: 3 }}>
+      <Grid container spacing={1.5}>
+        <Grid size={{ xs: 6, lg: 3 }} className="animate-in animate-in-delay-1">
           <StatsCard
             title="Total Tickers"
             value={data.totalTickers}
@@ -311,7 +433,7 @@ export default function DashboardPage() {
             icon={<ShowChartIcon />}
           />
         </Grid>
-        <Grid size={{ xs: 6, lg: 3 }}>
+        <Grid size={{ xs: 6, lg: 3 }} className="animate-in animate-in-delay-2">
           <StatsCard
             title="Total Investors"
             value={data.totalInvestors.toLocaleString()}
@@ -319,109 +441,222 @@ export default function DashboardPage() {
             icon={<PeopleIcon />}
           />
         </Grid>
-        <Grid size={{ xs: 6, lg: 3 }}>
+        <Grid size={{ xs: 6, lg: 3 }} className="animate-in animate-in-delay-3">
           <StatsCard
-            title="Avg Local Ownership"
+            title="Avg Local"
             value={`${data.avgLocalPct}%`}
             subtitle="Per ticker average"
             icon={<FlagIcon />}
+            accentColor={theme.palette.success.main}
           />
         </Grid>
-        <Grid size={{ xs: 6, lg: 3 }}>
+        <Grid size={{ xs: 6, lg: 3 }} className="animate-in animate-in-delay-4">
           <StatsCard
-            title="Avg Foreign Ownership"
+            title="Avg Foreign"
             value={`${data.avgForeignPct}%`}
             subtitle="Per ticker average"
             icon={<PublicIcon />}
+            accentColor={theme.palette.warning.main}
           />
         </Grid>
       </Grid>
 
-      {/* LOCAL/FOREIGN COMPARISON BAR */}
-      <Paper sx={{ p: 2.5, borderRadius: 3 }}>
-        <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 500 }}>
-          Local vs Foreign Ownership
-        </Typography>
-        <Box sx={{ mt: 1.5, display: "flex", alignItems: "center", gap: 2 }}>
+      <Paper
+        className="animate-in animate-in-delay-3"
+        sx={{ p: 2, borderRadius: 2.5 }}
+      >
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 1.5,
+          }}
+        >
           <Typography
-            variant="body2"
-            sx={{ fontWeight: 600, color: "#22c55e", minWidth: 52 }}
+            variant="caption"
+            sx={{
+              color: "text.secondary",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.05em",
+              fontSize: "0.65rem",
+            }}
+          >
+            Local vs Foreign
+          </Typography>
+          <Stack direction="row" spacing={2}>
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  bgcolor: theme.palette.success.main,
+                }}
+              />
+              <Typography
+                variant="caption"
+                sx={{ fontSize: "0.65rem", color: "text.secondary" }}
+              >
+                Local
+              </Typography>
+            </Stack>
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  bgcolor: theme.palette.warning.main,
+                }}
+              />
+              <Typography
+                variant="caption"
+                sx={{ fontSize: "0.65rem", color: "text.secondary" }}
+              >
+                Foreign
+              </Typography>
+            </Stack>
+          </Stack>
+        </Box>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <Typography
+            sx={{
+              fontFamily: '"JetBrains Mono", monospace',
+              fontWeight: 700,
+              color: theme.palette.success.main,
+              minWidth: 48,
+              fontSize: "0.85rem",
+            }}
           >
             {data.avgLocalPct}%
           </Typography>
           <Box
             sx={{
               flex: 1,
-              height: 8,
-              borderRadius: 4,
-              bgcolor: "rgba(245,158,11,0.2)",
+              height: 6,
+              borderRadius: 3,
+              bgcolor: isDark
+                ? "rgba(251,191,36,0.15)"
+                : "rgba(217,119,6,0.12)",
               overflow: "hidden",
+              position: "relative",
             }}
           >
             <Box
               sx={{
                 width: `${localBarWidth}%`,
                 height: "100%",
-                borderRadius: 4,
-                bgcolor: "#22c55e",
-                transition: "width 0.6s ease",
+                borderRadius: 3,
+                background: `linear-gradient(90deg, ${theme.palette.success.main}, ${isDark ? "#6ee7b7" : "#34d399"})`,
+                transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)",
+                position: "relative",
+                "&::after": {
+                  content: '""',
+                  position: "absolute",
+                  right: 0,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  width: 2,
+                  height: 12,
+                  borderRadius: 1,
+                  bgcolor: theme.palette.success.main,
+                  opacity: 0.5,
+                },
               }}
             />
           </Box>
           <Typography
-            variant="body2"
-            sx={{ fontWeight: 600, color: "#f59e0b", minWidth: 52, textAlign: "right" }}
+            sx={{
+              fontFamily: '"JetBrains Mono", monospace',
+              fontWeight: 700,
+              color: theme.palette.warning.main,
+              minWidth: 48,
+              textAlign: "right",
+              fontSize: "0.85rem",
+            }}
           >
             {data.avgForeignPct}%
           </Typography>
         </Box>
-        <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.75 }}>
-          <Typography variant="caption" color="text.secondary">
-            Local
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            Foreign
-          </Typography>
-        </Box>
       </Paper>
 
-      {/* MARKET MOVERS */}
       {movers && (
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <MoverTable title="Top Gainers" icon={<TrendingUpIcon sx={{ color: "#22c55e", fontSize: 18 }} />} movers={movers.gainers} router={router} type="gain" />
+        <Box className="animate-in animate-in-delay-4">
+          <SectionHeader title="Market Movers" />
+          <Grid container spacing={1.5}>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <MoverTable
+                title="Top Gainers"
+                icon={
+                  <TrendingUpIcon
+                    sx={{ color: theme.palette.success.main, fontSize: 16 }}
+                  />
+                }
+                movers={movers.gainers}
+                router={router}
+                type="gain"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <MoverTable
+                title="Top Losers"
+                icon={
+                  <TrendingDownIcon
+                    sx={{ color: theme.palette.error.main, fontSize: 16 }}
+                  />
+                }
+                movers={movers.losers}
+                router={router}
+                type="loss"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
+              <MoverTable
+                title="Most Active"
+                icon={
+                  <WhatshotIcon
+                    sx={{ color: theme.palette.warning.main, fontSize: 16 }}
+                  />
+                }
+                movers={movers.active}
+                router={router}
+                type="active"
+              />
+            </Grid>
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <MoverTable title="Top Losers" icon={<TrendingDownIcon sx={{ color: "#ef4444", fontSize: 18 }} />} movers={movers.losers} router={router} type="loss" />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <MoverTable title="Most Active" icon={<WhatshotIcon sx={{ color: "#f59e0b", fontSize: 18 }} />} movers={movers.active} router={router} type="active" />
-          </Grid>
-        </Grid>
+        </Box>
       )}
 
-      {/* 3. MARKET OVERVIEW */}
-      <Box>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-          Market Overview
-        </Typography>
-        <Grid container spacing={1.5}>
+      <Box className="animate-in animate-in-delay-5">
+        <SectionHeader
+          title="Market Overview"
+          subtitle="Investor type breakdown"
+        />
+        <Grid container spacing={1}>
           {data.investorTypeBreakdown.map((t) => (
             <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }} key={t.code}>
               <Paper
                 onClick={() => router.push(`/category/${t.code}`)}
                 sx={{
-                  p: 2,
-                  borderRadius: 2.5,
+                  p: 1.5,
+                  borderRadius: 2,
                   height: "100%",
                   display: "flex",
                   flexDirection: "column",
-                  gap: 1,
+                  gap: 0.75,
                   cursor: "pointer",
-                  transition: "border-color 0.15s ease, background-color 0.15s ease",
+                  transition: "all 0.2s ease",
                   "&:hover": {
                     borderColor: "primary.main",
-                    bgcolor: "rgba(59,130,246,0.04)",
+                    bgcolor: isDark
+                      ? "rgba(212,168,67,0.04)"
+                      : "rgba(161,124,47,0.03)",
+                    transform: "translateY(-1px)",
+                    boxShadow: isDark
+                      ? "0 4px 16px rgba(0,0,0,0.3)"
+                      : "0 4px 16px rgba(0,0,0,0.06)",
                   },
                 }}
               >
@@ -433,22 +668,29 @@ export default function DashboardPage() {
                   }}
                 >
                   <Typography
-                    variant="caption"
                     sx={{
+                      fontFamily: '"JetBrains Mono", monospace',
                       fontWeight: 700,
-                      fontFamily: "monospace",
+                      fontSize: "0.72rem",
                       color: "primary.main",
                     }}
                   >
                     {t.code}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                  <Typography
+                    sx={{
+                      fontFamily: '"JetBrains Mono", monospace',
+                      fontSize: "0.68rem",
+                      color: "text.secondary",
+                      fontWeight: 600,
+                    }}
+                  >
                     {t.count}
                   </Typography>
                 </Box>
                 <Typography
                   variant="body2"
-                  sx={{ fontWeight: 500, fontSize: "0.8rem" }}
+                  sx={{ fontWeight: 600, fontSize: "0.75rem", lineHeight: 1.3 }}
                 >
                   {t.name}
                 </Typography>
@@ -456,9 +698,11 @@ export default function DashboardPage() {
                   variant="determinate"
                   value={(t.count / maxTypeCount) * 100}
                   sx={{
-                    height: 4,
+                    height: 3,
                     borderRadius: 2,
-                    bgcolor: "rgba(59,130,246,0.1)",
+                    bgcolor: isDark
+                      ? "rgba(212,168,67,0.08)"
+                      : "rgba(161,124,47,0.06)",
                     "& .MuiLinearProgress-bar": {
                       bgcolor: "primary.main",
                       borderRadius: 2,
@@ -471,39 +715,35 @@ export default function DashboardPage() {
         </Grid>
       </Box>
 
-      {/* 4a. TOP FOREIGN INVESTORS */}
-      <InvestorTable
-        title="Top Foreign Investors"
-        investors={data.topForeignInvestors}
-        router={router}
-      />
+      <Box className="animate-in animate-in-delay-5">
+        <InvestorTable
+          title="Top Foreign Investors"
+          investors={data.topForeignInvestors}
+          router={router}
+        />
+      </Box>
 
-      {/* 4b. TOP LOCAL INVESTORS */}
-      <InvestorTable
-        title="Top Local Investors"
-        investors={data.topLocalInvestors}
-        router={router}
-      />
+      <Box className="animate-in animate-in-delay-6">
+        <InvestorTable
+          title="Top Local Investors"
+          investors={data.topLocalInvestors}
+          router={router}
+        />
+      </Box>
 
-      {/* 5. CONGLOMERATES (GROUPS) */}
-      <Box>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 0.5 }}>
-          Conglomerates
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{ color: "text.secondary", display: "block", mb: 1.5 }}
-        >
-          Investors holding positions across multiple stocks, sorted by total value
-        </Typography>
+      <Box className="animate-in animate-in-delay-6">
+        <SectionHeader
+          title="Conglomerates"
+          subtitle="Multi-stock holders, sorted by total value"
+        />
         <TableContainer
           component={Paper}
-          sx={{ borderRadius: 3, overflow: "hidden" }}
+          sx={{ borderRadius: 2.5, overflow: "hidden" }}
         >
           <Table size="small">
             <TableHead>
               <TableRow>
-                <TableCell sx={{ width: 40 }}>#</TableCell>
+                <TableCell sx={{ width: 36 }}>#</TableCell>
                 <TableCell>Investor</TableCell>
                 <TableCell>Type</TableCell>
                 <TableCell>Origin</TableCell>
@@ -521,6 +761,12 @@ export default function DashboardPage() {
                   sx={{
                     cursor: "pointer",
                     "&:last-child td": { borderBottom: 0 },
+                    transition: "background-color 0.1s ease",
+                    "&:hover": {
+                      bgcolor: isDark
+                        ? "rgba(212,168,67,0.04)"
+                        : "rgba(161,124,47,0.03)",
+                    },
                   }}
                   onClick={() =>
                     router.push(`/investor/${encodeURIComponent(g.name)}`)
@@ -528,14 +774,20 @@ export default function DashboardPage() {
                 >
                   <TableCell>
                     <Typography
-                      variant="caption"
-                      sx={{ fontFamily: "monospace", color: "text.secondary" }}
+                      sx={{
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontSize: "0.7rem",
+                        color: "text.secondary",
+                      }}
                     >
                       {i + 1}
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 600, fontSize: "0.8rem" }}
+                    >
                       {g.name}
                     </Typography>
                   </TableCell>
@@ -551,10 +803,12 @@ export default function DashboardPage() {
                       size="small"
                       sx={{
                         fontWeight: 700,
-                        fontFamily: "monospace",
-                        minWidth: 32,
+                        fontFamily: '"JetBrains Mono", monospace',
+                        minWidth: 28,
+                        height: 22,
+                        fontSize: "0.7rem",
                         bgcolor: "primary.main",
-                        color: "#fff",
+                        color: isDark ? "#060a14" : "#fff",
                       }}
                     />
                   </TableCell>
@@ -564,7 +818,7 @@ export default function DashboardPage() {
                         display: "flex",
                         gap: 0.5,
                         flexWrap: "wrap",
-                        maxWidth: 240,
+                        maxWidth: 220,
                       }}
                     >
                       {g.stocks.slice(0, 4).map((s) => (
@@ -573,11 +827,14 @@ export default function DashboardPage() {
                           label={s}
                           size="small"
                           sx={{
-                            fontFamily: "monospace",
-                            fontSize: "0.7rem",
-                            height: 22,
-                            bgcolor: "action.hover",
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontSize: "0.65rem",
+                            height: 20,
+                            bgcolor: isDark
+                              ? "rgba(212,168,67,0.08)"
+                              : "rgba(161,124,47,0.06)",
                             color: "primary.main",
+                            fontWeight: 600,
                           }}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -588,7 +845,11 @@ export default function DashboardPage() {
                       {g.stocks.length > 4 && (
                         <Typography
                           variant="caption"
-                          sx={{ color: "text.secondary", alignSelf: "center" }}
+                          sx={{
+                            color: "text.secondary",
+                            alignSelf: "center",
+                            fontSize: "0.62rem",
+                          }}
                         >
                           +{g.stocks.length - 4}
                         </Typography>
@@ -597,16 +858,21 @@ export default function DashboardPage() {
                   </TableCell>
                   <TableCell align="right">
                     <Typography
-                      variant="body2"
-                      sx={{ fontFamily: "monospace", fontWeight: 600 }}
+                      sx={{
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontWeight: 700,
+                        fontSize: "0.78rem",
+                      }}
                     >
                       {formatShares(g.totalShares)}
                     </Typography>
                   </TableCell>
                   <TableCell align="right">
                     <Typography
-                      variant="body2"
-                      sx={{ fontFamily: "monospace" }}
+                      sx={{
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontSize: "0.78rem",
+                      }}
                     >
                       {g.maxPct.toFixed(2)}%
                     </Typography>
@@ -630,19 +896,20 @@ function InvestorTable({
   investors: TopInvestor[];
   router: ReturnType<typeof useRouter>;
 }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+
   return (
     <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1.5 }}>
-        {title}
-      </Typography>
+      <SectionHeader title={title} />
       <TableContainer
         component={Paper}
-        sx={{ borderRadius: 3, overflow: "hidden" }}
+        sx={{ borderRadius: 2.5, overflow: "hidden" }}
       >
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell sx={{ width: 40 }}>#</TableCell>
+              <TableCell sx={{ width: 36 }}>#</TableCell>
               <TableCell>Investor</TableCell>
               <TableCell>Type</TableCell>
               <TableCell>Stocks</TableCell>
@@ -658,6 +925,12 @@ function InvestorTable({
                 sx={{
                   cursor: "pointer",
                   "&:last-child td": { borderBottom: 0 },
+                  transition: "background-color 0.1s ease",
+                  "&:hover": {
+                    bgcolor: isDark
+                      ? "rgba(212,168,67,0.04)"
+                      : "rgba(161,124,47,0.03)",
+                  },
                 }}
                 onClick={() =>
                   router.push(`/investor/${encodeURIComponent(inv.name)}`)
@@ -665,14 +938,20 @@ function InvestorTable({
               >
                 <TableCell>
                   <Typography
-                    variant="caption"
-                    sx={{ fontFamily: "monospace", color: "text.secondary" }}
+                    sx={{
+                      fontFamily: '"JetBrains Mono", monospace',
+                      fontSize: "0.7rem",
+                      color: "text.secondary",
+                    }}
                   >
                     {i + 1}
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 600, fontSize: "0.8rem" }}
+                  >
                     {inv.name}
                   </Typography>
                 </TableCell>
@@ -694,11 +973,14 @@ function InvestorTable({
                         label={s}
                         size="small"
                         sx={{
-                          fontFamily: "monospace",
-                          fontSize: "0.7rem",
-                          height: 22,
-                          bgcolor: "action.hover",
+                          fontFamily: '"JetBrains Mono", monospace',
+                          fontSize: "0.65rem",
+                          height: 20,
+                          bgcolor: isDark
+                            ? "rgba(212,168,67,0.08)"
+                            : "rgba(161,124,47,0.06)",
                           color: "primary.main",
+                          fontWeight: 600,
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -709,7 +991,11 @@ function InvestorTable({
                     {inv.stocks.length > 3 && (
                       <Typography
                         variant="caption"
-                        sx={{ color: "text.secondary", alignSelf: "center" }}
+                        sx={{
+                          color: "text.secondary",
+                          alignSelf: "center",
+                          fontSize: "0.62rem",
+                        }}
                       >
                         +{inv.stocks.length - 3}
                       </Typography>
@@ -718,14 +1004,22 @@ function InvestorTable({
                 </TableCell>
                 <TableCell align="right">
                   <Typography
-                    variant="body2"
-                    sx={{ fontFamily: "monospace", fontWeight: 600 }}
+                    sx={{
+                      fontFamily: '"JetBrains Mono", monospace',
+                      fontWeight: 700,
+                      fontSize: "0.78rem",
+                    }}
                   >
                     {formatShares(inv.totalShares)}
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
-                  <Typography variant="body2" sx={{ fontFamily: "monospace" }}>
+                  <Typography
+                    sx={{
+                      fontFamily: '"JetBrains Mono", monospace',
+                      fontSize: "0.78rem",
+                    }}
+                  >
                     {inv.maxPct.toFixed(2)}%
                   </Typography>
                 </TableCell>
@@ -751,11 +1045,50 @@ function MoverTable({
   router: ReturnType<typeof useRouter>;
   type: "gain" | "loss" | "active";
 }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+
+  const accentColor =
+    type === "gain"
+      ? theme.palette.success.main
+      : type === "loss"
+        ? theme.palette.error.main
+        : theme.palette.warning.main;
+
   return (
-    <Paper sx={{ borderRadius: 3, overflow: "hidden", height: "100%" }}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 2, pt: 2, pb: 1 }}>
+    <Paper
+      sx={{
+        borderRadius: 2.5,
+        overflow: "hidden",
+        height: "100%",
+        position: "relative",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 2,
+          background: `linear-gradient(90deg, ${accentColor}, transparent)`,
+          opacity: 0.5,
+        },
+      }}
+    >
+      <Stack
+        direction="row"
+        spacing={0.75}
+        alignItems="center"
+        sx={{ px: 1.5, pt: 1.5, pb: 0.75 }}
+      >
         {icon}
-        <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+        <Typography
+          variant="subtitle2"
+          sx={{
+            fontFamily: '"Outfit", sans-serif',
+            fontWeight: 700,
+            fontSize: "0.82rem",
+          }}
+        >
           {title}
         </Typography>
       </Stack>
@@ -763,42 +1096,99 @@ function MoverTable({
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Code</TableCell>
-              <TableCell align="right">Price</TableCell>
-              <TableCell align="right">{type === "active" ? "Value" : "Change"}</TableCell>
+              <TableCell sx={{ py: 0.75 }}>Code</TableCell>
+              <TableCell align="right" sx={{ py: 0.75 }}>
+                Price
+              </TableCell>
+              <TableCell align="right" sx={{ py: 0.75 }}>
+                {type === "active" ? "Value" : "Change"}
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {movers.map((m) => {
-              const color = m.change > 0 ? "#22c55e" : m.change < 0 ? "#ef4444" : "text.secondary";
+              const color =
+                m.change > 0
+                  ? theme.palette.success.main
+                  : m.change < 0
+                    ? theme.palette.error.main
+                    : "text.secondary";
               return (
                 <TableRow
                   key={m.code}
                   hover
-                  sx={{ cursor: "pointer", "&:last-child td": { borderBottom: 0 } }}
+                  sx={{
+                    cursor: "pointer",
+                    "&:last-child td": { borderBottom: 0 },
+                    transition: "background-color 0.1s ease",
+                    "&:hover": {
+                      bgcolor: isDark
+                        ? "rgba(212,168,67,0.04)"
+                        : "rgba(161,124,47,0.03)",
+                    },
+                  }}
                   onClick={() => router.push(`/stock/${m.code}`)}
                 >
-                  <TableCell>
-                    <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: "monospace", color: "primary.main", fontSize: "0.8rem" }}>
+                  <TableCell sx={{ py: 0.5 }}>
+                    <Typography
+                      sx={{
+                        fontWeight: 700,
+                        fontFamily: '"JetBrains Mono", monospace',
+                        color: "primary.main",
+                        fontSize: "0.75rem",
+                      }}
+                    >
                       {m.code}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.6rem", display: "block", maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{
+                        fontSize: "0.58rem",
+                        display: "block",
+                        maxWidth: 100,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        opacity: 0.7,
+                      }}
+                    >
                       {m.name}
                     </Typography>
                   </TableCell>
-                  <TableCell align="right">
-                    <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+                  <TableCell align="right" sx={{ py: 0.5 }}>
+                    <Typography
+                      sx={{
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontWeight: 600,
+                        fontSize: "0.75rem",
+                      }}
+                    >
                       {m.close.toLocaleString()}
                     </Typography>
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell align="right" sx={{ py: 0.5 }}>
                     {type === "active" ? (
-                      <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+                      <Typography
+                        sx={{
+                          fontFamily: '"JetBrains Mono", monospace',
+                          fontWeight: 600,
+                          fontSize: "0.75rem",
+                        }}
+                      >
                         {formatValue(m.value)}
                       </Typography>
                     ) : (
-                      <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600, color }}>
-                        {m.changePct > 0 ? "+" : ""}{m.changePct.toFixed(2)}%
+                      <Typography
+                        sx={{
+                          fontFamily: '"JetBrains Mono", monospace',
+                          fontWeight: 700,
+                          fontSize: "0.75rem",
+                          color,
+                        }}
+                      >
+                        {m.changePct > 0 ? "+" : ""}
+                        {m.changePct.toFixed(2)}%
                       </Typography>
                     )}
                   </TableCell>

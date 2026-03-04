@@ -71,8 +71,8 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
     });
   }, [records]);
 
-  const textColor = isDark ? "#a1a1aa" : "#71717a";
-  const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
+  const textColor = isDark ? "#6b7fa3" : "#546280";
+  const gridColor = isDark ? "rgba(107,127,163,0.08)" : "rgba(12,18,34,0.06)";
 
   if (loading) return <MarketOverviewSkeleton />;
   if (!latest) return null;
@@ -82,9 +82,9 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
   const prev = p(latest.previous);
   const changePct = prev > 0 ? (change / prev) * 100 : 0;
   const isUp = change >= 0;
-  const changeColor = change > 0 ? "#22c55e" : change < 0 ? "#ef4444" : textColor;
+  const changeColor = change > 0 ? "#34d399" : change < 0 ? "#fb7185" : textColor;
   const foreignNet = p(latest.foreign_buy) - p(latest.foreign_sell);
-  const foreignNetColor = foreignNet >= 0 ? "#22c55e" : "#ef4444";
+  const foreignNetColor = foreignNet >= 0 ? "#34d399" : "#fb7185";
   const marketCap = close * p(latest.listed_shares);
 
   return (
@@ -102,7 +102,7 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
             size="small"
             sx={{
               fontSize: "0.65rem", height: 20,
-              bgcolor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+              bgcolor: isDark ? "rgba(107,127,163,0.06)" : "rgba(12,18,34,0.03)",
             }}
           />
         </Stack>
@@ -114,11 +114,11 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
             gap: 1,
           }}
         >
-          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)", gridColumn: { xs: "span 2", sm: "span 1" } }}>
+          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)", gridColumn: { xs: "span 2", sm: "span 1" } }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
               Close
             </Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700, fontFamily: "monospace", lineHeight: 1.2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, fontFamily: '"JetBrains Mono", monospace', lineHeight: 1.2 }}>
               {close.toLocaleString()}
             </Typography>
             <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.25 }}>
@@ -133,38 +133,38 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
             </Stack>
           </Box>
 
-          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" }}>
+          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
               Day Range
             </Typography>
-            <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600, lineHeight: 1.6 }}>
+            <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.6 }}>
               {p(latest.low).toLocaleString()} - {p(latest.high).toLocaleString()}
             </Typography>
           </Box>
 
-          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" }}>
+          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
               Volume
             </Typography>
-            <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600, lineHeight: 1.6 }}>
+            <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.6 }}>
               {formatShares(latest.volume)}
             </Typography>
           </Box>
 
-          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" }}>
+          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
               Value
             </Typography>
-            <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600, lineHeight: 1.6 }}>
+            <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.6 }}>
               {formatValue(p(latest.value))}
             </Typography>
           </Box>
 
-          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" }}>
+          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
               Market Cap
             </Typography>
-            <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600, lineHeight: 1.6 }}>
+            <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.6 }}>
               {formatValue(marketCap)}
             </Typography>
           </Box>
@@ -178,11 +178,11 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
             mt: 1,
           }}
         >
-          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" }}>
+          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
               Foreign Net
             </Typography>
-            <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600, color: foreignNetColor, lineHeight: 1.4 }}>
+            <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, color: foreignNetColor, lineHeight: 1.4 }}>
               {foreignNet >= 0 ? "+" : ""}{formatShares(foreignNet)}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.58rem" }}>
@@ -190,11 +190,11 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
             </Typography>
           </Box>
 
-          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" }}>
+          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
               Bid
             </Typography>
-            <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600, lineHeight: 1.4 }}>
+            <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.4 }}>
               {p(latest.bid).toLocaleString()}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.58rem" }}>
@@ -202,11 +202,11 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
             </Typography>
           </Box>
 
-          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" }}>
+          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
               Offer
             </Typography>
-            <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600, lineHeight: 1.4 }}>
+            <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.4 }}>
               {p(latest.offer).toLocaleString()}
             </Typography>
             <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.58rem" }}>
@@ -214,20 +214,20 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
             </Typography>
           </Box>
 
-          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" }}>
+          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
               Frequency
             </Typography>
-            <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600, lineHeight: 1.6 }}>
+            <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.6 }}>
               {latest.frequency.toLocaleString()}
             </Typography>
           </Box>
 
-          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)" }}>
+          <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
               Listed Shares
             </Typography>
-            <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: 600, lineHeight: 1.6 }}>
+            <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.6 }}>
               {formatShares(latest.listed_shares)}
             </Typography>
           </Box>
@@ -249,13 +249,13 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
               <YAxis tick={{ fill: textColor, fontSize: 10 }} tickFormatter={(v) => formatShares(v)} />
               <RechartsTooltip
                 contentStyle={{
-                  background: isDark ? "#27272a" : "#fff",
-                  border: `1px solid ${isDark ? "#3f3f46" : "#e4e4e7"}`,
+                  background: isDark ? "#111b30" : "#fff",
+                  border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"}`,
                   borderRadius: "8px", fontSize: "12px",
-                  color: isDark ? "#fafafa" : "#09090b",
+                  color: isDark ? "#e8edf5" : "#0c1222",
                 }}
-                labelStyle={{ color: isDark ? "#fafafa" : "#09090b" }}
-                itemStyle={{ color: isDark ? "#fafafa" : "#09090b" }}
+                labelStyle={{ color: isDark ? "#e8edf5" : "#0c1222" }}
+                itemStyle={{ color: isDark ? "#e8edf5" : "#0c1222" }}
                 formatter={(v: number, name: string) => {
                   const label = name === "net" ? "Net Flow" : name;
                   return [formatShares(Math.abs(v)) + (v < 0 ? " (outflow)" : " (inflow)"), label];
@@ -264,7 +264,7 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
               <ReferenceLine y={0} stroke={textColor} strokeDasharray="3 3" />
               <Bar dataKey="net" name="net" radius={[2, 2, 0, 0]}>
                 {foreignFlowData.map((entry, i) => (
-                  <Cell key={i} fill={entry.net >= 0 ? "#22c55e" : "#ef4444"} />
+                  <Cell key={i} fill={entry.net >= 0 ? "#34d399" : "#fb7185"} />
                 ))}
               </Bar>
             </BarChart>

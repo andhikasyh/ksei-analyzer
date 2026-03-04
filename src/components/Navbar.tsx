@@ -27,34 +27,75 @@ export function Navbar() {
 
   useEffect(() => setMounted(true), []);
 
+  const isDark = mode === "dark";
+
   return (
     <AppBar
       position="sticky"
       elevation={0}
       sx={{
-        bgcolor: mode === "dark" ? "rgba(9,9,11,0.8)" : "rgba(250,250,250,0.8)",
-        backdropFilter: "blur(12px)",
+        bgcolor: isDark ? "rgba(6,10,20,0.85)" : "rgba(245,247,250,0.85)",
+        backdropFilter: "blur(16px) saturate(1.4)",
         borderBottom: 1,
-        borderColor: "divider",
+        borderColor: isDark
+          ? "rgba(107,127,163,0.1)"
+          : "rgba(12,18,34,0.06)",
       }}
     >
       <Container maxWidth="xl" sx={{ px: { xs: 2, md: 3 } }}>
-        <Toolbar disableGutters sx={{ minHeight: 56, gap: 1 }}>
-          <Typography
+        <Toolbar disableGutters sx={{ minHeight: 52, gap: 1 }}>
+          <Box
             component={Link}
             href="/"
             sx={{
-              fontWeight: 700,
-              fontSize: "1rem",
-              letterSpacing: "-0.02em",
-              color: "text.primary",
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
               mr: 4,
+              textDecoration: "none",
             }}
           >
-            BEI Analyzer
-          </Typography>
+            <Box
+              sx={{
+                width: 24,
+                height: 24,
+                borderRadius: "6px",
+                background: isDark
+                  ? "linear-gradient(135deg, #d4a843 0%, #e8c468 100%)"
+                  : "linear-gradient(135deg, #a17c2f 0%, #c49a3a 100%)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Typography
+                sx={{
+                  fontFamily: '"Outfit", sans-serif',
+                  fontWeight: 800,
+                  fontSize: "0.7rem",
+                  color: "#060a14",
+                  lineHeight: 1,
+                  letterSpacing: "-0.04em",
+                }}
+              >
+                iDX
+              </Typography>
+            </Box>
+            <Typography
+              sx={{
+                fontFamily: '"Outfit", sans-serif',
+                fontWeight: 700,
+                fontSize: "0.9rem",
+                letterSpacing: "-0.02em",
+                color: "text.primary",
+              }}
+            >
+              Analyzer
+            </Typography>
+          </Box>
 
-          <Box sx={{ display: "flex", gap: 0.5, flex: 1 }}>
+          <Box sx={{ display: "flex", gap: 0.25, flex: 1 }}>
             {NAV_ITEMS.map(({ href, label }) => {
               const isActive =
                 pathname === href ||
@@ -68,22 +109,37 @@ export function Navbar() {
                   sx={{
                     px: 1.5,
                     py: 0.5,
-                    fontSize: "0.85rem",
-                    fontWeight: isActive ? 600 : 400,
-                    color: isActive ? "text.primary" : "text.secondary",
+                    fontSize: "0.8rem",
+                    fontWeight: isActive ? 700 : 500,
+                    color: isActive ? "primary.main" : "text.secondary",
                     bgcolor: isActive
-                      ? mode === "dark"
-                        ? "rgba(255,255,255,0.06)"
-                        : "rgba(0,0,0,0.04)"
+                      ? isDark
+                        ? "rgba(212,168,67,0.08)"
+                        : "rgba(161,124,47,0.06)"
                       : "transparent",
                     borderRadius: 1.5,
                     minWidth: "auto",
+                    position: "relative",
+                    transition: "all 0.15s ease",
                     "&:hover": {
-                      bgcolor:
-                        mode === "dark"
-                          ? "rgba(255,255,255,0.08)"
-                          : "rgba(0,0,0,0.06)",
+                      bgcolor: isDark
+                        ? "rgba(212,168,67,0.06)"
+                        : "rgba(161,124,47,0.04)",
+                      color: isActive ? "primary.main" : "text.primary",
                     },
+                    "&::after": isActive
+                      ? {
+                          content: '""',
+                          position: "absolute",
+                          bottom: 0,
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          width: 16,
+                          height: 2,
+                          borderRadius: 1,
+                          bgcolor: "primary.main",
+                        }
+                      : {},
                   }}
                 >
                   {label}
@@ -97,18 +153,28 @@ export function Navbar() {
               onClick={toggleColorMode}
               size="small"
               sx={{
-                width: 34,
-                height: 34,
+                width: 32,
+                height: 32,
                 color: "text.secondary",
                 border: 1,
-                borderColor: "divider",
-                borderRadius: 1.5,
+                borderColor: isDark
+                  ? "rgba(107,127,163,0.12)"
+                  : "rgba(12,18,34,0.08)",
+                borderRadius: "8px",
+                transition: "all 0.15s ease",
+                "&:hover": {
+                  borderColor: "primary.main",
+                  color: "primary.main",
+                  bgcolor: isDark
+                    ? "rgba(212,168,67,0.06)"
+                    : "rgba(161,124,47,0.04)",
+                },
               }}
             >
               {mode === "dark" ? (
-                <LightModeIcon sx={{ fontSize: 18 }} />
+                <LightModeIcon sx={{ fontSize: 16 }} />
               ) : (
-                <DarkModeIcon sx={{ fontSize: 18 }} />
+                <DarkModeIcon sx={{ fontSize: 16 }} />
               )}
             </IconButton>
           )}

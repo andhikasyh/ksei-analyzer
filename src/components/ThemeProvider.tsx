@@ -29,6 +29,38 @@ export function useColorMode() {
   return useContext(ColorModeContext);
 }
 
+const DARK = {
+  bg: "#060a14",
+  bgPaper: "#0d1425",
+  bgElevated: "#111b30",
+  textPrimary: "#e8edf5",
+  textSecondary: "#6b7fa3",
+  primary: "#d4a843",
+  primaryLight: "#e8c468",
+  secondary: "#38bdf8",
+  divider: "rgba(107,127,163,0.10)",
+  success: "#34d399",
+  warning: "#fbbf24",
+  error: "#fb7185",
+  border: "rgba(107,127,163,0.12)",
+};
+
+const LIGHT = {
+  bg: "#f5f7fa",
+  bgPaper: "#ffffff",
+  bgElevated: "#f0f2f6",
+  textPrimary: "#0c1222",
+  textSecondary: "#546280",
+  primary: "#a17c2f",
+  primaryLight: "#c49a3a",
+  secondary: "#0369a1",
+  divider: "rgba(12,18,34,0.07)",
+  success: "#059669",
+  warning: "#d97706",
+  error: "#e11d48",
+  border: "rgba(12,18,34,0.08)",
+};
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<"light" | "dark">("dark");
 
@@ -48,123 +80,167 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode,
-          ...(mode === "dark"
-            ? {
-                background: { default: "#09090b", paper: "#18181b" },
-                text: { primary: "#fafafa", secondary: "#a1a1aa" },
-                primary: { main: "#3b82f6", light: "#60a5fa" },
-                secondary: { main: "#22d3ee" },
-                divider: "#27272a",
-                success: { main: "#22c55e" },
-                warning: { main: "#eab308" },
-                error: { main: "#ef4444" },
-              }
-            : {
-                background: { default: "#fafafa", paper: "#ffffff" },
-                text: { primary: "#09090b", secondary: "#71717a" },
-                primary: { main: "#2563eb", light: "#3b82f6" },
-                secondary: { main: "#0891b2" },
-                divider: "#e4e4e7",
-                success: { main: "#16a34a" },
-                warning: { main: "#ca8a04" },
-                error: { main: "#dc2626" },
-              }),
+  const theme = useMemo(() => {
+    const p = mode === "dark" ? DARK : LIGHT;
+
+    return createTheme({
+      palette: {
+        mode,
+        background: { default: p.bg, paper: p.bgPaper },
+        text: { primary: p.textPrimary, secondary: p.textSecondary },
+        primary: { main: p.primary, light: p.primaryLight },
+        secondary: { main: p.secondary },
+        divider: p.divider,
+        success: { main: p.success },
+        warning: { main: p.warning },
+        error: { main: p.error },
+      },
+      typography: {
+        fontFamily: '"Plus Jakarta Sans", "Outfit", system-ui, sans-serif',
+        h4: {
+          fontFamily: '"Outfit", "Plus Jakarta Sans", sans-serif',
+          fontWeight: 800,
+          letterSpacing: "-0.03em",
         },
-        typography: {
-          fontFamily:
-            '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-          h5: { fontWeight: 700, letterSpacing: "-0.02em" },
-          h6: { fontWeight: 700, letterSpacing: "-0.01em" },
-          subtitle1: { fontWeight: 600 },
-          subtitle2: { fontWeight: 600 },
-          body2: { fontSize: "0.875rem" },
-          caption: { fontSize: "0.75rem", letterSpacing: "0.02em" },
+        h5: {
+          fontFamily: '"Outfit", "Plus Jakarta Sans", sans-serif',
+          fontWeight: 700,
+          letterSpacing: "-0.025em",
         },
-        shape: { borderRadius: 12 },
-        components: {
-          MuiCssBaseline: {
-            styleOverrides: {
-              ":root": { colorScheme: mode },
-              body: {
-                backgroundColor:
-                  mode === "dark" ? "#09090b" : "#fafafa",
-              },
+        h6: {
+          fontFamily: '"Outfit", "Plus Jakarta Sans", sans-serif',
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+        },
+        subtitle1: {
+          fontFamily: '"Outfit", "Plus Jakarta Sans", sans-serif',
+          fontWeight: 700,
+          letterSpacing: "-0.01em",
+        },
+        subtitle2: {
+          fontFamily: '"Outfit", "Plus Jakarta Sans", sans-serif',
+          fontWeight: 600,
+          letterSpacing: "-0.005em",
+        },
+        body1: { fontWeight: 400 },
+        body2: { fontSize: "0.85rem", fontWeight: 400 },
+        caption: {
+          fontSize: "0.72rem",
+          fontWeight: 500,
+          letterSpacing: "0.03em",
+        },
+      },
+      shape: { borderRadius: 10 },
+      components: {
+        MuiCssBaseline: {
+          styleOverrides: {
+            ":root": {
+              colorScheme: mode,
+              "--accent": p.primary,
+              "--accent-light": p.primaryLight,
+              "--bg-elevated": p.bgElevated,
+              "--border": p.border,
+              "--mono": '"JetBrains Mono", "SF Mono", "Fira Code", monospace',
             },
-          },
-          MuiPaper: {
-            defaultProps: { elevation: 0 },
-            styleOverrides: {
-              root: {
-                backgroundImage: "none",
-                border: `1px solid ${
-                  mode === "dark"
-                    ? "rgba(255,255,255,0.06)"
-                    : "rgba(0,0,0,0.06)"
-                }`,
-              },
-            },
-          },
-          MuiButton: {
-            styleOverrides: {
-              root: {
-                textTransform: "none",
-                fontWeight: 500,
-                borderRadius: 8,
-              },
-            },
-          },
-          MuiChip: {
-            styleOverrides: {
-              root: { borderRadius: 6, fontWeight: 500, fontSize: "0.75rem" },
-            },
-          },
-          MuiTableCell: {
-            styleOverrides: {
-              head: {
-                fontSize: "0.75rem",
-                fontWeight: 600,
-                color: mode === "dark" ? "#a1a1aa" : "#71717a",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-                backgroundColor:
-                  mode === "dark" ? "#141416" : "#f4f4f5",
-                borderBottom: `1px solid ${
-                  mode === "dark"
-                    ? "rgba(255,255,255,0.06)"
-                    : "rgba(0,0,0,0.06)"
-                }`,
-              },
-              root: {
-                borderColor:
-                  mode === "dark"
-                    ? "rgba(255,255,255,0.06)"
-                    : "rgba(0,0,0,0.06)",
-              },
-            },
-          },
-          MuiTooltip: {
-            styleOverrides: {
-              tooltip: {
-                backgroundColor: mode === "dark" ? "#27272a" : "#fafafa",
-                color: mode === "dark" ? "#fafafa" : "#09090b",
-                border: `1px solid ${
-                  mode === "dark"
-                    ? "rgba(255,255,255,0.1)"
-                    : "rgba(0,0,0,0.1)"
-                }`,
-                fontSize: "0.8rem",
-              },
+            body: {
+              backgroundColor: p.bg,
             },
           },
         },
-      }),
-    [mode]
-  );
+        MuiPaper: {
+          defaultProps: { elevation: 0 },
+          styleOverrides: {
+            root: {
+              backgroundImage: "none",
+              border: `1px solid ${p.border}`,
+              transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+            },
+          },
+        },
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              textTransform: "none",
+              fontWeight: 600,
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              borderRadius: 8,
+              letterSpacing: "-0.01em",
+            },
+          },
+        },
+        MuiChip: {
+          styleOverrides: {
+            root: {
+              borderRadius: 6,
+              fontWeight: 600,
+              fontSize: "0.7rem",
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+            },
+          },
+        },
+        MuiTableCell: {
+          styleOverrides: {
+            head: {
+              fontSize: "0.68rem",
+              fontWeight: 700,
+              fontFamily: '"Outfit", sans-serif',
+              color: p.textSecondary,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              backgroundColor:
+                mode === "dark"
+                  ? "rgba(13,20,37,0.9)"
+                  : "rgba(240,242,246,0.9)",
+              borderBottom: `1px solid ${p.border}`,
+              padding: "8px 12px",
+            },
+            root: {
+              borderColor: p.border,
+              padding: "6px 12px",
+              fontSize: "0.82rem",
+            },
+          },
+        },
+        MuiTooltip: {
+          styleOverrides: {
+            tooltip: {
+              backgroundColor:
+                mode === "dark" ? DARK.bgElevated : LIGHT.bgPaper,
+              color: p.textPrimary,
+              border: `1px solid ${p.border}`,
+              fontSize: "0.78rem",
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              borderRadius: 8,
+              boxShadow:
+                mode === "dark"
+                  ? "0 8px 32px rgba(0,0,0,0.5)"
+                  : "0 8px 32px rgba(0,0,0,0.1)",
+            },
+          },
+        },
+        MuiAutocomplete: {
+          styleOverrides: {
+            paper: {
+              borderRadius: 10,
+              border: `1px solid ${p.border}`,
+              boxShadow:
+                mode === "dark"
+                  ? "0 12px 40px rgba(0,0,0,0.6)"
+                  : "0 12px 40px rgba(0,0,0,0.12)",
+            },
+          },
+        },
+        MuiLinearProgress: {
+          styleOverrides: {
+            root: {
+              borderRadius: 4,
+              height: 3,
+            },
+          },
+        },
+      },
+    });
+  }, [mode]);
 
   return (
     <ColorModeContext.Provider value={{ mode, toggleColorMode }}>

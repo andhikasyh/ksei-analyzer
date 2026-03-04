@@ -14,14 +14,14 @@ import Typography from "@mui/material/Typography";
 import Skeleton from "@mui/material/Skeleton";
 
 const COLORS = [
-  "#3b82f6",
-  "#22c55e",
-  "#f59e0b",
-  "#ef4444",
-  "#8b5cf6",
-  "#06b6d4",
-  "#ec4899",
-  "#14b8a6",
+  "#d4a843",
+  "#38bdf8",
+  "#34d399",
+  "#fb7185",
+  "#a78bfa",
+  "#fbbf24",
+  "#2dd4bf",
+  "#f472b6",
   "#f97316",
   "#6366f1",
 ];
@@ -70,8 +70,8 @@ export function OwnershipPieChart({ data, title }: OwnershipPieChartProps) {
           </Pie>
           <Tooltip
             contentStyle={{
-              background: isDark ? "#27272a" : "#fff",
-              border: `1px solid ${isDark ? "#3f3f46" : "#e4e4e7"}`,
+              background: isDark ? "#111b30" : "#fff",
+              border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "#e4e4e7"}`,
               borderRadius: "8px",
               color: textColor,
               fontSize: "13px",

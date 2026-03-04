@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "@mui/material/styles";
 import { supabase, TABLE_NAME } from "@/lib/supabase";
 import { KSEIRecord } from "@/lib/types";
 import TextField from "@mui/material/TextField";
@@ -16,6 +17,8 @@ interface SearchOption {
 
 export function GlobalSearch({ compact }: { compact?: boolean }) {
   const router = useRouter();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const [options, setOptions] = useState<SearchOption[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -60,7 +63,12 @@ export function GlobalSearch({ compact }: { compact?: boolean }) {
                 <>
                   <InputAdornment position="start">
                     <SearchIcon
-                      sx={{ color: "text.secondary", fontSize: compact ? 18 : 20, ml: 0.5 }}
+                      sx={{
+                        color: "primary.main",
+                        fontSize: compact ? 16 : 18,
+                        ml: 0.5,
+                        opacity: 0.6,
+                      }}
                     />
                   </InputAdornment>
                   {params.InputProps.startAdornment}
@@ -70,8 +78,40 @@ export function GlobalSearch({ compact }: { compact?: boolean }) {
           }}
           sx={{
             "& .MuiOutlinedInput-root": {
-              borderRadius: compact ? 2 : 3,
-              bgcolor: "background.paper",
+              borderRadius: compact ? 2 : 2.5,
+              bgcolor: isDark
+                ? "rgba(13,20,37,0.8)"
+                : "background.paper",
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              fontSize: compact ? "0.82rem" : "0.88rem",
+              transition: "all 0.2s ease",
+              "&:hover": {
+                bgcolor: isDark
+                  ? "rgba(17,27,48,0.9)"
+                  : "background.paper",
+              },
+              "&.Mui-focused": {
+                bgcolor: isDark
+                  ? "rgba(17,27,48,1)"
+                  : "background.paper",
+                boxShadow: isDark
+                  ? "0 0 0 2px rgba(212,168,67,0.15)"
+                  : "0 0 0 2px rgba(161,124,47,0.1)",
+              },
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: isDark
+                  ? "rgba(107,127,163,0.12)"
+                  : "rgba(12,18,34,0.08)",
+              },
+              "&:hover .MuiOutlinedInput-notchedOutline": {
+                borderColor: isDark
+                  ? "rgba(212,168,67,0.25)"
+                  : "rgba(161,124,47,0.2)",
+              },
+              "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                borderColor: "primary.main",
+                borderWidth: 1,
+              },
             },
           }}
         />
@@ -79,10 +119,8 @@ export function GlobalSearch({ compact }: { compact?: boolean }) {
       slotProps={{
         paper: {
           sx: {
-            borderRadius: 2,
+            borderRadius: 2.5,
             mt: 0.5,
-            border: 1,
-            borderColor: "divider",
           },
         },
       }}

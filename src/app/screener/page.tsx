@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { IDXFinancialRatio, IDXStockSummary, formatBillion, formatRatio, formatValue } from "@/lib/types";
+import { computeFinancialScore } from "@/lib/scoring";
 import { GlobalSearch } from "@/components/SearchInput";
 import { StatsCard, StatsCardSkeleton } from "@/components/StatsCard";
 import Box from "@mui/material/Box";
@@ -62,6 +63,7 @@ interface ScreenerRow extends IDXFinancialRatio {
   market_cap: number;
   daily_value: number;
   foreign_net: number;
+  score: number;
 }
 
 type SortKey =
@@ -78,12 +80,14 @@ type SortKey =
   | "de_ratio"
   | "roe"
   | "npm"
-  | "eps";
+  | "eps"
+  | "score";
 
 type SortDir = "asc" | "desc";
 
 const COLUMNS: { key: SortKey; label: string; align?: "right" | "left"; numeric?: boolean }[] = [
   { key: "code", label: "Code" },
+  { key: "score", label: "Score", align: "right", numeric: true },
   { key: "stock_name", label: "Company" },
   { key: "sector", label: "Sector" },
   { key: "close", label: "Price", align: "right", numeric: true },
@@ -144,6 +148,7 @@ export default function ScreenerPage() {
           market_cap: close * listed,
           daily_value: stk ? parseFloat(stk.value) || 0 : 0,
           foreign_net: stk ? (parseFloat(stk.foreign_buy) || 0) - (parseFloat(stk.foreign_sell) || 0) : 0,
+          score: computeFinancialScore(fin),
         };
       });
       setData(merged);
@@ -316,18 +321,40 @@ export default function ScreenerPage() {
         />
       </Stack>
 
-      <TableContainer component={Paper} sx={{ borderRadius: 3, overflow: "hidden" }}>
-        <Table size="small" stickyHeader>
+      <TableContainer component={Paper} sx={{ borderRadius: 0, overflow: "auto" }}>
+        <Table
+          size="small"
+          stickyHeader
+          sx={{
+            tableLayout: "fixed",
+            minWidth: 920,
+            "& th, & td": { px: 0.75, py: 0.4, fontSize: "0.72rem", whiteSpace: "nowrap" },
+            "& th": { fontWeight: 700, fontSize: "0.68rem", letterSpacing: "0.02em" },
+          }}
+        >
           <TableHead>
             <TableRow>
-              <TableCell sx={{ width: 36 }}>#</TableCell>
+              <TableCell sx={{ width: 28 }}>#</TableCell>
               {COLUMNS.map((col) => (
-                <TableCell key={col.key} align={col.align || "left"}>
+                <TableCell
+                  key={col.key}
+                  align={col.align || "left"}
+                  sx={{
+                    width:
+                      col.key === "code" ? 52
+                      : col.key === "score" ? 44
+                      : col.key === "stock_name" ? 140
+                      : col.key === "sector" ? 100
+                      : col.key === "close" ? 58
+                      : col.key === "market_cap" ? 62
+                      : 48,
+                  }}
+                >
                   <TableSortLabel
                     active={sortKey === col.key}
                     direction={sortKey === col.key ? sortDir : "asc"}
                     onClick={() => handleSort(col.key)}
-                    sx={{ fontSize: "inherit" }}
+                    sx={{ fontSize: "inherit", "& .MuiTableSortLabel-icon": { fontSize: "0.8rem" } }}
                   >
                     {col.label}
                   </TableSortLabel>
@@ -346,100 +373,87 @@ export default function ScreenerPage() {
                 }}
                 onClick={() => router.push(`/stock/${r.code}`)}
               >
-                <TableCell>
-                  <Typography
-                    variant="caption"
-                    sx={{ fontFamily: "monospace", color: "text.secondary" }}
-                  >
-                    {i + 1}
-                  </Typography>
+                <TableCell sx={{ fontFamily: "monospace", color: "text.secondary" }}>
+                  {i + 1}
                 </TableCell>
-                <TableCell>
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 700, fontFamily: "monospace", color: "primary.main" }}
-                  >
-                    {r.code}
-                  </Typography>
+                <TableCell sx={{ fontWeight: 700, fontFamily: "monospace", color: "primary.main" }}>
+                  {r.code}
                 </TableCell>
-                <TableCell>
-                  <Typography
-                    variant="body2"
+                <TableCell align="right">
+                  <Chip
+                    label={r.score}
+                    size="small"
                     sx={{
-                      fontWeight: 500,
-                      maxWidth: 220,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
+                      fontSize: "0.65rem",
+                      height: 18,
+                      fontWeight: 700,
+                      fontFamily: "monospace",
+                      minWidth: 32,
+                      bgcolor:
+                        r.score >= 60
+                          ? "rgba(34,197,94,0.12)"
+                          : r.score >= 35
+                            ? "rgba(245,158,11,0.12)"
+                            : "rgba(239,68,68,0.12)",
+                      color:
+                        r.score >= 60
+                          ? "#22c55e"
+                          : r.score >= 35
+                            ? "#f59e0b"
+                            : "#ef4444",
+                      "& .MuiChip-label": { px: 0.75 },
                     }}
-                  >
-                    {r.stock_name}
-                  </Typography>
+                  />
+                </TableCell>
+                <TableCell
+                  sx={{
+                    fontWeight: 500,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {r.stock_name}
                 </TableCell>
                 <TableCell>
                   <Chip
                     label={r.sector}
                     size="small"
-                    sx={{ fontSize: "0.65rem", height: 20 }}
+                    sx={{ fontSize: "0.6rem", height: 18, "& .MuiChip-label": { px: 0.75 } }}
                   />
                 </TableCell>
-                <TableCell align="right">
-                  <Typography variant="caption" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
-                    {r.close > 0 ? r.close.toLocaleString() : "-"}
-                  </Typography>
+                <TableCell align="right" sx={{ fontFamily: "monospace", fontWeight: 600 }}>
+                  {r.close > 0 ? r.close.toLocaleString() : "-"}
                 </TableCell>
-                <TableCell align="right">
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontFamily: "monospace",
-                      fontWeight: 600,
-                      color: r.change_pct > 0 ? "#22c55e" : r.change_pct < 0 ? "#ef4444" : "text.secondary",
-                    }}
-                  >
-                    {r.change_pct > 0 ? "+" : ""}{r.change_pct.toFixed(2)}%
-                  </Typography>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontFamily: "monospace",
+                    fontWeight: 600,
+                    color: r.change_pct > 0 ? "#22c55e" : r.change_pct < 0 ? "#ef4444" : "text.secondary",
+                  }}
+                >
+                  {r.change_pct > 0 ? "+" : ""}{r.change_pct.toFixed(1)}%
                 </TableCell>
-                <TableCell align="right">
-                  <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                    {r.market_cap > 0 ? formatValue(r.market_cap) : "-"}
-                  </Typography>
+                <TableCell align="right" sx={{ fontFamily: "monospace" }}>
+                  {r.market_cap > 0 ? formatValue(r.market_cap) : "-"}
                 </TableCell>
-                <TableCell align="right">
-                  <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                    {formatRatio(r.per)}
-                  </Typography>
+                <TableCell align="right" sx={{ fontFamily: "monospace" }}>
+                  {formatRatio(r.per)}
                 </TableCell>
-                <TableCell align="right">
-                  <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                    {formatRatio(r.price_bv)}
-                  </Typography>
+                <TableCell align="right" sx={{ fontFamily: "monospace" }}>
+                  {formatRatio(r.price_bv)}
                 </TableCell>
-                <TableCell align="right">
-                  <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                    {formatRatio(r.de_ratio)}
-                  </Typography>
+                <TableCell align="right" sx={{ fontFamily: "monospace" }}>
+                  {formatRatio(r.de_ratio)}
                 </TableCell>
-                <TableCell align="right">
-                  <Typography
-                    variant="caption"
-                    sx={{ fontFamily: "monospace", color: ratioColor(r.roe) }}
-                  >
-                    {formatRatio(r.roe)}%
-                  </Typography>
+                <TableCell align="right" sx={{ fontFamily: "monospace", color: ratioColor(r.roe) }}>
+                  {formatRatio(r.roe)}%
                 </TableCell>
-                <TableCell align="right">
-                  <Typography
-                    variant="caption"
-                    sx={{ fontFamily: "monospace", color: ratioColor(r.npm) }}
-                  >
-                    {formatRatio(r.npm)}%
-                  </Typography>
+                <TableCell align="right" sx={{ fontFamily: "monospace", color: ratioColor(r.npm) }}>
+                  {formatRatio(r.npm)}%
                 </TableCell>
-                <TableCell align="right">
-                  <Typography variant="caption" sx={{ fontFamily: "monospace" }}>
-                    {formatRatio(r.eps)}
-                  </Typography>
+                <TableCell align="right" sx={{ fontFamily: "monospace" }}>
+                  {formatRatio(r.eps)}
                 </TableCell>
               </TableRow>
             ))}

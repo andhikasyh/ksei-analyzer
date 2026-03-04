@@ -37,9 +37,9 @@ interface ConnectionGraphProps {
   centerNodeId: string;
 }
 
-const STOCK_COLOR = "#3b82f6";
+const STOCK_COLOR = "#d4a843";
 const INVESTOR_COLOR = "#8b5cf6";
-const CENTER_RING = "#60a5fa";
+const CENTER_RING = "#e8c468";
 
 function truncate(str: string, len: number) {
   return str.length > len ? str.slice(0, len) + "..." : str;
@@ -118,8 +118,8 @@ export function ConnectionGraph({
         ctx.beginPath();
         ctx.arc(x, y, radius + 3, 0, 2 * Math.PI);
         ctx.fillStyle = isDark
-          ? "rgba(96,165,250,0.15)"
-          : "rgba(59,130,246,0.12)";
+          ?           "rgba(232,196,104,0.15)"
+          : "rgba(212,168,67,0.12)";
         ctx.fill();
       }
 
@@ -144,8 +144,8 @@ export function ConnectionGraph({
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       ctx.fillStyle = isDark
-        ? `rgba(250,250,250,${dimmed ? 0.15 : 0.9})`
-        : `rgba(9,9,11,${dimmed ? 0.15 : 0.85})`;
+        ? `rgba(232,237,245,${dimmed ? 0.15 : 0.9})`
+        : `rgba(12,18,34,${dimmed ? 0.15 : 0.85})`;
       ctx.fillText(label, x, y + radius + 3);
 
       ctx.globalAlpha = 1;
@@ -175,8 +175,8 @@ export function ConnectionGraph({
       ctx.moveTo(src.x, src.y);
       ctx.lineTo(tgt.x, tgt.y);
       ctx.strokeStyle = isDark
-        ? `rgba(161,161,170,${alpha})`
-        : `rgba(63,63,70,${alpha})`;
+        ? `rgba(107,127,163,${alpha})`
+        : `rgba(84,98,128,${alpha})`;
       ctx.lineWidth = width;
       ctx.stroke();
     },

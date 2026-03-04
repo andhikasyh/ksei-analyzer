@@ -14,12 +14,12 @@ a {
 }
 
 ::selection {
-  background: rgba(59, 130, 246, 0.25);
+  background: rgba(212, 168, 67, 0.25);
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -27,10 +27,51 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(161, 161, 170, 0.25);
+  background: rgba(107, 127, 163, 0.2);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(161, 161, 170, 0.4);
+  background: rgba(107, 127, 163, 0.35);
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+.animate-in {
+  animation: fadeInUp 0.4s ease-out both;
+}
+
+.animate-in-delay-1 { animation-delay: 0.06s; }
+.animate-in-delay-2 { animation-delay: 0.12s; }
+.animate-in-delay-3 { animation-delay: 0.18s; }
+.animate-in-delay-4 { animation-delay: 0.24s; }
+.animate-in-delay-5 { animation-delay: 0.30s; }
+.animate-in-delay-6 { animation-delay: 0.36s; }
+
+.mono {
+  font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
 }

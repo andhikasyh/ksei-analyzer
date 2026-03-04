@@ -11,6 +11,17 @@ import {
   formatRatio,
 } from "@/lib/types";
 import {
+  clampScore,
+  scoreROE,
+  scoreROA,
+  scoreNPM,
+  scorePE,
+  scoreDE,
+  scoreOwnership,
+  buildRadarData,
+  OwnershipMetrics,
+} from "@/lib/scoring";
+import {
   RadarChart,
   Radar,
   PolarGrid,
@@ -59,8 +70,8 @@ function MetricItem({
         borderRadius: 2,
         bgcolor:
           theme.palette.mode === "dark"
-            ? "rgba(255,255,255,0.03)"
-            : "rgba(0,0,0,0.02)",
+            ? "rgba(107,127,163,0.04)"
+            : "rgba(12,18,34,0.02)",
       }}
     >
       <Typography
@@ -72,7 +83,7 @@ function MetricItem({
       <Typography
         variant="body2"
         sx={{
-          fontFamily: "monospace",
+          fontFamily: '"JetBrains Mono", monospace',
           fontWeight: 700,
           mt: 0.5,
           color: color || "text.primary",
@@ -142,12 +153,12 @@ function PersonTable({ people }: { people: IDXCompanyPerson[] }) {
                     fontWeight: 600,
                     bgcolor: p.afiliasi
                       ? theme.palette.mode === "dark"
-                        ? "rgba(245,158,11,0.15)"
-                        : "rgba(245,158,11,0.1)"
+                        ? "rgba(251,191,36,0.12)"
+                        : "rgba(217,119,6,0.08)"
                       : theme.palette.mode === "dark"
-                        ? "rgba(255,255,255,0.06)"
-                        : "rgba(0,0,0,0.04)",
-                    color: p.afiliasi ? "#f59e0b" : "text.secondary",
+                        ? "rgba(107,127,163,0.06)"
+                        : "rgba(12,18,34,0.03)",
+                    color: p.afiliasi ? "#fbbf24" : "text.secondary",
                   }}
                 />
               </TableCell>
@@ -159,53 +170,6 @@ function PersonTable({ people }: { people: IDXCompanyPerson[] }) {
   );
 }
 
-function clampScore(v: number): number {
-  return Math.max(0, Math.min(100, v));
-}
-
-function scoreROE(roe: number): number {
-  if (roe <= 0) return clampScore(5 + roe);
-  if (roe <= 20) return clampScore((roe / 20) * 85 + 15);
-  return clampScore(95 + (roe - 20) * 0.25);
-}
-
-function scoreROA(roa: number): number {
-  if (roa <= 0) return clampScore(5 + roa * 2);
-  if (roa <= 3) return clampScore((roa / 3) * 70 + 15);
-  if (roa <= 10) return clampScore(85 + ((roa - 3) / 7) * 15);
-  return 100;
-}
-
-function scoreNPM(npm: number): number {
-  if (npm <= 0) return clampScore(5 + npm * 0.5);
-  if (npm <= 15) return clampScore((npm / 15) * 60 + 15);
-  if (npm <= 40) return clampScore(75 + ((npm - 15) / 25) * 20);
-  return clampScore(95 + (npm - 40) * 0.1);
-}
-
-function scorePE(pe: number): number {
-  if (pe < 0) return 8;
-  if (pe <= 5) return clampScore(60 + pe * 6);
-  if (pe <= 15) return clampScore(95 - (pe - 5) * 0.5);
-  if (pe <= 30) return clampScore(90 - (pe - 15) * 2);
-  if (pe <= 60) return clampScore(60 - (pe - 30) * 1.5);
-  return 10;
-}
-
-function scoreDE(de: number): number {
-  if (de < 0) return 8;
-  if (de <= 1) return clampScore(95 - de * 10);
-  if (de <= 3) return clampScore(85 - (de - 1) * 15);
-  if (de <= 7) return clampScore(55 - (de - 3) * 7);
-  return clampScore(Math.max(8, 27 - (de - 7) * 2));
-}
-
-interface OwnershipMetrics {
-  investorCount: number;
-  foreignPct: number;
-  institutionalPct: number;
-  topHolderPct: number;
-}
 
 function computeOwnershipMetrics(records: KSEIRecord[]): OwnershipMetrics {
   if (records.length === 0) {
@@ -233,65 +197,14 @@ function computeOwnershipMetrics(records: KSEIRecord[]): OwnershipMetrics {
   };
 }
 
-function scoreOwnership(m: OwnershipMetrics): { score: number; raw: string } {
-  if (m.investorCount === 0) return { score: 0, raw: "No data" };
-
-  const diversityScore = clampScore(Math.min(100, Math.log2(m.investorCount + 1) * 15));
-
-  let foreignScore: number;
-  if (m.foreignPct <= 5) foreignScore = 30 + m.foreignPct * 4;
-  else if (m.foreignPct <= 35) foreignScore = 50 + ((m.foreignPct - 5) / 30) * 50;
-  else foreignScore = clampScore(100 - (m.foreignPct - 35) * 0.8);
-
-  const instScore = clampScore(m.institutionalPct * 2.5);
-
-  let concScore: number;
-  if (m.topHolderPct <= 30) concScore = 90;
-  else if (m.topHolderPct <= 60) concScore = 90 - (m.topHolderPct - 30);
-  else concScore = clampScore(60 - (m.topHolderPct - 60) * 1.5);
-
-  const total = Math.round(
-    diversityScore * 0.2 + foreignScore * 0.3 + instScore * 0.25 + concScore * 0.25
-  );
-
-  const parts = [];
-  if (m.foreignPct > 0) parts.push(`${m.foreignPct.toFixed(0)}% foreign`);
-  parts.push(`${m.investorCount} investors`);
-
-  return { score: clampScore(total), raw: parts.join(", ") };
-}
-
-function buildRadarData(fin: IDXFinancialRatio, ownership?: OwnershipMetrics) {
-  const roe = parseFloat(fin.roe) || 0;
-  const roa = parseFloat(fin.roa) || 0;
-  const npm = parseFloat(fin.npm) || 0;
-  const per = parseFloat(fin.per) || 0;
-  const de = parseFloat(fin.de_ratio) || 0;
-
-  const data = [
-    { axis: "Profitability", value: scoreROE(roe), raw: `ROE ${roe.toFixed(2)}%` },
-    { axis: "Efficiency", value: scoreROA(roa), raw: `ROA ${roa.toFixed(2)}%` },
-    { axis: "Margins", value: scoreNPM(npm), raw: `NPM ${npm.toFixed(2)}%` },
-    { axis: "Valuation", value: scorePE(per), raw: `P/E ${per.toFixed(2)}x` },
-    { axis: "Stability", value: scoreDE(de), raw: `D/E ${de.toFixed(2)}` },
-  ];
-
-  if (ownership && ownership.investorCount > 0) {
-    const ow = scoreOwnership(ownership);
-    data.push({ axis: "Ownership", value: ow.score, raw: ow.raw });
-  }
-
-  return data;
-}
-
 function PerformanceRadar({ financials, ownership }: { financials: IDXFinancialRatio; ownership?: OwnershipMetrics }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const data = buildRadarData(financials, ownership);
   const avg = Math.round(data.reduce((s, d) => s + d.value, 0) / data.length);
 
-  const gridColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const axisColor = isDark ? "#a1a1aa" : "#71717a";
+  const gridColor = isDark ? "rgba(107,127,163,0.1)" : "rgba(12,18,34,0.08)";
+  const axisColor = isDark ? "#6b7fa3" : "#546280";
 
   return (
     <Paper sx={{ p: 2.5, borderRadius: 3 }}>
@@ -320,14 +233,14 @@ function PerformanceRadar({ financials, ownership }: { financials: IDXFinancialR
             fontSize: "0.7rem",
             height: 22,
             fontWeight: 700,
-            fontFamily: "monospace",
+            fontFamily: '"JetBrains Mono", monospace',
             bgcolor:
               avg >= 60
-                ? isDark ? "rgba(34,197,94,0.15)" : "rgba(34,197,94,0.1)"
+                ? isDark ? "rgba(52,211,153,0.15)" : "rgba(5,150,105,0.1)"
                 : avg >= 35
-                  ? isDark ? "rgba(245,158,11,0.15)" : "rgba(245,158,11,0.1)"
-                  : isDark ? "rgba(239,68,68,0.15)" : "rgba(239,68,68,0.1)",
-            color: avg >= 60 ? "#22c55e" : avg >= 35 ? "#f59e0b" : "#ef4444",
+                  ? isDark ? "rgba(251,191,36,0.15)" : "rgba(217,119,6,0.1)"
+                  : isDark ? "rgba(251,113,133,0.15)" : "rgba(225,29,72,0.1)",
+            color: avg >= 60 ? "#34d399" : avg >= 35 ? "#fbbf24" : "#fb7185",
           }}
         />
       </Stack>
@@ -351,18 +264,18 @@ function PerformanceRadar({ financials, ownership }: { financials: IDXFinancialR
           <Radar
             name="Performance"
             dataKey="value"
-            stroke="#3b82f6"
-            fill="#3b82f6"
+            stroke="#d4a843"
+            fill="#d4a843"
             fillOpacity={isDark ? 0.25 : 0.15}
             strokeWidth={2}
           />
           <Tooltip
             contentStyle={{
-              background: isDark ? "#27272a" : "#fff",
-              border: `1px solid ${isDark ? "#3f3f46" : "#e4e4e7"}`,
+              background: isDark ? "#111b30" : "#fff",
+              border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"}`,
               borderRadius: "8px",
               fontSize: "12px",
-              color: isDark ? "#fafafa" : "#09090b",
+              color: isDark ? "#e8edf5" : "#0c1222",
             }}
             formatter={(value: number, _: string, entry: any) => [
               `${Math.round(value)}/100 (${entry.payload.raw})`,
@@ -438,7 +351,7 @@ export function CompanyProfilePanel({ stockCode }: CompanyProfileProps) {
     if (!val) return "text.primary";
     const n = parseFloat(val);
     if (isNaN(n)) return "text.primary";
-    return n >= 0 ? "#22c55e" : "#ef4444";
+    return n >= 0 ? "#34d399" : "#fb7185";
   };
 
   const mgmtTabs = [
@@ -469,9 +382,9 @@ export function CompanyProfilePanel({ stockCode }: CompanyProfileProps) {
                 height: 20,
                 bgcolor:
                   theme.palette.mode === "dark"
-                    ? "rgba(59,130,246,0.15)"
-                    : "rgba(59,130,246,0.08)",
-                color: "#3b82f6",
+                    ? "rgba(212,168,67,0.12)"
+                    : "rgba(161,124,47,0.08)",
+                color: theme.palette.primary.main,
                 fontWeight: 600,
               }}
             />
@@ -483,8 +396,8 @@ export function CompanyProfilePanel({ stockCode }: CompanyProfileProps) {
                 height: 20,
                 bgcolor:
                   theme.palette.mode === "dark"
-                    ? "rgba(255,255,255,0.06)"
-                    : "rgba(0,0,0,0.04)",
+                    ? "rgba(107,127,163,0.06)"
+                    : "rgba(12,18,34,0.03)",
               }}
             />
             {financials.sharia === "S" && (
@@ -496,9 +409,9 @@ export function CompanyProfilePanel({ stockCode }: CompanyProfileProps) {
                   height: 20,
                   bgcolor:
                     theme.palette.mode === "dark"
-                      ? "rgba(34,197,94,0.15)"
-                      : "rgba(34,197,94,0.08)",
-                  color: "#22c55e",
+                      ? "rgba(52,211,153,0.12)"
+                      : "rgba(5,150,105,0.08)",
+                  color: "#34d399",
                   fontWeight: 600,
                 }}
               />
