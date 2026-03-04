@@ -30,33 +30,42 @@ function ReportCard({
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const router = useRouter();
-  const { isPro, user, consumeInsightTry, insightTries } = useProContext();
+  const { isPro, user, consumeInsightTry, insightTries, hasFreeViews, consumeFreeView } = useProContext();
 
   const dateLabel = new Date(item.report_date + "T00:00:00").toLocaleDateString(
     "en-GB",
     { weekday: "short", day: "2-digit", month: "short", year: "numeric" }
   );
 
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback(async () => {
     if (isPro) {
       router.push(`/intelligent/${item.report_date}`);
       return;
     }
-    if (!user && insightTries < MAX_FREE_TRIES) {
-      const ok = consumeInsightTry();
-      if (ok) {
+    // Guest (not logged in): use localStorage try
+    if (!user) {
+      if (insightTries < MAX_FREE_TRIES) {
+        const ok = consumeInsightTry();
+        if (ok) {
+          router.push(`/intelligent/${item.report_date}`);
+          return;
+        }
+      }
+      onLocked();
+      return;
+    }
+    // Logged-in free user: use server-tracked free view
+    if (hasFreeViews) {
+      const allowed = await consumeFreeView();
+      if (allowed) {
         router.push(`/intelligent/${item.report_date}`);
         return;
       }
     }
-    if (user && !isPro) {
-      onLocked();
-      return;
-    }
     onLocked();
-  }, [isPro, user, insightTries, consumeInsightTry, item.report_date, router, onLocked]);
+  }, [isPro, user, insightTries, consumeInsightTry, hasFreeViews, consumeFreeView, item.report_date, router, onLocked]);
 
-  const isLocked = !isPro && (user !== null || insightTries >= MAX_FREE_TRIES);
+  const isLocked = !isPro && (user !== null ? !hasFreeViews : insightTries >= MAX_FREE_TRIES);
 
   return (
     <Paper
@@ -297,7 +306,7 @@ function ReportCard({
 export default function IntelligentPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const { user, isPro, loading: proLoading, insightTries, chatTries, consumeChatTry } = useProContext();
+  const { user, isPro, loading: proLoading, insightTries, chatTries, consumeChatTry, hasFreeViews, freeViewCount, freeViewLimit } = useProContext();
   const [reports, setReports] = useState<MarketIntelligenceListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -451,8 +460,12 @@ export default function IntelligentPage() {
               }}
             >
               {user
-                ? "Dapatkan semua laporan harian + AI Chat tanpa batas + newsletter"
-                : `${MAX_FREE_TRIES - insightTries} dari ${MAX_FREE_TRIES} laporan gratis tersisa. Daftar Pro untuk akses penuh.`}
+                ? hasFreeViews
+                  ? `${freeViewLimit - freeViewCount} dari ${freeViewLimit} laporan gratis tersisa. Upgrade Pro untuk akses penuh.`
+                  : "Laporan gratis habis. Upgrade Pro untuk akses semua laporan."
+                : insightTries < MAX_FREE_TRIES
+                  ? `${MAX_FREE_TRIES - insightTries} dari ${MAX_FREE_TRIES} laporan gratis tersisa. Daftar untuk akses lebih.`
+                  : "Laporan gratis habis. Login & daftar Pro untuk akses penuh."}
             </Typography>
           </Box>
           <Button

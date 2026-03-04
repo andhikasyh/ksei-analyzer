@@ -8,16 +8,17 @@ import DialogContent from "@mui/material/DialogContent";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import IconButton from "@mui/material/IconButton";
+import CircularProgress from "@mui/material/CircularProgress";
 import TextField from "@mui/material/TextField";
 import Stack from "@mui/material/Stack";
 import Divider from "@mui/material/Divider";
 import Chip from "@mui/material/Chip";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import PsychologyIcon from "@mui/icons-material/Psychology";
+import BarChartIcon from "@mui/icons-material/BarChart";
 import GoogleIcon from "@mui/icons-material/Google";
 import { useProContext } from "@/lib/pro-context";
 
@@ -37,7 +38,7 @@ const PRO_FEATURES = [
   { icon: <TrendingUpIcon sx={{ fontSize: 15 }} />, text: "Laporan Market Intelligence harian" },
   { icon: <PsychologyIcon sx={{ fontSize: 15 }} />, text: "AI Chat tanpa batas tentang saham IDX" },
   { icon: <NotificationsIcon sx={{ fontSize: 15 }} />, text: "Newsletter harian tiap hari bursa" },
-  { icon: <AutoAwesomeIcon sx={{ fontSize: 15 }} />, text: "Analisis sektor, foreign flow, prediksi harga" },
+  { icon: <BarChartIcon sx={{ fontSize: 15 }} />, text: "Analisis sektor, foreign flow, prediksi harga" },
 ];
 
 function useMayarEmbed() {
@@ -166,6 +167,119 @@ function MayarEmbed() {
   );
 }
 
+import type { User } from "@supabase/supabase-js";
+
+interface ReferralCodeInputProps {
+  user: User | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  redeemReferral: (code: string) => Promise<{ ok: boolean; error?: string; free_months?: number }>;
+  accent: string;
+  isDark: boolean;
+  onSuccess: () => void;
+}
+
+function ReferralCodeInput({ user, redeemReferral, accent, isDark, onSuccess }: ReferralCodeInputProps) {
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const handleRedeem = useCallback(async () => {
+    if (!code.trim()) return;
+    if (!user) {
+      setError("Kamu harus login terlebih dahulu untuk menggunakan kode referral.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setSuccess("");
+    const result = await redeemReferral(code.trim());
+    setLoading(false);
+    if (result.ok) {
+      setSuccess(`Berhasil! Pro aktif selama ${result.free_months ?? 1} bulan gratis.`);
+      setTimeout(() => onSuccess(), 2000);
+    } else {
+      setError(result.error ?? "Gagal menggunakan kode referral.");
+    }
+  }, [code, user, redeemReferral, onSuccess]);
+
+  const inputBorder = isDark ? "rgba(107,127,163,0.2)" : "rgba(12,18,34,0.12)";
+
+  if (!open) {
+    return (
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Divider sx={{ flex: 1 }} />
+        <Button size="small" onClick={() => setOpen(true)}
+          sx={{ fontSize: "0.68rem", color: "text.secondary", fontFamily: '"Plus Jakarta Sans", sans-serif', px: 1.5, borderRadius: "8px", whiteSpace: "nowrap", "&:hover": { color: accent } }}>
+          Punya kode referral?
+        </Button>
+        <Divider sx={{ flex: 1 }} />
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{
+      p: 1.5, borderRadius: "12px",
+      bgcolor: isDark ? "rgba(107,127,163,0.05)" : "rgba(12,18,34,0.025)",
+      border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.07)"}`,
+    }}>
+      <Typography sx={{ fontSize: "0.72rem", fontWeight: 600, fontFamily: '"Plus Jakarta Sans", sans-serif', mb: 1 }}>
+        Kode Referral
+      </Typography>
+      <Box sx={{ display: "flex", gap: 0.75 }}>
+        <Box
+          component="input"
+          placeholder="Masukkan kode..."
+          value={code}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCode(e.target.value.toUpperCase())}
+          onKeyDown={(e: React.KeyboardEvent) => e.key === "Enter" && handleRedeem()}
+          sx={{
+            flex: 1,
+            px: 1.25,
+            py: 0.75,
+            borderRadius: "8px",
+            border: `1px solid ${inputBorder}`,
+            bgcolor: isDark ? "rgba(107,127,163,0.06)" : "rgba(12,18,34,0.02)",
+            color: "text.primary",
+            fontSize: "0.82rem",
+            fontFamily: '"JetBrains Mono", monospace',
+            letterSpacing: "0.06em",
+            outline: "none",
+            transition: "border-color 0.15s ease",
+            "&:focus": { borderColor: accent },
+          }}
+        />
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={handleRedeem}
+          disabled={loading || !code.trim()}
+          sx={{
+            fontSize: "0.75rem", fontWeight: 700, borderRadius: "8px", px: 1.5,
+            borderColor: accent, color: accent,
+            "&:hover": { bgcolor: isDark ? "rgba(212,168,67,0.08)" : "rgba(161,124,47,0.06)" },
+            "&:disabled": { opacity: 0.5 },
+          }}
+        >
+          {loading ? <CircularProgress size={14} sx={{ color: accent }} /> : "Gunakan"}
+        </Button>
+      </Box>
+      {error && (
+        <Typography sx={{ fontSize: "0.7rem", color: "#fb7185", fontFamily: '"Plus Jakarta Sans", sans-serif', mt: 0.75 }}>
+          {error}
+        </Typography>
+      )}
+      {success && (
+        <Typography sx={{ fontSize: "0.7rem", color: "#34d399", fontWeight: 600, fontFamily: '"Plus Jakarta Sans", sans-serif', mt: 0.75 }}>
+          {success}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
 export function ProPaywallModal({
   open,
   onClose,
@@ -174,19 +288,29 @@ export function ProPaywallModal({
 }: ProPaywallModalProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const { signInWithGoogle, user, isPro } = useProContext();
+  const { signInWithGoogle, user, isPro, redeemReferral } = useProContext();
   const [mode, setMode] = useState<PaywallMode>(initialMode);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const accent = isDark ? "#d4a843" : "#a17c2f";
   const accentLight = isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.07)";
 
   useEffect(() => {
-    if (open) setMode(initialMode);
+    if (open) {
+      setMode(initialMode);
+      setGoogleLoading(false);
+    }
   }, [open, initialMode]);
 
   const handleAuthSuccess = useCallback(() => {
     setMode("pro");
   }, []);
+
+  const handleGoogleSignIn = useCallback(async () => {
+    setGoogleLoading(true);
+    await signInWithGoogle();
+    // browser will redirect away — loading state stays until navigation
+  }, [signInWithGoogle]);
 
   if (open && user && isPro) {
     onClose();
@@ -260,14 +384,9 @@ export function ProPaywallModal({
         {isAuthMode && (
           <Stack spacing={2.5}>
             <Box sx={{ textAlign: "center" }}>
-              <Box sx={{
-                width: 44, height: 44, borderRadius: "14px",
-                background: `linear-gradient(135deg, ${accentLight}, rgba(129,140,248,0.08))`,
-                border: `1px solid ${isDark ? "rgba(212,168,67,0.2)" : "rgba(161,124,47,0.15)"}`,
-                display: "flex", alignItems: "center", justifyContent: "center", mx: "auto", mb: 1.5,
-              }}>
-                <AutoAwesomeIcon sx={{ fontSize: 22, color: accent }} />
-              </Box>
+              <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: "0.6rem", letterSpacing: "0.12em", color: accent, mb: 1.5, textTransform: "uppercase" }}>
+                BEI Analyzer Pro
+              </Typography>
               <Typography sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 800, fontSize: "1.1rem", letterSpacing: "-0.02em", mb: 0.5 }}>
                 {mode === "login" ? "Masuk ke Akun" : "Buat Akun Baru"}
               </Typography>
@@ -278,15 +397,18 @@ export function ProPaywallModal({
               </Typography>
             </Box>
 
-            <Button fullWidth variant="outlined" startIcon={<GoogleIcon sx={{ fontSize: 18 }} />}
-              onClick={signInWithGoogle}
+            <Button fullWidth variant="outlined"
+              startIcon={googleLoading ? <CircularProgress size={16} sx={{ color: accent }} /> : <GoogleIcon sx={{ fontSize: 18 }} />}
+              onClick={handleGoogleSignIn}
+              disabled={googleLoading}
               sx={{
                 borderColor: isDark ? "rgba(107,127,163,0.25)" : "rgba(12,18,34,0.15)",
                 color: "text.primary", fontWeight: 600, fontSize: "0.82rem", borderRadius: "10px", py: 0.9,
                 "&:hover": { borderColor: accent, bgcolor: accentLight },
+                "&:disabled": { opacity: 0.7 },
               }}
             >
-              Lanjut dengan Google
+              {googleLoading ? "Mengarahkan ke Google..." : "Lanjut dengan Google"}
             </Button>
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -301,12 +423,7 @@ export function ProPaywallModal({
               onSuccess={handleAuthSuccess}
             />
 
-            <Box sx={{ p: 1.5, borderRadius: "12px", bgcolor: isDark ? "rgba(129,140,248,0.05)" : "rgba(99,102,241,0.04)", border: `1px solid ${isDark ? "rgba(129,140,248,0.1)" : "rgba(99,102,241,0.08)"}` }}>
-              <Typography sx={{ fontSize: "0.7rem", color: "text.secondary", textAlign: "center", fontFamily: '"Plus Jakarta Sans", sans-serif', lineHeight: 1.5 }}>
-                Setelah masuk, aktifkan Pro seharga{" "}
-                <Box component="span" sx={{ color: accent, fontWeight: 700 }}>Rp99.000/bulan</Box>
-              </Typography>
-            </Box>
+
           </Stack>
         )}
 
@@ -359,7 +476,7 @@ export function ProPaywallModal({
             <Button
               fullWidth
               variant="contained"
-              onClick={() => setMode("payment")}
+              onClick={() => user ? setMode("payment") : setMode("login")}
               sx={{
                 background: isDark ? "linear-gradient(135deg, #d4a843, #e8c468)" : "linear-gradient(135deg, #a17c2f, #c49a3a)",
                 color: "#060a14", fontWeight: 800, fontSize: "0.9rem",
@@ -378,6 +495,8 @@ export function ProPaywallModal({
             <Typography sx={{ fontSize: "0.62rem", color: "text.secondary", textAlign: "center", fontFamily: '"Plus Jakarta Sans", sans-serif', lineHeight: 1.5 }}>
               Transfer bank · QRIS · e-wallet · Diproses oleh <Box component="span" sx={{ fontWeight: 600 }}>Mayar.id</Box> · Aktif dalam 1x24 jam
             </Typography>
+
+            <ReferralCodeInput user={user} redeemReferral={redeemReferral} accent={accent} isDark={isDark} onSuccess={onClose} />
 
             {!user && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>

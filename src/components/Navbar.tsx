@@ -20,7 +20,6 @@ import LensIcon from "@mui/icons-material/Lens";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
-import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { ProPaywallModal } from "@/components/ProPaywallModal";
 
@@ -182,9 +181,6 @@ export function Navbar() {
                     {isPro && (
                       <Box
                         sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 0.5,
                           px: 1,
                           py: 0.35,
                           borderRadius: "6px",
@@ -194,7 +190,6 @@ export function Navbar() {
                           border: `1px solid ${isDark ? "rgba(212,168,67,0.22)" : "rgba(161,124,47,0.18)"}`,
                         }}
                       >
-                        <AutoAwesomeIcon sx={{ fontSize: 11, color: accent }} />
                         <Typography
                           sx={{
                             fontSize: "0.6rem",
@@ -272,7 +267,6 @@ export function Navbar() {
                           sx={{
                             display: "inline-flex",
                             alignItems: "center",
-                            gap: 0.5,
                             px: 0.75,
                             py: 0.25,
                             borderRadius: "5px",
@@ -284,7 +278,6 @@ export function Navbar() {
                               : isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"}`,
                           }}
                         >
-                          {isPro && <AutoAwesomeIcon sx={{ fontSize: 9, color: accent }} />}
                           <Typography
                             sx={{
                               fontSize: "0.58rem",
@@ -316,7 +309,6 @@ export function Navbar() {
                             fontWeight: 600,
                           }}
                         >
-                          <AutoAwesomeIcon sx={{ fontSize: 15, color: accent }} />
                           Upgrade ke Pro
                         </MenuItem>
                       )}
