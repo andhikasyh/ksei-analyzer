@@ -29,22 +29,35 @@ export default function ReportDetailPage({
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const router = useRouter();
-  const { user, isPro, loading: proLoading } = useProContext();
+  const { user, isPro, loading: proLoading, chatTries, consumeChatTry } = useProContext();
   const [report, setReport] = useState<MarketIntelligenceReport | null>(null);
   const [title, setTitle] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [oldestDate, setOldestDate] = useState<string | null>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
+
+  const chatLocked = !isPro && (user !== null || chatTries >= 1);
+  const handleChatAttempt = useCallback(() => {
+    if (isPro) return false;
+    if (!user && chatTries < 1) {
+      const ok = consumeChatTry();
+      return !ok;
+    }
+    setPaywallOpen(true);
+    return true;
+  }, [isPro, user, chatTries, consumeChatTry]);
 
   const fetchReport = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(
-        `/api/market-intelligence?date=${encodeURIComponent(date)}`
-      );
-      const data = await res.json();
+      const [reportRes, oldestRes] = await Promise.all([
+        fetch(`/api/market-intelligence?date=${encodeURIComponent(date)}`),
+        fetch("/api/market-intelligence?oldest=true"),
+      ]);
+      const data = await reportRes.json();
       if (data.report) {
         setReport(data.report);
         setTitle(data.title || data.report.title || null);
@@ -52,6 +65,8 @@ export default function ReportDetailPage({
       } else {
         setError("Report not found for this date.");
       }
+      const oldestData = await oldestRes.json();
+      if (oldestData.oldest) setOldestDate(oldestData.oldest);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch report");
     } finally {
@@ -125,7 +140,9 @@ export default function ReportDetailPage({
     );
   }
 
-  if (!isPro) {
+  const isFreeReport = oldestDate !== null && date === oldestDate;
+
+  if (!isPro && !isFreeReport) {
     const accent = isDark ? "#d4a843" : "#a17c2f";
     return (
       <Stack spacing={2.5}>
@@ -494,6 +511,8 @@ export default function ReportDetailPage({
         <MarketChat
           context={chatContext}
           placeholder={`Ask about the ${dateLabel} market report...`}
+          locked={chatLocked}
+          onLockedAttempt={handleChatAttempt}
         />
       </Box>
     </Stack>

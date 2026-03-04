@@ -14,6 +14,16 @@ export async function GET(request: NextRequest) {
   const listParam = request.nextUrl.searchParams.get("list");
   const limitParam = request.nextUrl.searchParams.get("limit");
 
+  if (request.nextUrl.searchParams.get("oldest") === "true") {
+    const { data, error } = await supabase
+      .from("market_intelligence")
+      .select("report_date")
+      .order("report_date", { ascending: true })
+      .limit(1);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ oldest: data?.[0]?.report_date ?? null });
+  }
+
   if (listParam === "true") {
     const limit = Math.min(parseInt(limitParam || "20", 10) || 20, 50);
     const { data, error } = await supabase

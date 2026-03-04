@@ -6,7 +6,6 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
-import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
@@ -20,6 +19,7 @@ interface MarketChatProps {
   context?: { reportDate: string; reportSummary: string };
   placeholder?: string;
   compact?: boolean;
+  sharp?: boolean;
   locked?: boolean;
   onLockedAttempt?: () => boolean;
 }
@@ -108,7 +108,7 @@ function useMdStyles(isDark: boolean, accent: string) {
   } as const;
 }
 
-export function MarketChat({ context, placeholder, compact, locked, onLockedAttempt }: MarketChatProps) {
+export function MarketChat({ context, placeholder, compact, sharp, locked, onLockedAttempt }: MarketChatProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const [state, setState] = useState<StreamState>("idle");
@@ -303,7 +303,7 @@ export function MarketChat({ context, placeholder, compact, locked, onLockedAtte
       <Paper
         onClick={() => onLockedAttempt?.()}
         sx={{
-          borderRadius: 3,
+          borderRadius: sharp ? 0 : 3,
           overflow: "hidden",
           border: 1,
           borderColor: isDark ? "rgba(129,140,248,0.12)" : "rgba(99,102,241,0.1)",
@@ -329,7 +329,7 @@ export function MarketChat({ context, placeholder, compact, locked, onLockedAtte
           sx={{
             width: 36,
             height: 36,
-            borderRadius: "10px",
+            borderRadius: sharp ? 0 : "10px",
             bgcolor: isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.08)",
             display: "flex",
             alignItems: "center",
@@ -367,7 +367,7 @@ export function MarketChat({ context, placeholder, compact, locked, onLockedAtte
             mt: 0.5,
             px: 2,
             py: 0.6,
-            borderRadius: "8px",
+            borderRadius: sharp ? 0 : "8px",
             background: isDark
               ? "linear-gradient(135deg, rgba(212,168,67,0.12), rgba(212,168,67,0.08))"
               : "linear-gradient(135deg, rgba(161,124,47,0.1), rgba(161,124,47,0.06))",
@@ -393,68 +393,12 @@ export function MarketChat({ context, placeholder, compact, locked, onLockedAtte
   return (
     <Paper
       sx={{
-        borderRadius: 3,
+        borderRadius: sharp ? 0 : 3,
         overflow: "hidden",
         border: 1,
         borderColor: isDark ? "rgba(129,140,248,0.12)" : "rgba(99,102,241,0.1)",
       }}
     >
-      <Stack
-        direction="row"
-        alignItems="center"
-        spacing={1}
-        sx={{
-          px: 2,
-          py: 1,
-          borderBottom: 1,
-          borderColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)",
-          bgcolor: accentBg,
-        }}
-      >
-        <AutoAwesomeIcon sx={{ fontSize: 14, color: accent }} />
-        <Typography
-          variant="caption"
-          sx={{ color: accent, fontWeight: 600, letterSpacing: 0.5, fontSize: "0.65rem" }}
-        >
-          {context ? "ASK ABOUT THIS REPORT" : "ASK ABOUT THE MARKET"}
-        </Typography>
-        <Chip
-          label="Claude"
-          size="small"
-          sx={{
-            fontSize: "0.55rem",
-            height: 16,
-            fontWeight: 600,
-            bgcolor: isDark ? "rgba(129,140,248,0.12)" : "rgba(99,102,241,0.08)",
-            color: accent,
-            fontFamily: '"JetBrains Mono", monospace',
-          }}
-        />
-        <Box sx={{ flex: 1 }} />
-        {isWorking && (
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <Box
-              sx={{
-                width: 5,
-                height: 5,
-                borderRadius: "50%",
-                bgcolor: "#34d399",
-                animation: "pulse 1.5s ease-in-out infinite",
-                "@keyframes pulse": { "0%, 100%": { opacity: 1 }, "50%": { opacity: 0.3 } },
-              }}
-            />
-            <Typography variant="caption" sx={{ fontSize: "0.55rem", color: "text.secondary" }}>
-              {state === "loading" ? "Thinking..." : "Writing..."}
-            </Typography>
-          </Stack>
-        )}
-        {state === "streaming" && (
-          <IconButton size="small" onClick={stopStream} sx={{ color: "#fb7185" }}>
-            <StopIcon sx={{ fontSize: 14 }} />
-          </IconButton>
-        )}
-      </Stack>
-
       <Box
         ref={scrollRef}
         sx={{
@@ -463,8 +407,11 @@ export function MarketChat({ context, placeholder, compact, locked, onLockedAtte
           "&::-webkit-scrollbar": { width: 4 },
           "&::-webkit-scrollbar-thumb": {
             bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)",
-            borderRadius: 3,
+            borderRadius: sharp ? 0 : 3,
           },
+          ...(sharp && {
+            "& .md-code": { borderRadius: 0 },
+          }),
         }}
       >
         {messages.length === 0 && !streamingContent && state !== "loading" && (
@@ -579,7 +526,7 @@ export function MarketChat({ context, placeholder, compact, locked, onLockedAtte
               py: 1.5,
               mx: 2,
               my: 1,
-              borderRadius: 2,
+              borderRadius: sharp ? 0 : 2,
               bgcolor: isDark ? "rgba(251,113,133,0.08)" : "rgba(251,113,133,0.06)",
               border: 1,
               borderColor: isDark ? "rgba(251,113,133,0.15)" : "rgba(251,113,133,0.12)",
@@ -632,6 +579,36 @@ export function MarketChat({ context, placeholder, compact, locked, onLockedAtte
           bgcolor: isDark ? "rgba(107,127,163,0.02)" : "rgba(12,18,34,0.01)",
         }}
       >
+        {isWorking && (
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            spacing={1}
+            sx={{ mb: 0.75, px: 0.5 }}
+          >
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <Box
+                sx={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  bgcolor: "#34d399",
+                  animation: "pulse 1.5s ease-in-out infinite",
+                  "@keyframes pulse": { "0%, 100%": { opacity: 1 }, "50%": { opacity: 0.3 } },
+                }}
+              />
+              <Typography variant="caption" sx={{ fontSize: "0.55rem", color: "text.secondary" }}>
+                {state === "loading" ? "Thinking..." : "Writing..."}
+              </Typography>
+            </Stack>
+            {state === "streaming" && (
+              <IconButton size="small" onClick={stopStream} sx={{ color: "#fb7185" }}>
+                <StopIcon sx={{ fontSize: 14 }} />
+              </IconButton>
+            )}
+          </Stack>
+        )}
         <TextField
           fullWidth
           size="small"
@@ -659,7 +636,7 @@ export function MarketChat({ context, placeholder, compact, locked, onLockedAtte
           }}
           sx={{
             "& .MuiOutlinedInput-root": {
-              borderRadius: 2,
+              borderRadius: sharp ? 0 : 2,
               fontSize: "0.82rem",
               bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)",
               "& fieldset": { borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)" },

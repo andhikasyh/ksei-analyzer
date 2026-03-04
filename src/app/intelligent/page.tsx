@@ -23,9 +23,11 @@ import type { MarketIntelligenceListItem } from "@/lib/types";
 function ReportCard({
   item,
   onLocked,
+  isFree,
 }: {
   item: MarketIntelligenceListItem;
   onLocked: () => void;
+  isFree?: boolean;
 }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -38,7 +40,7 @@ function ReportCard({
   );
 
   const handleClick = useCallback(async () => {
-    if (isPro) {
+    if (isFree || isPro) {
       router.push(`/intelligent/${item.report_date}`);
       return;
     }
@@ -63,9 +65,9 @@ function ReportCard({
       }
     }
     onLocked();
-  }, [isPro, user, insightTries, consumeInsightTry, hasFreeViews, consumeFreeView, item.report_date, router, onLocked]);
+  }, [isFree, isPro, user, insightTries, consumeInsightTry, hasFreeViews, consumeFreeView, item.report_date, router, onLocked]);
 
-  const isLocked = !isPro && (user !== null ? !hasFreeViews : insightTries >= MAX_FREE_TRIES);
+  const isLocked = !isFree && !isPro && (user !== null ? !hasFreeViews : insightTries >= MAX_FREE_TRIES);
 
   return (
     <Paper
@@ -195,6 +197,33 @@ function ReportCard({
             <LockIcon sx={{ fontSize: 14, color: isDark ? "#d4a843" : "#c49a3a" }} />
           </Box>
         )}
+        {isFree && !isPro && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              px: 1,
+              py: 0.25,
+              borderRadius: "6px",
+              bgcolor: "rgba(34,197,94,0.85)",
+              backdropFilter: "blur(6px)",
+            }}
+          >
+            <Typography
+              sx={{
+                fontFamily: '"JetBrains Mono", monospace',
+                fontSize: "0.6rem",
+                fontWeight: 700,
+                color: "#fff",
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
+              }}
+            >
+              Gratis
+            </Typography>
+          </Box>
+        )}
       </Box>
 
       <Box sx={{ p: 2 }}>
@@ -310,6 +339,7 @@ export default function IntelligentPage() {
   const [reports, setReports] = useState<MarketIntelligenceListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [oldestDate, setOldestDate] = useState<string | null>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [paywallMode, setPaywallMode] = useState<"login" | "pro">("login");
 
@@ -317,10 +347,17 @@ export default function IntelligentPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch("/api/market-intelligence?list=true&limit=20");
-      const data = await res.json();
+      const [listRes, oldestRes] = await Promise.all([
+        fetch("/api/market-intelligence?list=true&limit=20"),
+        fetch("/api/market-intelligence?oldest=true"),
+      ]);
+      const data = await listRes.json();
       if (data.items) {
         setReports(data.items);
+      }
+      const oldestData = await oldestRes.json();
+      if (oldestData.oldest) {
+        setOldestDate(oldestData.oldest);
       }
     } catch (err) {
       setError(
@@ -381,46 +418,19 @@ export default function IntelligentPage() {
         >
           <AutoAwesomeIcon sx={{ fontSize: 18, color: "#818cf8" }} />
         </Box>
-        <Box>
-          <Typography
-            component="h1"
-            variant="h6"
-            sx={{
-              fontFamily: '"Outfit", sans-serif',
-              fontWeight: 800,
-              fontSize: "1.1rem",
-              letterSpacing: "-0.02em",
-              lineHeight: 1.2,
-            }}
-          >
-            Market Intelligence
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              fontSize: "0.65rem",
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-            }}
-          >
-            Simple to read, full insight. Daily reports that explain what moved
-            and why—in plain language, updated every trading day.
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              fontSize: "0.6rem",
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-              opacity: 0.85,
-              display: "block",
-              mt: 0.25,
-            }}
-          >
-            Untuk investor Indonesia: analisis harian yang simpel dan mendalam,
-            bahasa mudah dipahami.
-          </Typography>
-        </Box>
+        <Typography
+          component="h1"
+          variant="h6"
+          sx={{
+            fontFamily: '"Outfit", sans-serif',
+            fontWeight: 800,
+            fontSize: "1.1rem",
+            letterSpacing: "-0.02em",
+            lineHeight: 1.2,
+          }}
+        >
+          Market Intelligence
+        </Typography>
       </Box>
 
       {!proLoading && !isPro && (
@@ -579,105 +589,19 @@ export default function IntelligentPage() {
         </Paper>
       ) : (
         <>
-          <Typography
-            component="p"
-            variant="body2"
-            sx={{
-              color: isDark ? "rgba(220,225,235,0.7)" : "rgba(12,18,34,0.6)",
-              fontSize: "0.8rem",
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-              mb: 0.5,
-              maxWidth: 520,
-            }}
-            className="animate-in animate-in-delay-1"
-          >
-            Full analysis in plain language: what moved, why it moved, and what
-            to watch next. Pick a date to read the full report.
-          </Typography>
-          <Typography
-            component="p"
-            variant="caption"
-            sx={{
-              color: isDark ? "rgba(220,225,235,0.55)" : "rgba(12,18,34,0.5)",
-              fontSize: "0.7rem",
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-              mb: 1.5,
-              maxWidth: 520,
-            }}
-            className="animate-in animate-in-delay-1"
-          >
-            Analisis lengkap bahasa sederhana: apa yang bergerak, mengapa, dan
-            yang perlu diperhatikan. Pilih tanggal untuk baca laporan penuh.
-          </Typography>
           <Grid container spacing={2} className="animate-in animate-in-delay-1">
           {reports.map((item) => (
             <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={item.id}>
-              <ReportCard item={item} onLocked={handleLockedClick} />
+              <ReportCard item={item} onLocked={handleLockedClick} isFree={item.report_date === oldestDate} />
             </Grid>
           ))}
           </Grid>
         </>
       )}
 
-      <Box className="animate-in animate-in-delay-2">
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1.5,
-            mb: 1.5,
-          }}
-        >
-          <Box
-            sx={{
-              width: 3,
-              height: 20,
-              borderRadius: 2,
-              background:
-                "linear-gradient(180deg, #818cf8, rgba(129,140,248,0.3))",
-              flexShrink: 0,
-              boxShadow: "0 0 10px rgba(129,140,248,0.2)",
-            }}
-          />
-          <Box>
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontFamily: '"Outfit", sans-serif',
-                fontWeight: 700,
-                fontSize: "0.95rem",
-                letterSpacing: "-0.01em",
-                lineHeight: 1.2,
-              }}
-            >
-              Ask About the Market
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                color: "text.secondary",
-                fontSize: "0.65rem",
-                opacity: 0.7,
-              }}
-            >
-              Get detailed answers about Indonesian stocks and the market
-            </Typography>
-            <Typography
-              variant="caption"
-              sx={{
-                color: "text.secondary",
-                fontSize: "0.6rem",
-                opacity: 0.6,
-                display: "block",
-                mt: 0.25,
-              }}
-            >
-              Tanya apa saja tentang saham dan pasar Indonesia—dapat jawaban
-              mendalam.
-            </Typography>
-          </Box>
-        </Box>
+      <Box className="animate-in animate-in-delay-2" sx={{ borderRadius: 0, overflow: "hidden" }}>
         <MarketChat
+          sharp
           placeholder="Ask about Indonesian stocks or tanya dalam Bahasa Indonesia..."
           locked={chatLocked}
           onLockedAttempt={handleChatAttempt}

@@ -33,6 +33,18 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Chip from "@mui/material/Chip";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 
 interface TopInvestor {
   name: string;
@@ -107,6 +119,24 @@ interface MarketMover {
   foreignNet: number;
 }
 
+interface IHSGChartPoint {
+  date: string;
+  displayDate: string;
+  marketCap: number;
+  marketCapTrillion: number;
+}
+
+interface IHSGPerformance {
+  change7d: number;
+  pct7d: number;
+  change30d: number;
+  pct30d: number;
+  changeYTD: number;
+  pctYTD: number;
+  latestClose: number;
+  latestDate: string;
+}
+
 export default function DashboardPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -121,6 +151,8 @@ export default function DashboardPage() {
   >([]);
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<IDXCalendarEvent[]>([]);
+  const [ihsgChartData, setIhsgChartData] = useState<IHSGChartPoint[]>([]);
+  const [ihsgPerformance, setIhsgPerformance] = useState<IHSGPerformance | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [moverTab, setMoverTab] = useState<"gain" | "loss" | "active">("gain");
@@ -130,7 +162,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [kseiRes, stockRes, indexRes] = await Promise.all([
+        const [kseiRes, stockRes, indexRes, ihsgRes] = await Promise.all([
           supabase
             .from(TABLE_NAME)
             .select("*")
@@ -146,6 +178,12 @@ export default function DashboardPage() {
             .in("index_code", ["COMPOSITE", "LQ45", "IDX30", "IDXHIDIV20", "IDXBUMN20", "IDX80", "IDXV30", "IDXQ30"])
             .order("date", { ascending: false })
             .limit(500),
+          supabase
+            .from("idx_index_summary")
+            .select("date, close, market_capital")
+            .eq("index_code", "COMPOSITE")
+            .order("date", { ascending: false })
+            .limit(400),
         ]);
 
         if (stockRes.data) {
@@ -213,6 +251,65 @@ export default function DashboardPage() {
               return { code, close, change, changePct, history };
             });
           setIndexes(parsed);
+        }
+
+        if (ihsgRes.data && ihsgRes.data.length > 0) {
+          const rows = (ihsgRes.data as { date: string; close: string; market_capital: string }[])
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          const chartPoints: IHSGChartPoint[] = rows.map((r) => {
+            const cap = parseFloat(r.market_capital) || 0;
+            return {
+              date: r.date,
+              displayDate: new Date(r.date + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" }),
+              marketCap: cap,
+              marketCapTrillion: cap / 1e12,
+            };
+          });
+          setIhsgChartData(chartPoints);
+
+          const latestClose = parseFloat(rows[rows.length - 1]?.close) || 0;
+          const latestDate = rows[rows.length - 1]?.date || "";
+          const latestTime = new Date(latestDate + "T12:00:00").getTime();
+
+          const getCloseOnOrBefore = (isoDate: string): number => {
+            const target = new Date(isoDate + "T12:00:00").getTime();
+            let best: { date: string; close: string } | null = null;
+            for (let i = rows.length - 1; i >= 0; i--) {
+              const rowTime = new Date(rows[i].date + "T12:00:00").getTime();
+              if (rowTime <= target) {
+                best = rows[i];
+                break;
+              }
+            }
+            if (!best) best = rows[0];
+            return parseFloat(best?.close) || 0;
+          };
+
+          const ref7 = new Date(latestTime);
+          ref7.setDate(ref7.getDate() - 7);
+          const ref7Str = ref7.toISOString().split("T")[0];
+          const ref30 = new Date(latestTime);
+          ref30.setDate(ref30.getDate() - 30);
+          const ref30Str = ref30.toISOString().split("T")[0];
+
+          const close7 = getCloseOnOrBefore(ref7Str);
+          const close30 = getCloseOnOrBefore(ref30Str);
+
+          const ytdDate = new Date().getFullYear() + "-01-02";
+          const ytdRow = rows.find((r) => r.date >= ytdDate);
+          const closeYTD = ytdRow ? parseFloat(ytdRow.close) || 0 : parseFloat(rows[0]?.close) || 0;
+
+          const pct = (prev: number, curr: number) => (prev > 0 ? ((curr - prev) / prev) * 100 : 0);
+          setIhsgPerformance({
+            change7d: latestClose - close7,
+            pct7d: pct(close7, latestClose),
+            change30d: latestClose - close30,
+            pct30d: pct(close30, latestClose),
+            changeYTD: latestClose - closeYTD,
+            pctYTD: pct(closeYTD, latestClose),
+            latestClose,
+            latestDate,
+          });
         }
 
         const thirtyDaysAgo = new Date();
@@ -453,6 +550,271 @@ export default function DashboardPage() {
         </Box>
       )}
 
+      {/* ---- IHSG Market Cap + Performance + Weekly Digest ---- */}
+      {(ihsgChartData.length > 0 || ihsgPerformance) && (
+        <Box
+          className="animate-in animate-in-delay-2"
+          sx={{
+            display: { xs: "block", lg: "flex" },
+            gap: 1.5,
+            alignItems: "stretch",
+          }}
+        >
+          {ihsgChartData.length > 0 && (
+            <Paper
+              sx={{
+                flex: { lg: "1.4 1 0%" },
+                minWidth: 0,
+                borderRadius: 2,
+                overflow: "hidden",
+                position: "relative",
+                border: `1px solid ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"}`,
+                "&::before": {
+                  content: '""',
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 3,
+                  background: `linear-gradient(90deg, ${theme.palette.primary.main}88, ${isDark ? "#d4a843" : "#a17c2f"}66)`,
+                  zIndex: 1,
+                },
+              }}
+            >
+              <Box sx={{ pt: 2, px: 1.5, pb: 0.5 }}>
+                <Typography
+                  sx={{
+                    fontFamily: '"Outfit", sans-serif',
+                    fontWeight: 700,
+                    fontSize: "0.85rem",
+                    letterSpacing: "-0.02em",
+                    color: "text.primary",
+                  }}
+                >
+                  IHSG Market Cap
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "text.secondary",
+                    fontSize: "0.65rem",
+                    display: "block",
+                    mt: 0.25,
+                  }}
+                >
+                  Total market capitalisation (IDX Composite)
+                </Typography>
+              </Box>
+              <Box sx={{ height: 220, px: 1, pb: 1.5 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart
+                    data={ihsgChartData}
+                    margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="ihsg-cap-gradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={theme.palette.primary.main} stopOpacity={0.28} />
+                        <stop offset="90%" stopColor={theme.palette.primary.main} stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="displayDate"
+                      tick={{
+                        fill: isDark ? "rgba(107,127,163,0.8)" : "rgba(12,18,34,0.5)",
+                        fontSize: 10,
+                      }}
+                      axisLine={false}
+                      tickLine={false}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis
+                      tickFormatter={(v) => `Rp ${v.toFixed(1)}T`}
+                      tick={{
+                        fill: isDark ? "rgba(107,127,163,0.8)" : "rgba(12,18,34,0.5)",
+                        fontSize: 10,
+                      }}
+                      axisLine={false}
+                      tickLine={false}
+                      width={52}
+                    />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const pt = payload[0].payload as IHSGChartPoint;
+                        return (
+                          <Box
+                            sx={{
+                              bgcolor: isDark ? "rgba(17,27,48,0.96)" : "rgba(255,255,255,0.98)",
+                              border: `1px solid ${isDark ? "rgba(107,127,163,0.2)" : "rgba(0,0,0,0.08)"}`,
+                              borderRadius: 2,
+                              px: 1.25,
+                              py: 1,
+                              boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.35)" : "0 8px 24px rgba(0,0,0,0.1)",
+                              fontFamily: '"JetBrains Mono", monospace',
+                            }}
+                          >
+                            <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", mb: 0.25 }}>
+                              {pt.displayDate}
+                            </Typography>
+                            <Typography sx={{ fontSize: "0.85rem", fontWeight: 700, color: "primary.main" }}>
+                              Rp {pt.marketCapTrillion.toFixed(2)}T
+                            </Typography>
+                          </Box>
+                        );
+                      }}
+                      cursor={{ stroke: isDark ? "rgba(212,168,67,0.25)" : "rgba(161,124,47,0.2)", strokeWidth: 1 }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="marketCapTrillion"
+                      stroke={theme.palette.primary.main}
+                      strokeWidth={2}
+                      fill="url(#ihsg-cap-gradient)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </Box>
+            </Paper>
+          )}
+
+          <Box sx={{ flex: { lg: "1 1 0%" }, minWidth: 0, display: "flex", flexDirection: "column", gap: 1.5 }}>
+            {ihsgPerformance && (
+              <Paper
+                sx={{
+                  borderRadius: 2,
+                  overflow: "hidden",
+                  border: `1px solid ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"}`,
+                }}
+              >
+                <Box sx={{ px: 1.5, pt: 1.25, pb: 0.5 }}>
+                  <Typography
+                    sx={{
+                      fontFamily: '"Outfit", sans-serif',
+                      fontWeight: 700,
+                      fontSize: "0.85rem",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    Performance Snapshot
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.65rem" }}>
+                    IHSG (COMPOSITE)
+                  </Typography>
+                </Box>
+                <Stack spacing={0} sx={{ px: 1.5, pb: 1.5 }}>
+                  {[
+                    { label: "Last 7 days", change: ihsgPerformance.change7d, pct: ihsgPerformance.pct7d },
+                    { label: "Last 30 days", change: ihsgPerformance.change30d, pct: ihsgPerformance.pct30d },
+                    { label: "YTD", change: ihsgPerformance.changeYTD, pct: ihsgPerformance.pctYTD },
+                  ].map(({ label, change, pct }) => {
+                    const up = change >= 0;
+                    const color = up ? theme.palette.success.main : theme.palette.error.main;
+                    return (
+                      <Box
+                        key={label}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          py: 1,
+                          borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)"}`,
+                          "&:last-of-type": { borderBottom: 0 },
+                        }}
+                      >
+                        <Typography sx={{ fontSize: "0.75rem", color: "text.secondary" }}>
+                          {label}
+                        </Typography>
+                        <Stack direction="row" spacing={0.75} alignItems="center">
+                          {up ? (
+                            <TrendingUpIcon sx={{ fontSize: 14, color }} />
+                          ) : (
+                            <TrendingDownIcon sx={{ fontSize: 14, color }} />
+                          )}
+                          <Typography
+                            sx={{
+                              fontFamily: '"JetBrains Mono", monospace',
+                              fontWeight: 700,
+                              fontSize: "0.8rem",
+                              color,
+                            }}
+                          >
+                            {up ? "+" : ""}{pct.toFixed(2)}%
+                          </Typography>
+                          <Typography
+                            sx={{
+                              fontFamily: '"JetBrains Mono", monospace',
+                              fontSize: "0.7rem",
+                              color: "text.secondary",
+                            }}
+                          >
+                            ({up ? "+" : ""}{change.toFixed(1)} pts)
+                          </Typography>
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+                <Box sx={{ px: 1.5, pb: 1, pt: 0 }}>
+                  <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.6rem" }}>
+                    As of {ihsgPerformance.latestDate ? new Date(ihsgPerformance.latestDate + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : ""}
+                  </Typography>
+                </Box>
+              </Paper>
+            )}
+
+            <Paper
+              component={Box}
+              onClick={() => router.push("/intelligent")}
+              sx={{
+                borderRadius: 2,
+                overflow: "hidden",
+                cursor: "pointer",
+                border: `1px solid ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"}`,
+                transition: "border-color 0.2s, box-shadow 0.2s",
+                "&:hover": {
+                  borderColor: isDark ? "rgba(212,168,67,0.2)" : "rgba(161,124,47,0.15)",
+                  boxShadow: isDark ? "0 6px 20px rgba(0,0,0,0.2)" : "0 6px 20px rgba(0,0,0,0.06)",
+                },
+              }}
+            >
+              <Box sx={{ px: 1.5, py: 1.25, display: "flex", alignItems: "center", gap: 1 }}>
+                <Box
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "10px",
+                    background: isDark
+                      ? "linear-gradient(135deg, rgba(129,140,248,0.2), rgba(212,168,67,0.12))"
+                      : "linear-gradient(135deg, rgba(129,140,248,0.12), rgba(161,124,47,0.08))",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <AutoAwesomeIcon sx={{ fontSize: 18, color: "#818cf8" }} />
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    sx={{
+                      fontFamily: '"Outfit", sans-serif',
+                      fontWeight: 700,
+                      fontSize: "0.82rem",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    Weekly Digest
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", display: "block" }}>
+                    AI market reports and daily insights
+                  </Typography>
+                </Box>
+                <ArrowForwardIcon sx={{ fontSize: 16, color: "text.secondary" }} />
+              </Box>
+            </Paper>
+          </Box>
+        </Box>
+      )}
+
       {/* ---- MAIN: movers + actions ---- */}
       <Box
         sx={{
@@ -464,7 +826,7 @@ export default function DashboardPage() {
         <Box sx={{ flex: "7 1 0%", minWidth: 0, mb: { xs: 1.5, lg: 0 }, display: "flex" }}>
             {movers && (
               <Paper
-                className="animate-in animate-in-delay-2"
+                className="animate-in animate-in-delay-3"
                 sx={{
                   borderRadius: 2,
                   overflow: "hidden",
@@ -673,7 +1035,7 @@ export default function DashboardPage() {
         <Box sx={{ flex: "5 1 0%", minWidth: 0 }}>
           {upcomingEvents.length > 0 && (
             <Paper
-              className="animate-in animate-in-delay-3"
+              className="animate-in animate-in-delay-4"
               sx={{
                 borderRadius: 2,
                 overflow: "hidden",
@@ -820,14 +1182,14 @@ export default function DashboardPage() {
 
       {/* ---- CALENDAR ---- */}
       {calendarEvents.length > 0 && (
-        <Box className="animate-in animate-in-delay-4">
+        <Box className="animate-in animate-in-delay-5">
           <EventCalendar events={calendarEvents} />
         </Box>
       )}
 
       {/* ---- POWER PLAYERS (tabbed) ---- */}
       <Paper
-        className="animate-in animate-in-delay-5"
+        className="animate-in animate-in-delay-6"
         sx={{
           borderRadius: 2,
           overflow: "hidden",
