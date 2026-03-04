@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/react";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/Navbar";
 import { LayoutShell } from "@/components/LayoutShell";
@@ -34,6 +35,7 @@ export default function RootLayout({
           <Navbar />
           <LayoutShell>{children}</LayoutShell>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );
