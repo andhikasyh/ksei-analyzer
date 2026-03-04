@@ -14,7 +14,6 @@ import {
   GraphNode,
   GraphLink,
 } from "@/components/ConnectionGraph";
-import { BrokerSummaryPanel } from "@/components/BrokerSummary";
 import { CompanyProfilePanel } from "@/components/CompanyProfile";
 import { TradingViewChart } from "@/components/TradingViewChart";
 import { MarketOverviewPanel } from "@/components/MarketOverview";
@@ -334,8 +333,8 @@ export default function StockDetailPage() {
           <Tab label="Market" />
           <Tab label="Fundamentals" />
           <Tab label="Ownership" />
-          <Tab label="Brokers" />
           <Tab label="AI Analysis" />
+          <Tab label="Brokers" />
         </Tabs>
       </Paper>
 
@@ -424,11 +423,49 @@ export default function StockDetailPage() {
       )}
 
       {tab === 3 && (
-        <BrokerSummaryPanel stockCode={code} />
+        <AIAnalyzerPanel stockCode={code} />
       )}
 
       {tab === 4 && (
-        <AIAnalyzerPanel stockCode={code} />
+        <Paper
+          sx={{
+            p: { xs: 4, md: 6 },
+            borderRadius: 3,
+            textAlign: "center",
+            border: `1px dashed ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"}`,
+          }}
+        >
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              bgcolor: isDark ? "rgba(251,191,36,0.08)" : "rgba(217,119,6,0.06)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mx: "auto",
+              mb: 2,
+            }}
+          >
+            <Typography sx={{ fontSize: 28, lineHeight: 1 }}>
+              {"//"}
+            </Typography>
+          </Box>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 700, mb: 0.5 }}
+          >
+            Under Maintenance
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{ color: "text.secondary", maxWidth: 380, mx: "auto", lineHeight: 1.6 }}
+          >
+            The broker summary feature is currently being improved.
+            Check back soon for updated broker activity data.
+          </Typography>
+        </Paper>
       )}
     </Stack>
   );
