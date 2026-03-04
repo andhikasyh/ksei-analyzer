@@ -243,9 +243,9 @@ export function EventCalendar({ events }: EventCalendarProps) {
                   sx={{
                     fontFamily: '"Outfit", sans-serif',
                     fontWeight: 700,
-                    fontSize: "0.88rem",
+                    fontSize: { xs: "0.8rem", sm: "0.88rem" },
                     letterSpacing: "-0.02em",
-                    minWidth: 140,
+                    minWidth: { xs: 0, sm: 140 },
                     textAlign: "center",
                   }}
                 >
@@ -456,8 +456,8 @@ export function EventCalendar({ events }: EventCalendarProps) {
           }}
         >
           <Box sx={{ px: 1.5, pt: 1.25, pb: 0.5 }}>
-            <Stack direction="row" alignItems="center" justifyContent="space-between">
-              <Stack direction="row" spacing={0.75} alignItems="center">
+            <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" useFlexGap sx={{ gap: 0.75 }}>
+              <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap">
                 <Box
                   sx={{
                     width: 6,

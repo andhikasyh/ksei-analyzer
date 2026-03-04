@@ -43,6 +43,7 @@ export function GlobalSearch({ compact }: { compact?: boolean }) {
 
   return (
     <Autocomplete
+      fullWidth
       options={options}
       groupBy={(o) => (o.type === "ticker" ? "Tickers" : "Investors")}
       getOptionLabel={(o) => o.label}

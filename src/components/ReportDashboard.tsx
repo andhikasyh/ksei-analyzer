@@ -429,26 +429,51 @@ function NewsSentimentSection({
       <SectionHeader title="News & Sentiment" subtitle="Market-moving headlines" />
       <Stack spacing={1.5} sx={fillHeight ? { flex: 1, minHeight: 0 } : undefined}>
         {news.map((n, i) => (
-          <Box key={i} sx={{ py: 1.5, px: 2, borderRadius: 2, borderBottom: i < news.length - 1 ? 1 : 0, borderColor: isDark ? "rgba(107,127,163,0.06)" : "rgba(12,18,34,0.04)" }}>
+          <Box
+            key={i}
+            sx={{
+              py: { xs: 1.25, sm: 1.5 },
+              px: { xs: 1.25, sm: 2 },
+              borderRadius: 2,
+              borderBottom: i < news.length - 1 ? 1 : 0,
+              borderColor: isDark ? "rgba(107,127,163,0.06)" : "rgba(12,18,34,0.04)",
+              minWidth: 0,
+            }}
+          >
             {n.url ? (
               <Typography
-                component="a" href={n.url} target="_blank" rel="noopener noreferrer"
-                sx={{ fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.5, fontFamily: '"Plus Jakarta Sans", sans-serif', mb: 0.5, display: "block", color: "text.primary", textDecoration: "none", transition: "color 0.15s ease", "&:hover": { color: "primary.main", textDecoration: "underline" } }}
+                component="a"
+                href={n.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                sx={{
+                  fontSize: { xs: "0.88rem", sm: "0.95rem" },
+                  fontWeight: 600,
+                  lineHeight: 1.5,
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
+                  mb: 0.5,
+                  display: "block",
+                  color: "text.primary",
+                  textDecoration: "none",
+                  transition: "color 0.15s ease",
+                  wordBreak: "break-word",
+                  "&:hover": { color: "primary.main", textDecoration: "underline" },
+                }}
               >
                 {n.headline}
               </Typography>
             ) : (
-              <Typography sx={{ fontSize: "0.95rem", fontWeight: 600, lineHeight: 1.5, fontFamily: '"Plus Jakarta Sans", sans-serif', mb: 0.5 }}>{n.headline}</Typography>
+              <Typography sx={{ fontSize: { xs: "0.88rem", sm: "0.95rem" }, fontWeight: 600, lineHeight: 1.5, fontFamily: '"Plus Jakarta Sans", sans-serif', mb: 0.5, wordBreak: "break-word" }}>{n.headline}</Typography>
             )}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.75 }}>
               {n.url ? (
-                <Typography component="a" href={n.url} target="_blank" rel="noopener noreferrer" sx={{ color: mutedColor(isDark), fontSize: "0.72rem", fontStyle: "italic", textDecoration: "none", "&:hover": { color: "primary.main", textDecoration: "underline" } }}>{n.source}</Typography>
+                <Typography component="a" href={n.url} target="_blank" rel="noopener noreferrer" sx={{ color: mutedColor(isDark), fontSize: "0.7rem", fontStyle: "italic", textDecoration: "none", "&:hover": { color: "primary.main", textDecoration: "underline" } }}>{n.source}</Typography>
               ) : (
-                <Typography sx={{ color: mutedColor(isDark), fontSize: "0.72rem", fontStyle: "italic" }}>{n.source}</Typography>
+                <Typography sx={{ color: mutedColor(isDark), fontSize: "0.7rem", fontStyle: "italic" }}>{n.source}</Typography>
               )}
               <SentimentChip sentiment={n.sentiment} />
             </Box>
-            <Typography sx={{ color: bodyColor(isDark), fontSize: "0.88rem", lineHeight: 1.7, fontFamily: '"Plus Jakarta Sans", sans-serif' }}>{n.impact}</Typography>
+            <Typography sx={{ color: bodyColor(isDark), fontSize: { xs: "0.82rem", sm: "0.88rem" }, lineHeight: 1.7, fontFamily: '"Plus Jakarta Sans", sans-serif', wordBreak: "break-word" }}>{n.impact}</Typography>
           </Box>
         ))}
       </Stack>
@@ -581,7 +606,7 @@ function TechnicalAnalysisSection({ report }: { report: MarketIntelligenceReport
         <Chip label={trendLabel} size="small" sx={{ bgcolor: `${trendColor}18`, color: trendColor, fontWeight: 700, fontSize: "0.78rem", height: 26, fontFamily: '"JetBrains Mono", monospace' }} />
       </Box>
 
-      <Typography sx={{ color: bodyColor(isDark), fontSize: "1rem", lineHeight: 1.85, mb: 2.5, fontFamily: '"Plus Jakarta Sans", sans-serif' }}>{ta.marketTrendNotes}</Typography>
+      <Typography sx={{ color: bodyColor(isDark), fontSize: { xs: "0.92rem", sm: "1rem" }, lineHeight: 1.85, mb: 2.5, fontFamily: '"Plus Jakarta Sans", sans-serif', wordBreak: "break-word" }}>{ta.marketTrendNotes}</Typography>
 
       {ta.keyLevels?.length > 0 && (
         <Box sx={{ mb: 3 }}>
@@ -589,10 +614,10 @@ function TechnicalAnalysisSection({ report }: { report: MarketIntelligenceReport
           <Grid container spacing={1.5}>
             {ta.keyLevels.map((lvl, i) => (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={i}>
-                <Box sx={{ p: 2, borderRadius: 2, border: 1, borderColor: isDark ? "rgba(107,127,163,0.08)" : "rgba(12,18,34,0.04)", bgcolor: isDark ? "rgba(212,168,67,0.03)" : "rgba(161,124,47,0.02)", height: "100%" }}>
-                  <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: "0.88rem", color: "primary.main" }}>{lvl.value}</Typography>
-                  <Typography sx={{ fontWeight: 600, fontSize: "0.82rem", mt: 0.25 }}>{lvl.label}</Typography>
-                  <Typography sx={{ color: mutedColor(isDark), fontSize: "0.78rem", lineHeight: 1.5, mt: 0.25 }}>{lvl.significance}</Typography>
+                <Box sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 2, border: 1, borderColor: isDark ? "rgba(107,127,163,0.08)" : "rgba(12,18,34,0.04)", bgcolor: isDark ? "rgba(212,168,67,0.03)" : "rgba(161,124,47,0.02)", height: "100%", minWidth: 0 }}>
+                  <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: { xs: "0.82rem", sm: "0.88rem" }, color: "primary.main", wordBreak: "break-word" }}>{lvl.value}</Typography>
+                  <Typography sx={{ fontWeight: 600, fontSize: { xs: "0.78rem", sm: "0.82rem" }, mt: 0.25 }}>{lvl.label}</Typography>
+                  <Typography sx={{ color: mutedColor(isDark), fontSize: { xs: "0.74rem", sm: "0.78rem" }, lineHeight: 1.5, mt: 0.25, wordBreak: "break-word" }}>{lvl.significance}</Typography>
                 </Box>
               </Grid>
             ))}
@@ -608,26 +633,52 @@ function TechnicalAnalysisSection({ report }: { report: MarketIntelligenceReport
               const sigColor = sig.signal === "bullish" ? "#34d399" : sig.signal === "bearish" ? "#f87171" : "#fbbf24";
               const rsiColor = sig.rsi <= 30 ? "#34d399" : sig.rsi >= 70 ? "#f87171" : "#fbbf24";
               return (
-                <Box key={sig.code} onClick={() => router.push(`/stock/${sig.code}`)} sx={{ display: "flex", alignItems: "center", gap: 2, px: 2, py: 1.25, borderRadius: 2, cursor: "pointer", border: 1, borderColor: isDark ? "rgba(107,127,163,0.06)" : "rgba(12,18,34,0.03)", transition: "all 0.15s ease", "&:hover": { borderColor: `${sigColor}33`, bgcolor: isDark ? "rgba(212,168,67,0.04)" : "rgba(161,124,47,0.02)" } }}>
+                <Box
+                  key={sig.code}
+                  onClick={() => router.push(`/stock/${sig.code}`)}
+                  sx={{
+                    display: "flex",
+                    flexDirection: { xs: "column", sm: "row" },
+                    alignItems: { xs: "stretch", sm: "center" },
+                    gap: { xs: 1.25, sm: 2 },
+                    px: { xs: 1.5, sm: 2 },
+                    py: { xs: 1.25, sm: 1.25 },
+                    borderRadius: 2,
+                    cursor: "pointer",
+                    border: 1,
+                    borderColor: isDark ? "rgba(107,127,163,0.06)" : "rgba(12,18,34,0.03)",
+                    transition: "all 0.15s ease",
+                    "&:hover": { borderColor: `${sigColor}33`, bgcolor: isDark ? "rgba(212,168,67,0.04)" : "rgba(161,124,47,0.02)" },
+                  }}
+                >
                   <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                      <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: "0.92rem", letterSpacing: "0.02em" }}>{sig.code}</Typography>
-                      <Chip label={sig.pattern} size="small" sx={{ bgcolor: `${sigColor}15`, color: sigColor, fontWeight: 600, fontSize: "0.7rem", height: 22, fontFamily: '"Plus Jakarta Sans", sans-serif' }} />
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, flexWrap: "wrap" }}>
+                      <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: { xs: "0.88rem", sm: "0.92rem" }, letterSpacing: "0.02em" }}>{sig.code}</Typography>
+                      <Chip label={sig.pattern} size="small" sx={{ bgcolor: `${sigColor}15`, color: sigColor, fontWeight: 600, fontSize: "0.65rem", height: 20, fontFamily: '"Plus Jakarta Sans", sans-serif' }} />
                     </Box>
-                    <Typography sx={{ color: bodyColor(isDark), fontSize: "0.82rem", lineHeight: 1.5 }}>{sig.notes}</Typography>
+                    <Typography sx={{ color: bodyColor(isDark), fontSize: { xs: "0.78rem", sm: "0.82rem" }, lineHeight: 1.5 }}>{sig.notes}</Typography>
                   </Box>
-                  <Box sx={{ display: "flex", gap: 0.75, flexShrink: 0, alignItems: "stretch", width: 240 }}>
-                    <Box sx={{ flex: 1, textAlign: "center", py: 0.75, borderRadius: 1.5, bgcolor: "rgba(52,211,153,0.06)" }}>
-                      <Typography sx={{ color: "#34d399", fontSize: "0.58rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.25 }}>Support</Typography>
-                      <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: "0.82rem" }}>{sig.support?.toLocaleString()}</Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      gap: { xs: 0.5, sm: 0.75 },
+                      flexShrink: 0,
+                      alignItems: "stretch",
+                      width: { xs: "100%", sm: 240 },
+                      minWidth: 0,
+                    }}
+                  >
+                    <Box sx={{ flex: 1, textAlign: "center", py: { xs: 0.5, sm: 0.75 }, borderRadius: 1.5, bgcolor: "rgba(52,211,153,0.06)", minWidth: 0 }}>
+                      <Typography sx={{ color: "#34d399", fontSize: "0.52rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.25 }}>Support</Typography>
+                      <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: { xs: "0.72rem", sm: "0.82rem" }, overflow: "hidden", textOverflow: "ellipsis" }}>{sig.support?.toLocaleString()}</Typography>
                     </Box>
-                    <Box sx={{ flex: 1, textAlign: "center", py: 0.75, borderRadius: 1.5, bgcolor: "rgba(248,113,113,0.06)" }}>
-                      <Typography sx={{ color: "#f87171", fontSize: "0.58rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.25 }}>Resist</Typography>
-                      <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: "0.82rem" }}>{sig.resistance?.toLocaleString()}</Typography>
+                    <Box sx={{ flex: 1, textAlign: "center", py: { xs: 0.5, sm: 0.75 }, borderRadius: 1.5, bgcolor: "rgba(248,113,113,0.06)", minWidth: 0 }}>
+                      <Typography sx={{ color: "#f87171", fontSize: "0.52rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.25 }}>Resist</Typography>
+                      <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: { xs: "0.72rem", sm: "0.82rem" }, overflow: "hidden", textOverflow: "ellipsis" }}>{sig.resistance?.toLocaleString()}</Typography>
                     </Box>
-                    <Box sx={{ flex: 1, textAlign: "center", py: 0.75, borderRadius: 1.5, bgcolor: `${rsiColor}0a` }}>
-                      <Typography sx={{ color: rsiColor, fontSize: "0.58rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.25 }}>RSI</Typography>
-                      <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "0.82rem", color: rsiColor }}>{sig.rsi}</Typography>
+                    <Box sx={{ flex: 1, textAlign: "center", py: { xs: 0.5, sm: 0.75 }, borderRadius: 1.5, bgcolor: `${rsiColor}0a`, minWidth: 0 }}>
+                      <Typography sx={{ color: rsiColor, fontSize: "0.52rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.25 }}>RSI</Typography>
+                      <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: { xs: "0.72rem", sm: "0.82rem" }, color: rsiColor }}>{sig.rsi}</Typography>
                     </Box>
                   </Box>
                 </Box>
@@ -640,7 +691,7 @@ function TechnicalAnalysisSection({ report }: { report: MarketIntelligenceReport
       {ta.volumeAnalysis && (
         <Box sx={{ pt: 2, borderTop: 1, borderColor: isDark ? "rgba(107,127,163,0.08)" : "rgba(12,18,34,0.04)" }}>
           <Typography sx={{ fontWeight: 700, fontSize: "0.72rem", color: mutedColor(isDark), textTransform: "uppercase", letterSpacing: "0.04em", mb: 0.5 }}>Volume Analysis</Typography>
-          <Typography sx={{ fontSize: "0.95rem", lineHeight: 1.8, fontFamily: '"Plus Jakarta Sans", sans-serif', color: bodyColor(isDark), fontStyle: "italic" }}>{ta.volumeAnalysis}</Typography>
+          <Typography sx={{ fontSize: { xs: "0.88rem", sm: "0.95rem" }, lineHeight: 1.8, fontFamily: '"Plus Jakarta Sans", sans-serif', color: bodyColor(isDark), fontStyle: "italic", wordBreak: "break-word" }}>{ta.volumeAnalysis}</Typography>
         </Box>
       )}
     </GlassCard>

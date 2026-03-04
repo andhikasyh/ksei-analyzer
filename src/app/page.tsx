@@ -373,7 +373,7 @@ export default function DashboardPage() {
         }}
       >
         <Paper
-          sx={{ p: 4, textAlign: "center", maxWidth: 420, borderRadius: 3 }}
+          sx={{ p: { xs: 2, sm: 4 }, textAlign: "center", maxWidth: 420, mx: 1, borderRadius: 3 }}
         >
           <Typography
             variant="subtitle1"
@@ -440,6 +440,7 @@ export default function DashboardPage() {
             overflowX: "auto",
             pb: 0.5,
             scrollbarWidth: "none",
+            WebkitOverflowScrolling: "touch",
             "&::-webkit-scrollbar": { display: "none" },
           }}
         >
@@ -475,8 +476,10 @@ export default function DashboardPage() {
                 <Box
                   sx={{
                     display: "flex",
-                    alignItems: "center",
+                    flexDirection: { xs: "column", sm: "row" },
+                    alignItems: { xs: "stretch", sm: "center" },
                     justifyContent: "space-between",
+                    gap: 0.75,
                     px: 1.5,
                     pt: 1.25,
                     pb: 0.5,
@@ -492,7 +495,7 @@ export default function DashboardPage() {
                   >
                     Market Movers
                   </Typography>
-                  <Stack direction="row" spacing={0}>
+                  <Stack direction="row" spacing={0} flexWrap="wrap" useFlexGap>
                     {([
                       { key: "gain" as const, label: "Gainers", color: theme.palette.success.main },
                       { key: "loss" as const, label: "Losers", color: theme.palette.error.main },
@@ -525,11 +528,11 @@ export default function DashboardPage() {
                   </Stack>
                 </Box>
 
-                <TableContainer>
-                  <Table size="small">
+                <TableContainer sx={{ overflowX: "auto" }}>
+                  <Table size="small" sx={{ minWidth: 320 }}>
                     <TableHead>
                       <TableRow>
-                        <TableCell sx={{ py: 0.5, width: 160 }}>Stock</TableCell>
+                        <TableCell sx={{ py: 0.5, minWidth: 120 }}>Stock</TableCell>
                         <TableCell align="right" sx={{ py: 0.5 }}>Price</TableCell>
                         <TableCell align="right" sx={{ py: 0.5 }}>
                           {moverTab === "active" ? "Value" : "Chg%"}
@@ -836,8 +839,10 @@ export default function DashboardPage() {
         <Box
           sx={{
             display: "flex",
-            alignItems: "center",
+            flexDirection: { xs: "column", sm: "row" },
+            alignItems: { xs: "stretch", sm: "center" },
             justifyContent: "space-between",
+            gap: 0.75,
             px: 1.5,
             pt: 1.25,
             pb: 0.5,
@@ -853,7 +858,7 @@ export default function DashboardPage() {
           >
             Power Players
           </Typography>
-          <Stack direction="row" spacing={0}>
+          <Stack direction="row" spacing={0} flexWrap="wrap" useFlexGap>
             {([
               { key: "foreign" as const, label: "Foreign" },
               { key: "local" as const, label: "Local" },
@@ -887,14 +892,14 @@ export default function DashboardPage() {
         </Box>
 
         {playerTab !== "conglom" && activePlayerList && (
-          <TableContainer>
-            <Table size="small">
+          <TableContainer sx={{ overflowX: "auto" }}>
+            <Table size="small" sx={{ minWidth: 480 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ py: 0.5, width: 28 }}>#</TableCell>
-                  <TableCell sx={{ py: 0.5 }}>Investor</TableCell>
+                  <TableCell sx={{ py: 0.5, minWidth: 100 }}>Investor</TableCell>
                   <TableCell sx={{ py: 0.5 }}>Type</TableCell>
-                  <TableCell sx={{ py: 0.5 }}>Stocks</TableCell>
+                  <TableCell sx={{ py: 0.5, minWidth: 90 }}>Stocks</TableCell>
                   <TableCell align="right" sx={{ py: 0.5 }}>Holdings</TableCell>
                   <TableCell align="right" sx={{ py: 0.5 }}>Max %</TableCell>
                 </TableRow>
@@ -995,15 +1000,15 @@ export default function DashboardPage() {
         )}
 
         {playerTab === "conglom" && (
-          <TableContainer>
-            <Table size="small">
+          <TableContainer sx={{ overflowX: "auto" }}>
+            <Table size="small" sx={{ minWidth: 520 }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={{ py: 0.5, width: 28 }}>#</TableCell>
-                  <TableCell sx={{ py: 0.5 }}>Investor</TableCell>
+                  <TableCell sx={{ py: 0.5, minWidth: 100 }}>Investor</TableCell>
                   <TableCell sx={{ py: 0.5 }}>Origin</TableCell>
                   <TableCell align="center" sx={{ py: 0.5 }}>N</TableCell>
-                  <TableCell sx={{ py: 0.5 }}>Tickers</TableCell>
+                  <TableCell sx={{ py: 0.5, minWidth: 100 }}>Tickers</TableCell>
                   <TableCell align="right" sx={{ py: 0.5 }}>Holdings</TableCell>
                   <TableCell align="right" sx={{ py: 0.5 }}>Max %</TableCell>
                 </TableRow>
@@ -1187,8 +1192,8 @@ function IndexCard({
         px: 1.5,
         py: 1,
         borderRadius: 2,
-        minWidth: 160,
-        flex: "1 1 0%",
+        minWidth: 140,
+        flexShrink: 0,
         position: "relative",
         overflow: "hidden",
         cursor: "pointer",

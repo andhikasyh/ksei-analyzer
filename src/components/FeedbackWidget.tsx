@@ -102,9 +102,10 @@ export function FeedbackWidget() {
         <Box
           sx={{
             position: "fixed",
-            bottom: 76,
-            right: 76,
-            width: { xs: "calc(100vw - 32px)", sm: 320 },
+            bottom: "calc(76px + env(safe-area-inset-bottom, 0px))",
+            right: { xs: 12, sm: 76 },
+            left: { xs: 12, sm: "auto" },
+            width: { xs: "calc(100vw - 24px)", sm: 320 },
             zIndex: 1299,
             borderRadius: "14px",
             overflow: "hidden",
@@ -273,8 +274,9 @@ export function FeedbackWidget() {
         size="small"
         sx={{
           position: "fixed",
-          bottom: 20,
-          right: 76,
+          bottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
+          left: { xs: 16, sm: "auto" },
+          right: { xs: "auto", sm: 76 },
           zIndex: 1299,
           width: 40,
           height: 40,

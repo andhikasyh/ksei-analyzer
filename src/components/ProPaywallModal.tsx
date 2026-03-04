@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import Box from "@mui/material/Box";
 import Dialog from "@mui/material/Dialog";
 import DialogContent from "@mui/material/DialogContent";
@@ -427,6 +428,7 @@ export function ProPaywallModal({
 }: ProPaywallModalProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
+  const isMobile = useMediaQuery((t) => t.breakpoints.down("sm"));
   const { signInWithGoogle, user, isPro, redeemReferral } = useProContext();
   const [mode, setMode] = useState<PaywallMode>(initialMode);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -460,12 +462,13 @@ export function ProPaywallModal({
     <Dialog
       open={open}
       onClose={onClose}
+      fullScreen={isMobile}
       maxWidth={isPaymentMode ? "sm" : "xs"}
       fullWidth
       slotProps={{
         paper: {
           sx: {
-            borderRadius: "16px",
+            borderRadius: isMobile ? 0 : "16px",
             border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.07)"}`,
             bgcolor: isDark ? "#0d1425" : "#fafafa",
             backgroundImage: "none",
@@ -493,7 +496,7 @@ export function ProPaywallModal({
         </IconButton>
       </Box>
 
-      <DialogContent sx={{ px: 3, pt: isPaymentMode ? 1 : 2, pb: 3 }}>
+      <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: isPaymentMode ? 1 : 2, pb: 3, overflowY: "auto" }}>
 
         {/* ── AUTH ── */}
         {isAuthMode && (

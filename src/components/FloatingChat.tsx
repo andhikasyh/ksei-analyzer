@@ -31,12 +31,13 @@ export function FloatingChat() {
         <Box
           sx={{
             position: "fixed",
-            bottom: 80,
-            right: 16,
-            width: { xs: "calc(100vw - 32px)", sm: 400 },
-            maxHeight: "min(560px, calc(100vh - 120px))",
+            bottom: "calc(80px + env(safe-area-inset-bottom, 0px))",
+            right: { xs: 12, sm: 16 },
+            left: { xs: 12, sm: "auto" },
+            width: { xs: "calc(100vw - 24px)", sm: 400 },
+            maxHeight: "min(560px, calc(100vh - 140px))",
             zIndex: 1300,
-            borderRadius: 0,
+            borderRadius: "16px",
             overflow: "hidden",
             boxShadow: isDark
               ? "0 16px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(129,140,248,0.15)"
@@ -83,8 +84,8 @@ export function FloatingChat() {
         onClick={() => setOpen((prev) => !prev)}
         sx={{
           position: "fixed",
-          bottom: 20,
-          right: 20,
+          bottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
+          right: { xs: 16, sm: 20 },
           zIndex: 1300,
           width: 48,
           height: 48,

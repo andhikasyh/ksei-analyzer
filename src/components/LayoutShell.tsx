@@ -12,10 +12,11 @@ export function LayoutShell({ children }: { children: React.ReactNode }) {
       <Container
         maxWidth="xl"
         sx={{
-          py: { xs: 2, md: 3 },
-          px: { xs: 2, md: 3 },
+          py: { xs: 1.5, sm: 2, md: 3 },
+          px: { xs: 1.5, sm: 2, md: 3 },
           position: "relative",
           zIndex: 1,
+          minWidth: 0,
         }}
       >
         <Box>{children}</Box>
