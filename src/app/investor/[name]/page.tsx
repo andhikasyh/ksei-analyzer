@@ -32,6 +32,7 @@ import BusinessCenterIcon from "@mui/icons-material/BusinessCenter";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import PublicIcon from "@mui/icons-material/Public";
+import { StockNewsPanel } from "@/components/StockNewsPanel";
 
 export default function InvestorDetailPage() {
   const params = useParams();
@@ -298,6 +299,11 @@ export default function InvestorDetailPage() {
           </Table>
         </TableContainer>
       </Box>
+
+      <StockNewsPanel
+        stockCodes={records.map((r) => r.SHARE_CODE)}
+        title="Related News"
+      />
     </Stack>
   );
 }

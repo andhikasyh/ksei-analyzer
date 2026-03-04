@@ -21,6 +21,7 @@ import { FinancialTrendsPanel } from "@/components/FinancialTrends";
 import { DividendHistoryPanel } from "@/components/DividendHistory";
 import { ShareholderHistoryPanel } from "@/components/ShareholderHistory";
 import { AIAnalyzerPanel } from "@/components/AIAnalyzer";
+import { StockNewsPanel } from "@/components/StockNewsPanel";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
@@ -331,6 +332,7 @@ export default function StockDetailPage() {
           }}
         >
           <Tab label="Market" />
+          <Tab label="News" />
           <Tab label="Fundamentals" />
           <Tab label="Ownership" />
           <Tab label="AI Analysis" />
@@ -346,6 +348,10 @@ export default function StockDetailPage() {
       )}
 
       {tab === 1 && (
+        <StockNewsPanel stockCode={code} title={`${code} News`} />
+      )}
+
+      {tab === 2 && (
         <Stack spacing={2}>
           <CompanyProfilePanel stockCode={code} />
           <FinancialTrendsPanel stockCode={code} />
@@ -353,7 +359,7 @@ export default function StockDetailPage() {
         </Stack>
       )}
 
-      {tab === 2 && (
+      {tab === 3 && (
         <Stack spacing={2}>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, lg: 6 }}>
@@ -422,11 +428,11 @@ export default function StockDetailPage() {
         </Stack>
       )}
 
-      {tab === 3 && (
+      {tab === 4 && (
         <AIAnalyzerPanel stockCode={code} />
       )}
 
-      {tab === 4 && (
+      {tab === 5 && (
         <Paper
           sx={{
             p: { xs: 4, md: 6 },
