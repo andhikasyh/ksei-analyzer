@@ -21,6 +21,7 @@ import { MarketOverviewPanel } from "@/components/MarketOverview";
 import { FinancialTrendsPanel } from "@/components/FinancialTrends";
 import { DividendHistoryPanel } from "@/components/DividendHistory";
 import { ShareholderHistoryPanel } from "@/components/ShareholderHistory";
+import { AIAnalyzerPanel } from "@/components/AIAnalyzer";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
@@ -334,6 +335,7 @@ export default function StockDetailPage() {
           <Tab label="Fundamentals" />
           <Tab label="Ownership" />
           <Tab label="Brokers" />
+          <Tab label="AI Analysis" />
         </Tabs>
       </Paper>
 
@@ -423,6 +425,10 @@ export default function StockDetailPage() {
 
       {tab === 3 && (
         <BrokerSummaryPanel stockCode={code} />
+      )}
+
+      {tab === 4 && (
+        <AIAnalyzerPanel stockCode={code} />
       )}
     </Stack>
   );
