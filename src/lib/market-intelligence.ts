@@ -191,12 +191,15 @@ async function fetchMultiDayHistory(
   const result = new Map<string, PriceHistoryRow[]>();
   if (topCodes.length === 0) return result;
 
+  const cutoffDate = new Date(Date.now() - 45 * 86400000).toISOString().split("T")[0];
+
   const { data } = await supabase
     .from("idx_stock_summary")
     .select("stock_code, stock_name, date, close, volume, foreign_buy, foreign_sell")
     .in("stock_code", topCodes)
+    .gte("date", cutoffDate)
     .order("date", { ascending: true })
-    .limit(topCodes.length * 15);
+    .limit(topCodes.length * 25);
 
   if (!data) return result;
 
@@ -603,7 +606,7 @@ RULES:
 8. For commodityAnalysis: analyze at least 4-6 key commodities (Oil, Gold, Coal, Palm Oil/CPO, Nickel, Tin). Map each to affected IDX companies (e.g. oil affects MEDC, ELSA; coal affects ADRO, PTBA, ITMG; CPO affects AALI, LSIP, SIMP; nickel affects ANTM, INCO, MBMA; gold affects ANTM, MDKA).
 9. For corporateEvents: identify any acquisitions, mergers, cooperations, IPOs, restructurings, or market rumors from the news. Include ticker codes of involved companies. Preserve source URLs when available.
 10. For pricePredictions: provide price predictions for 5-8 key stocks with short-term targets (1-2 weeks), mid-term targets (1-3 months), and stop-loss levels. Use the provided price history data to inform your predictions. State confidence level honestly.
-11. For chartData: use the provided multi-day price history to populate priceHistoryCharts with actual historical close prices. Populate sectorPerformanceChart from the sector data. For foreignFlowChart, use any multi-day foreign flow data available. For marketBreadthChart, estimate advance-decline ratio trends.
+11. For chartData: include ALL provided data points -- do NOT summarize or reduce them. For priceHistoryCharts, include every date-price pair from the multi-day price history for at least 6 top stocks. For foreignFlowChart, include every date from the multi-day foreign flow data provided. For sectorPerformanceChart, populate from sector data. The charts need enough data points for smooth, meaningful visualizations.
 12. Write all analysis in English with institutional-level depth.
 13. Do not use any emojis anywhere in the response.
 14. Think deeply about inter-market correlations, commodity-equity linkages, sector rotation patterns, and smart money flow.`;
@@ -638,10 +641,24 @@ FOREIGN FLOW:
 - Top Foreign Bought: ${marketData.foreignFlow.topBought.map((f) => `${f.code} (Rp ${(f.netBuy / 1e9).toFixed(2)}B)`).join(", ")}
 - Top Foreign Sold: ${marketData.foreignFlow.topSold.map((f) => `${f.code} (Rp ${(f.netSell / 1e9).toFixed(2)}B)`).join(", ")}
 
-MULTI-DAY PRICE HISTORY (last ~10 trading days for top stocks):
+MULTI-DAY PRICE HISTORY (last ~20 trading days for top stocks):
 ${Array.from(marketData.priceHistory.entries()).map(([code, rows]) => {
   return `${code}: ${rows.map((r) => `${r.date}=${r.close}`).join(", ")}`;
 }).join("\n") || "No multi-day history available."}
+
+MULTI-DAY FOREIGN FLOW (daily net foreign flow aggregated from top stocks):
+${(() => {
+  const dailyFlow = new Map<string, number>();
+  for (const [, rows] of marketData.priceHistory.entries()) {
+    for (const r of rows) {
+      dailyFlow.set(r.date, (dailyFlow.get(r.date) || 0) + (r.foreignBuy - r.foreignSell));
+    }
+  }
+  const sorted = [...dailyFlow.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  return sorted.length > 0
+    ? sorted.map(([date, net]) => `${date}=${(net / 1e9).toFixed(2)}B`).join(", ")
+    : "No multi-day foreign flow data available.";
+})()}
 
 RECENT CORPORATE ACTIONS (from IDX database, last 30 days):
 ${marketData.recentCorporateActions.length > 0 ? marketData.recentCorporateActions.map((ca) => `${ca.code} (${ca.issuerName}): ${ca.type} - ${ca.detail} [${ca.startDate}]`).join("\n") : "No recent corporate actions."}

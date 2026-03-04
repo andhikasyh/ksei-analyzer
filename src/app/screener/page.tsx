@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState, useMemo } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "@mui/material/styles";
 import { supabase } from "@/lib/supabase";
 import {
@@ -12,10 +12,10 @@ import {
   formatValue,
 } from "@/lib/types";
 import { computeFinancialScore } from "@/lib/scoring";
+import { INDEX_LABELS, INDEX_CONSTITUENTS } from "@/lib/index-constituents";
 import { GlobalSearch } from "@/components/SearchInput";
-import { StatsCard, StatsCardSkeleton } from "@/components/StatsCard";
+import { StockTreemap, StockTreemapSkeleton } from "@/components/StockTreemap";
 import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
@@ -43,18 +43,6 @@ import Tab from "@mui/material/Tab";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
-import ShoppingBagIcon from "@mui/icons-material/ShoppingBag";
-import PrecisionManufacturingIcon from "@mui/icons-material/PrecisionManufacturing";
-import ScienceIcon from "@mui/icons-material/Science";
-import BoltIcon from "@mui/icons-material/Bolt";
-import LocalHospitalIcon from "@mui/icons-material/LocalHospital";
-import ComputerIcon from "@mui/icons-material/Computer";
-import ApartmentIcon from "@mui/icons-material/Apartment";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import ConstructionIcon from "@mui/icons-material/Construction";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
-import CategoryIcon from "@mui/icons-material/Category";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -62,24 +50,12 @@ import PeopleIcon from "@mui/icons-material/People";
 import ShowChartIcon from "@mui/icons-material/ShowChart";
 import { InvestorScreener } from "@/components/InvestorScreener";
 
-const SECTOR_ICONS: Record<string, React.ReactNode> = {
-  Financials: <AccountBalanceIcon />,
-  "Consumer Cyclicals": <ShoppingBagIcon />,
-  Industrials: <PrecisionManufacturingIcon />,
-  "Basic Materials": <ScienceIcon />,
-  Energy: <BoltIcon />,
-  Healthcare: <LocalHospitalIcon />,
-  Technology: <ComputerIcon />,
-  "Properties & Real Estate": <ApartmentIcon />,
-  "Consumer Non-Cyclicals": <ShoppingCartIcon />,
-  Infrastructures: <ConstructionIcon />,
-  "Transportation & Logistic": <LocalShippingIcon />,
-};
 
 interface ScreenerRow extends IDXFinancialRatio {
   close: number;
   change_pct: number;
   market_cap: number;
+  volume: number;
   daily_value: number;
   foreign_net: number;
   score: number;
@@ -92,12 +68,17 @@ type SortKey =
   | "close"
   | "change_pct"
   | "market_cap"
+  | "volume"
+  | "daily_value"
+  | "foreign_net"
   | "assets"
   | "equity"
+  | "sales"
   | "per"
   | "price_bv"
   | "de_ratio"
   | "roe"
+  | "roa"
   | "npm"
   | "eps"
   | "score";
@@ -117,12 +98,17 @@ const COLUMNS: {
   { key: "close", label: "Price", align: "right", numeric: true },
   { key: "change_pct", label: "Chg%", align: "right", numeric: true },
   { key: "market_cap", label: "Mkt Cap", align: "right", numeric: true },
+  { key: "volume", label: "Vol (shares)", align: "right", numeric: true },
+  { key: "daily_value", label: "Value (Rp)", align: "right", numeric: true },
+  { key: "foreign_net", label: "Foreign (Rp)", align: "right", numeric: true },
   { key: "per", label: "P/E", align: "right", numeric: true },
   { key: "price_bv", label: "P/BV", align: "right", numeric: true },
   { key: "de_ratio", label: "D/E", align: "right", numeric: true },
   { key: "roe", label: "ROE", align: "right", numeric: true },
+  { key: "roa", label: "ROA", align: "right", numeric: true },
   { key: "npm", label: "NPM", align: "right", numeric: true },
   { key: "eps", label: "EPS", align: "right", numeric: true },
+  { key: "sales", label: "Revenue", align: "right", numeric: true },
 ];
 
 const PAGE_SIZE = 50;
@@ -514,18 +500,35 @@ function RatioGuideModal({
 }
 
 export default function ScreenerPage() {
+  return (
+    <Suspense>
+      <ScreenerContent />
+    </Suspense>
+  );
+}
+
+function ScreenerContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const [data, setData] = useState<ScreenerRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [sectorFilter, setSectorFilter] = useState("All");
+  const [indexFilter, setIndexFilter] = useState<string>("All");
   const [sortKey, setSortKey] = useState<SortKey>("market_cap");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [guideOpen, setGuideOpen] = useState(false);
   const [screenerTab, setScreenerTab] = useState(0);
+
+  useEffect(() => {
+    const idx = searchParams.get("index");
+    if (idx && (idx === "COMPOSITE" || INDEX_CONSTITUENTS[idx])) {
+      setIndexFilter(idx === "COMPOSITE" ? "All" : idx);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     async function fetch() {
@@ -570,10 +573,11 @@ export default function ScreenerPage() {
                 ? (parseFloat(stk?.change || "0") / prev) * 100
                 : 0,
             market_cap: close * listed,
+            volume: stk ? parseFloat(stk.volume) || 0 : 0,
             daily_value: stk ? parseFloat(stk.value) || 0 : 0,
             foreign_net: stk
-              ? (parseFloat(stk.foreign_buy) || 0) -
-                (parseFloat(stk.foreign_sell) || 0)
+              ? ((parseFloat(stk.foreign_buy) || 0) -
+                (parseFloat(stk.foreign_sell) || 0)) * close
               : 0,
             score: computeFinancialScore(fin),
           };
@@ -590,21 +594,15 @@ export default function ScreenerPage() {
     return ["All", ...Array.from(s).sort()];
   }, [data]);
 
-  const sectorStats = useMemo(() => {
-    const map: Record<string, { assets: number; count: number }> = {};
-    data.forEach((r) => {
-      if (!r.sector) return;
-      if (!map[r.sector]) map[r.sector] = { assets: 0, count: 0 };
-      map[r.sector].assets += parseFloat(r.assets) || 0;
-      map[r.sector].count += 1;
-    });
-    return Object.entries(map)
-      .map(([sector, v]) => ({ sector, ...v }))
-      .sort((a, b) => b.assets - a.assets);
-  }, [data]);
-
   const filtered = useMemo(() => {
     let result = data;
+    if (indexFilter !== "All") {
+      const members = INDEX_CONSTITUENTS[indexFilter];
+      if (members) {
+        const set = new Set(members);
+        result = result.filter((r) => set.has(r.code));
+      }
+    }
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(
@@ -630,7 +628,7 @@ export default function ScreenerPage() {
         : bv.localeCompare(av);
     });
     return result;
-  }, [data, search, sectorFilter, sortKey, sortDir]);
+  }, [data, search, sectorFilter, indexFilter, sortKey, sortDir]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -658,13 +656,7 @@ export default function ScreenerPage() {
       <Stack spacing={3}>
         <Skeleton variant="rounded" height={56} sx={{ borderRadius: 3 }} />
         <Skeleton width={160} height={28} />
-        <Grid container spacing={1.5}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }} key={i}>
-              <StatsCardSkeleton />
-            </Grid>
-          ))}
-        </Grid>
+        <StockTreemapSkeleton />
         <Skeleton variant="rounded" height={48} sx={{ borderRadius: 2 }} />
         <Skeleton variant="rounded" height={500} sx={{ borderRadius: 3 }} />
       </Stack>
@@ -758,18 +750,60 @@ export default function ScreenerPage() {
 
       {screenerTab === 1 && <InvestorScreener />}
 
-      {screenerTab === 0 && <><Grid container spacing={1.5}>
-        {sectorStats.map((s) => (
-          <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }} key={s.sector}>
-            <StatsCard
-              title={s.sector}
-              value={formatBillion(s.assets)}
-              subtitle={`${s.count} companies`}
-              icon={SECTOR_ICONS[s.sector] || <CategoryIcon />}
+      {screenerTab === 0 && <>
+      <Stack
+        direction="row"
+        spacing={0.75}
+        sx={{
+          overflowX: "auto",
+          pb: 0.5,
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
+        }}
+      >
+        {["All", ...Object.keys(INDEX_CONSTITUENTS)].map((key) => {
+          const active = indexFilter === key;
+          const label = key === "All" ? "All Stocks" : (INDEX_LABELS[key] || key);
+          return (
+            <Chip
+              key={key}
+              label={label}
+              size="small"
+              onClick={() => {
+                setIndexFilter(key);
+                setVisibleCount(PAGE_SIZE);
+              }}
+              sx={{
+                fontFamily: '"JetBrains Mono", monospace',
+                fontWeight: active ? 700 : 500,
+                fontSize: "0.72rem",
+                borderRadius: 1.5,
+                bgcolor: active
+                  ? isDark ? "rgba(212,168,67,0.15)" : "rgba(161,124,47,0.1)"
+                  : "transparent",
+                border: `1px solid ${
+                  active
+                    ? isDark ? "rgba(212,168,67,0.35)" : "rgba(161,124,47,0.25)"
+                    : isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"
+                }`,
+                color: active ? "primary.main" : "text.secondary",
+                "&:hover": {
+                  bgcolor: active
+                    ? isDark ? "rgba(212,168,67,0.2)" : "rgba(161,124,47,0.12)"
+                    : isDark ? "rgba(107,127,163,0.08)" : "rgba(12,18,34,0.04)",
+                },
+              }}
             />
-          </Grid>
-        ))}
-      </Grid>
+          );
+        })}
+      </Stack>
+
+      <StockTreemap
+        data={indexFilter !== "All" && INDEX_CONSTITUENTS[indexFilter]
+          ? data.filter((r) => INDEX_CONSTITUENTS[indexFilter].includes(r.code))
+          : data}
+        onStockClick={(code) => router.push(`/stock/${code}`)}
+      />
 
       <Stack
         direction={{ xs: "column", sm: "row" }}
@@ -837,8 +871,7 @@ export default function ScreenerPage() {
           size="small"
           stickyHeader
           sx={{
-            tableLayout: "fixed",
-            minWidth: 920,
+            minWidth: 1400,
             "& th, & td": {
               px: 0.75,
               py: 0.4,
@@ -860,20 +893,12 @@ export default function ScreenerPage() {
                   key={col.key}
                   align={col.align || "left"}
                   sx={{
-                    width:
-                      col.key === "code"
-                        ? 52
-                        : col.key === "score"
-                          ? 44
-                          : col.key === "stock_name"
-                            ? 140
-                            : col.key === "sector"
-                              ? 100
-                              : col.key === "close"
-                                ? 58
-                                : col.key === "market_cap"
-                                  ? 62
-                                  : 48,
+                    maxWidth:
+                      col.key === "stock_name"
+                        ? 160
+                        : col.key === "sector"
+                          ? 120
+                          : undefined,
                   }}
                 >
                   <TableSortLabel
@@ -1004,6 +1029,38 @@ export default function ScreenerPage() {
                   align="right"
                   sx={{
                     fontFamily: '"JetBrains Mono", monospace',
+                    color: "text.secondary",
+                  }}
+                >
+                  {r.volume > 0 ? formatValue(r.volume) : "-"}
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontFamily: '"JetBrains Mono", monospace',
+                  }}
+                >
+                  {r.daily_value > 0 ? formatValue(r.daily_value) : "-"}
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontFamily: '"JetBrains Mono", monospace',
+                    fontWeight: 600,
+                    color:
+                      r.foreign_net > 0
+                        ? "#34d399"
+                        : r.foreign_net < 0
+                          ? "#fb7185"
+                          : "text.secondary",
+                  }}
+                >
+                  {r.foreign_net !== 0 ? (r.foreign_net > 0 ? "+" : "") + formatValue(r.foreign_net) : "-"}
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontFamily: '"JetBrains Mono", monospace',
                   }}
                 >
                   {formatRatio(r.per)}
@@ -1037,6 +1094,15 @@ export default function ScreenerPage() {
                   align="right"
                   sx={{
                     fontFamily: '"JetBrains Mono", monospace',
+                    color: ratioColor(r.roa),
+                  }}
+                >
+                  {formatRatio(r.roa)}%
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontFamily: '"JetBrains Mono", monospace',
                     color: ratioColor(r.npm),
                   }}
                 >
@@ -1049,6 +1115,15 @@ export default function ScreenerPage() {
                   }}
                 >
                   {formatRatio(r.eps)}
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontFamily: '"JetBrains Mono", monospace',
+                    color: "text.secondary",
+                  }}
+                >
+                  {parseFloat(r.sales) > 0 ? formatBillion(r.sales) : "-"}
                 </TableCell>
               </TableRow>
             ))}

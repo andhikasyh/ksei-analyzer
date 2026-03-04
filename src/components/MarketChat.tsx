@@ -27,7 +27,7 @@ interface ChatMessage {
   content: string;
 }
 
-type StreamState = "idle" | "loading" | "streaming" | "done" | "error";
+type StreamState = "idle" | "loading" | "streaming" | "done" | "error" | "rate_limited";
 
 function parseMarkdown(text: string): string {
   let html = text
@@ -117,9 +117,18 @@ export function MarketChat({ context, placeholder, compact }: MarketChatProps) {
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const [rateLimitCountdown, setRateLimitCountdown] = useState(0);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const accent = isDark ? "#818cf8" : "#6366f1";
   const accentBg = isDark ? "rgba(129,140,248,0.08)" : "rgba(99,102,241,0.06)";
   const mdStyles = useMdStyles(isDark, accent);
+
+  useEffect(() => {
+    return () => {
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current && (state === "streaming" || state === "loading")) {
@@ -144,6 +153,29 @@ export function MarketChat({ context, placeholder, compact }: MarketChatProps) {
           body: JSON.stringify({ messages: apiMessages, context }),
           signal: controller.signal,
         });
+
+        if (res.status === 429) {
+          const data = await res.json();
+          const retryMs = data.retryAfterMs || 60000;
+          const retrySeconds = Math.ceil(retryMs / 1000);
+          setRateLimitCountdown(retrySeconds);
+          setError(data.error || "Rate limit exceeded. Please wait before sending another message.");
+          setState("rate_limited");
+
+          if (countdownRef.current) clearInterval(countdownRef.current);
+          countdownRef.current = setInterval(() => {
+            setRateLimitCountdown((prev) => {
+              if (prev <= 1) {
+                if (countdownRef.current) clearInterval(countdownRef.current);
+                setState("done");
+                setError("");
+                return 0;
+              }
+              return prev - 1;
+            });
+          }, 1000);
+          return;
+        }
 
         if (!res.ok) {
           const data = await res.json();
@@ -219,7 +251,7 @@ export function MarketChat({ context, placeholder, compact }: MarketChatProps) {
 
   const sendMessage = useCallback(() => {
     const text = input.trim();
-    if (!text || state === "streaming" || state === "loading") return;
+    if (!text || state === "streaming" || state === "loading" || state === "rate_limited") return;
 
     const userMsg: ChatMessage = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
@@ -251,6 +283,7 @@ export function MarketChat({ context, placeholder, compact }: MarketChatProps) {
   }, [streamingContent]);
 
   const isWorking = state === "streaming" || state === "loading";
+  const isBlocked = isWorking || state === "rate_limited";
   const maxH = compact ? 360 : 480;
 
   return (
@@ -435,6 +468,48 @@ export function MarketChat({ context, placeholder, compact }: MarketChatProps) {
           </Box>
         )}
 
+        {state === "rate_limited" && (
+          <Box
+            sx={{
+              px: 2,
+              py: 1.5,
+              mx: 2,
+              my: 1,
+              borderRadius: 2,
+              bgcolor: isDark ? "rgba(251,113,133,0.08)" : "rgba(251,113,133,0.06)",
+              border: 1,
+              borderColor: isDark ? "rgba(251,113,133,0.15)" : "rgba(251,113,133,0.12)",
+            }}
+          >
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#fb7185",
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                fontFamily: '"Plus Jakarta Sans", sans-serif',
+              }}
+            >
+              {error}
+            </Typography>
+            {rateLimitCountdown > 0 && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: isDark ? "rgba(251,113,133,0.7)" : "rgba(251,113,133,0.8)",
+                  fontSize: "0.68rem",
+                  fontFamily: '"JetBrains Mono", monospace',
+                  mt: 0.5,
+                  display: "block",
+                }}
+              >
+                Available again in {Math.floor(rateLimitCountdown / 60)}:
+                {String(rateLimitCountdown % 60).padStart(2, "0")}
+              </Typography>
+            )}
+          </Box>
+        )}
+
         {state === "error" && (
           <Box sx={{ px: 2, py: 1.5 }}>
             <Typography variant="body2" sx={{ color: "#fb7185", fontSize: "0.8rem" }}>
@@ -469,7 +544,7 @@ export function MarketChat({ context, placeholder, compact }: MarketChatProps) {
                   <IconButton
                     size="small"
                     onClick={sendMessage}
-                    disabled={!input.trim() || isWorking}
+                    disabled={!input.trim() || isBlocked}
                     sx={{ color: input.trim() ? accent : "text.disabled" }}
                   >
                     <SendIcon sx={{ fontSize: 16 }} />

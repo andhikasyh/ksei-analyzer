@@ -4,19 +4,15 @@ import { useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@mui/material/styles";
 import Box from "@mui/material/Box";
-import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
-import Fade from "@mui/material/Fade";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import PlaceIcon from "@mui/icons-material/Place";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import GroupsIcon from "@mui/icons-material/Groups";
 import type { IDXCalendarEvent } from "@/lib/types";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -63,6 +59,28 @@ function formatEventTime(datetime: string | null): string {
   return d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
+type RangeFilter = "week" | "month" | "year";
+
+function getWeekRange(date: Date): [string, string] {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(d.setDate(diff));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return [toDateKey(monday), toDateKey(sunday)];
+}
+
+function getMonthRange(date: Date): [string, string] {
+  const start = new Date(date.getFullYear(), date.getMonth(), 1);
+  const end = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return [toDateKey(start), toDateKey(end)];
+}
+
+function getYearRange(date: Date): [string, string] {
+  return [`${date.getFullYear()}-01-01`, `${date.getFullYear()}-12-31`];
+}
+
 interface EventCalendarProps {
   events: IDXCalendarEvent[];
 }
@@ -75,6 +93,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [rangeFilter, setRangeFilter] = useState<RangeFilter>("week");
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, IDXCalendarEvent[]> = {};
@@ -91,18 +110,26 @@ export function EventCalendar({ events }: EventCalendarProps) {
     [currentYear, currentMonth]
   );
 
-  const selectedEvents = useMemo(() => {
-    if (!selectedDate) return [];
-    return eventsByDate[selectedDate] || [];
-  }, [selectedDate, eventsByDate]);
+  const filteredEvents = useMemo(() => {
+    if (selectedDate) {
+      return (eventsByDate[selectedDate] || []).sort((a, b) =>
+        a.event_date.localeCompare(b.event_date)
+      );
+    }
 
-  const upcomingEvents = useMemo(() => {
-    const todayKey = toDateKey(today);
+    let start: string, end: string;
+    if (rangeFilter === "week") {
+      [start, end] = getWeekRange(today);
+    } else if (rangeFilter === "month") {
+      [start, end] = getMonthRange(today);
+    } else {
+      [start, end] = getYearRange(today);
+    }
+
     return events
-      .filter((ev) => ev.event_date >= todayKey)
-      .sort((a, b) => a.event_date.localeCompare(b.event_date))
-      .slice(0, 8);
-  }, [events]);
+      .filter((ev) => ev.event_date >= start && ev.event_date <= end)
+      .sort((a, b) => a.event_date.localeCompare(b.event_date));
+  }, [selectedDate, rangeFilter, events, eventsByDate]);
 
   const prevMonth = useCallback(() => {
     setCurrentMonth((m) => {
@@ -112,7 +139,6 @@ export function EventCalendar({ events }: EventCalendarProps) {
       }
       return m - 1;
     });
-    setSelectedDate(null);
   }, []);
 
   const nextMonth = useCallback(() => {
@@ -123,13 +149,12 @@ export function EventCalendar({ events }: EventCalendarProps) {
       }
       return m + 1;
     });
-    setSelectedDate(null);
   }, []);
 
   const goToToday = useCallback(() => {
     setCurrentMonth(today.getMonth());
     setCurrentYear(today.getFullYear());
-    setSelectedDate(toDateKey(today));
+    setSelectedDate(null);
   }, []);
 
   const todayKey = toDateKey(today);
@@ -157,14 +182,31 @@ export function EventCalendar({ events }: EventCalendarProps) {
     return isDark ? "#fbbf24" : "#d97706";
   };
 
+  const filterLabel = selectedDate
+    ? new Date(selectedDate + "T00:00:00").toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : null;
+
   return (
-    <Grid container spacing={1.5}>
-      <Grid size={{ xs: 12, lg: 7 }}>
+    <Box
+      sx={{
+        display: { xs: "block", lg: "flex" },
+        gap: 1,
+        alignItems: "stretch",
+        height: { lg: 380 },
+      }}
+    >
+      {/* LEFT: Calendar grid */}
+      <Box sx={{ flex: "3 1 0%", minWidth: 0, mb: { xs: 1, lg: 0 } }}>
         <Paper
           sx={{
-            borderRadius: 2.5,
+            borderRadius: 2,
             overflow: "hidden",
             position: "relative",
+            height: "100%",
             "&::before": {
               content: '""',
               position: "absolute",
@@ -177,33 +219,33 @@ export function EventCalendar({ events }: EventCalendarProps) {
             },
           }}
         >
-          <Box sx={{ p: 2 }}>
+          <Box sx={{ px: 1.5, pt: 1.25, pb: 1 }}>
             <Stack
               direction="row"
               alignItems="center"
               justifyContent="space-between"
-              sx={{ mb: 2 }}
+              sx={{ mb: 0.75 }}
             >
-              <Stack direction="row" alignItems="center" spacing={1}>
+              <Stack direction="row" alignItems="center" spacing={0.75}>
                 <IconButton
                   size="small"
                   onClick={prevMonth}
                   sx={{
-                    width: 28,
-                    height: 28,
+                    width: 26,
+                    height: 26,
                     bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
                     "&:hover": { bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" },
                   }}
                 >
-                  <ChevronLeftIcon sx={{ fontSize: 16 }} />
+                  <ChevronLeftIcon sx={{ fontSize: 14 }} />
                 </IconButton>
                 <Typography
                   sx={{
                     fontFamily: '"Outfit", sans-serif',
                     fontWeight: 700,
-                    fontSize: "1rem",
+                    fontSize: "0.88rem",
                     letterSpacing: "-0.02em",
-                    minWidth: 160,
+                    minWidth: 140,
                     textAlign: "center",
                   }}
                 >
@@ -213,22 +255,22 @@ export function EventCalendar({ events }: EventCalendarProps) {
                   size="small"
                   onClick={nextMonth}
                   sx={{
-                    width: 28,
-                    height: 28,
+                    width: 26,
+                    height: 26,
                     bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
                     "&:hover": { bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)" },
                   }}
                 >
-                  <ChevronRightIcon sx={{ fontSize: 16 }} />
+                  <ChevronRightIcon sx={{ fontSize: 14 }} />
                 </IconButton>
               </Stack>
               <Chip
                 label="Today"
                 size="small"
-                onClick={goToToday}
+                onClick={() => { goToToday(); }}
                 sx={{
-                  fontSize: "0.65rem",
-                  height: 24,
+                  fontSize: "0.6rem",
+                  height: 22,
                   fontWeight: 700,
                   cursor: "pointer",
                   bgcolor: isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.08)",
@@ -245,19 +287,14 @@ export function EventCalendar({ events }: EventCalendarProps) {
                 display: "grid",
                 gridTemplateColumns: "repeat(7, 1fr)",
                 gap: 0,
+                width: "100%",
               }}
             >
               {WEEKDAYS.map((day) => (
-                <Box
-                  key={day}
-                  sx={{
-                    textAlign: "center",
-                    py: 0.75,
-                  }}
-                >
+                <Box key={day} sx={{ textAlign: "center", py: 0.5 }}>
                   <Typography
                     sx={{
-                      fontSize: "0.6rem",
+                      fontSize: "0.62rem",
                       fontWeight: 700,
                       textTransform: "uppercase",
                       letterSpacing: "0.08em",
@@ -290,14 +327,16 @@ export function EventCalendar({ events }: EventCalendarProps) {
                   >
                     <Box
                       onClick={() => {
-                        if (inMonth) setSelectedDate(isSelected ? null : dateKey);
+                        if (inMonth) {
+                          setSelectedDate(isSelected ? null : dateKey);
+                        }
                       }}
                       sx={{
                         textAlign: "center",
-                        py: 0.5,
+                        py: 0.4,
                         cursor: inMonth ? "pointer" : "default",
                         position: "relative",
-                        borderRadius: 1.5,
+                        borderRadius: 1,
                         transition: "all 0.15s ease",
                         bgcolor: isSelected
                           ? isDark ? "rgba(212,168,67,0.12)" : "rgba(161,124,47,0.08)"
@@ -316,8 +355,8 @@ export function EventCalendar({ events }: EventCalendarProps) {
                                 : "rgba(0,0,0,0.03)",
                             }
                           : {},
-                        mx: 0.25,
-                        my: 0.15,
+                        mx: 0.15,
+                        my: 0.1,
                       }}
                     >
                       <Typography
@@ -334,7 +373,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
                                 : isWeekend
                                   ? "text.secondary"
                                   : "text.primary",
-                          lineHeight: 1.8,
+                          lineHeight: 1.6,
                         }}
                       >
                         {date.getDate()}
@@ -344,15 +383,15 @@ export function EventCalendar({ events }: EventCalendarProps) {
                           direction="row"
                           spacing={0.3}
                           justifyContent="center"
-                          sx={{ position: "absolute", bottom: 2, left: 0, right: 0 }}
+                          sx={{ position: "absolute", bottom: 1, left: 0, right: 0 }}
                         >
                           {eventCount <= 3 ? (
                             Array.from({ length: eventCount }).map((_, i) => (
                               <Box
                                 key={i}
                                 sx={{
-                                  width: 4,
-                                  height: 4,
+                                  width: 3,
+                                  height: 3,
                                   borderRadius: "50%",
                                   bgcolor: dot || theme.palette.primary.main,
                                   opacity: 0.8,
@@ -363,8 +402,8 @@ export function EventCalendar({ events }: EventCalendarProps) {
                             <>
                               <Box
                                 sx={{
-                                  width: 4,
-                                  height: 4,
+                                  width: 3,
+                                  height: 3,
                                   borderRadius: "50%",
                                   bgcolor: dot || theme.palette.primary.main,
                                   opacity: 0.8,
@@ -372,7 +411,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
                               />
                               <Typography
                                 sx={{
-                                  fontSize: "0.45rem",
+                                  fontSize: "0.4rem",
                                   color: dot || theme.palette.primary.main,
                                   fontWeight: 700,
                                   lineHeight: 1,
@@ -391,143 +430,14 @@ export function EventCalendar({ events }: EventCalendarProps) {
               })}
             </Box>
           </Box>
-
-          {selectedDate && selectedEvents.length > 0 && (
-            <Fade in>
-              <Box
-                sx={{
-                  borderTop: `1px solid ${isDark ? "rgba(107,127,163,0.1)" : "rgba(12,18,34,0.06)"}`,
-                  p: 2,
-                  bgcolor: isDark ? "rgba(13,20,37,0.5)" : "rgba(245,247,250,0.5)",
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontFamily: '"Outfit", sans-serif',
-                    fontWeight: 700,
-                    fontSize: "0.8rem",
-                    mb: 1,
-                    color: "text.secondary",
-                  }}
-                >
-                  {new Date(selectedDate + "T00:00:00").toLocaleDateString("en-GB", {
-                    weekday: "long",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })}
-                </Typography>
-                <Stack spacing={1}>
-                  {selectedEvents.map((ev) => (
-                    <Paper
-                      key={ev.id}
-                      onClick={() => router.push(`/stock/${ev.code}`)}
-                      sx={{
-                        p: 1.25,
-                        borderRadius: 2,
-                        cursor: "pointer",
-                        borderLeft: `3px solid ${eventTypeColor(ev.event_type)}`,
-                        bgcolor: eventTypeBg(ev.event_type),
-                        border: `1px solid ${isDark ? "rgba(107,127,163,0.08)" : "rgba(12,18,34,0.05)"}`,
-                        borderLeftWidth: 3,
-                        borderLeftColor: eventTypeColor(ev.event_type),
-                        transition: "all 0.15s ease",
-                        "&:hover": {
-                          transform: "translateX(2px)",
-                          boxShadow: isDark
-                            ? "0 4px 16px rgba(0,0,0,0.3)"
-                            : "0 4px 16px rgba(0,0,0,0.06)",
-                        },
-                      }}
-                    >
-                      <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mb: 0.5 }}>
-                            <Typography
-                              sx={{
-                                fontFamily: '"JetBrains Mono", monospace',
-                                fontWeight: 700,
-                                fontSize: "0.75rem",
-                                color: "primary.main",
-                              }}
-                            >
-                              {ev.code}
-                            </Typography>
-                            <Chip
-                              label={ev.event_type}
-                              size="small"
-                              icon={<GroupsIcon sx={{ fontSize: "11px !important" }} />}
-                              sx={{
-                                height: 18,
-                                fontSize: "0.55rem",
-                                fontWeight: 700,
-                                bgcolor: eventTypeBg(ev.event_type),
-                                color: eventTypeColor(ev.event_type),
-                                "& .MuiChip-icon": { color: "inherit", ml: 0.3 },
-                              }}
-                            />
-                          </Stack>
-                          <Typography
-                            sx={{
-                              fontSize: "0.7rem",
-                              color: "text.secondary",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              maxWidth: 340,
-                              lineHeight: 1.4,
-                            }}
-                          >
-                            {ev.description}
-                          </Typography>
-                          {ev.location && (
-                            <Stack direction="row" spacing={0.4} alignItems="center" sx={{ mt: 0.4 }}>
-                              <PlaceIcon sx={{ fontSize: 10, color: "text.secondary", opacity: 0.6 }} />
-                              <Typography
-                                sx={{
-                                  fontSize: "0.58rem",
-                                  color: "text.secondary",
-                                  opacity: 0.7,
-                                  overflow: "hidden",
-                                  textOverflow: "ellipsis",
-                                  whiteSpace: "nowrap",
-                                  maxWidth: 280,
-                                }}
-                              >
-                                {ev.location}
-                              </Typography>
-                            </Stack>
-                          )}
-                        </Box>
-                        {ev.rups_datetime && (
-                          <Stack direction="row" spacing={0.3} alignItems="center" sx={{ flexShrink: 0, ml: 1 }}>
-                            <AccessTimeIcon sx={{ fontSize: 11, color: "text.secondary", opacity: 0.6 }} />
-                            <Typography
-                              sx={{
-                                fontFamily: '"JetBrains Mono", monospace',
-                                fontSize: "0.65rem",
-                                color: "text.secondary",
-                                fontWeight: 600,
-                              }}
-                            >
-                              {formatEventTime(ev.rups_datetime)}
-                            </Typography>
-                          </Stack>
-                        )}
-                      </Stack>
-                    </Paper>
-                  ))}
-                </Stack>
-              </Box>
-            </Fade>
-          )}
         </Paper>
-      </Grid>
+      </Box>
 
-      <Grid size={{ xs: 12, lg: 5 }}>
+      {/* RIGHT: Events list */}
+      <Box sx={{ flex: "2 1 0%", minWidth: 0 }}>
         <Paper
           sx={{
-            borderRadius: 2.5,
+            borderRadius: 2,
             overflow: "hidden",
             height: "100%",
             display: "flex",
@@ -545,89 +455,141 @@ export function EventCalendar({ events }: EventCalendarProps) {
             },
           }}
         >
-          <Box sx={{ px: 2, pt: 2, pb: 1 }}>
-            <Stack direction="row" spacing={0.75} alignItems="center">
-              <Box
-                sx={{
-                  width: 7,
-                  height: 7,
-                  borderRadius: "50%",
-                  bgcolor: isDark ? "#34d399" : "#059669",
-                  animation: "pulseGlow 2s ease-in-out infinite",
-                }}
-              />
-              <Typography
-                sx={{
-                  fontFamily: '"Outfit", sans-serif',
-                  fontWeight: 700,
-                  fontSize: "0.85rem",
-                  letterSpacing: "-0.01em",
-                }}
-              >
-                Upcoming Events
-              </Typography>
-              <Chip
-                label={upcomingEvents.length}
-                size="small"
-                sx={{
-                  height: 18,
-                  fontSize: "0.6rem",
-                  fontWeight: 700,
-                  bgcolor: isDark ? "rgba(52,211,153,0.1)" : "rgba(5,150,105,0.06)",
-                  color: isDark ? "#34d399" : "#059669",
-                  ml: "auto !important",
-                }}
-              />
+          <Box sx={{ px: 1.5, pt: 1.25, pb: 0.5 }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Stack direction="row" spacing={0.75} alignItems="center">
+                <Box
+                  sx={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: "50%",
+                    bgcolor: isDark ? "#34d399" : "#059669",
+                    animation: "pulseGlow 2s ease-in-out infinite",
+                  }}
+                />
+                <Typography
+                  sx={{
+                    fontFamily: '"Outfit", sans-serif',
+                    fontWeight: 700,
+                    fontSize: "0.82rem",
+                    letterSpacing: "-0.01em",
+                  }}
+                >
+                  {selectedDate ? filterLabel : "Upcoming"}
+                </Typography>
+                {selectedDate && (
+                  <Chip
+                    label="Clear"
+                    size="small"
+                    onClick={() => setSelectedDate(null)}
+                    sx={{
+                      height: 16,
+                      fontSize: "0.5rem",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      bgcolor: isDark ? "rgba(251,191,36,0.1)" : "rgba(217,119,6,0.06)",
+                      color: isDark ? "#fbbf24" : "#d97706",
+                    }}
+                  />
+                )}
+              </Stack>
+
+              <Stack direction="row" spacing={0} alignItems="center">
+                {!selectedDate && ([
+                  { key: "week" as RangeFilter, label: "Week" },
+                  { key: "month" as RangeFilter, label: "Month" },
+                  { key: "year" as RangeFilter, label: "Year" },
+                ]).map((tab) => (
+                  <Box
+                    key={tab.key}
+                    onClick={() => setRangeFilter(tab.key)}
+                    sx={{
+                      px: 1,
+                      py: 0.3,
+                      cursor: "pointer",
+                      borderRadius: 0.75,
+                      fontSize: "0.62rem",
+                      fontWeight: rangeFilter === tab.key ? 700 : 500,
+                      fontFamily: '"Outfit", sans-serif',
+                      color: rangeFilter === tab.key
+                        ? isDark ? "#34d399" : "#059669"
+                        : "text.secondary",
+                      bgcolor: rangeFilter === tab.key
+                        ? isDark ? "rgba(52,211,153,0.1)" : "rgba(5,150,105,0.06)"
+                        : "transparent",
+                      transition: "all 0.12s ease",
+                      "&:hover": {
+                        bgcolor: isDark ? "rgba(52,211,153,0.06)" : "rgba(5,150,105,0.04)",
+                      },
+                    }}
+                  >
+                    {tab.label}
+                  </Box>
+                ))}
+                <Chip
+                  label={filteredEvents.length}
+                  size="small"
+                  sx={{
+                    height: 18,
+                    fontSize: "0.58rem",
+                    fontWeight: 700,
+                    ml: 0.75,
+                    bgcolor: isDark ? "rgba(52,211,153,0.1)" : "rgba(5,150,105,0.06)",
+                    color: isDark ? "#34d399" : "#059669",
+                  }}
+                />
+              </Stack>
             </Stack>
           </Box>
 
           <Box
             sx={{
-              flex: 1,
               overflow: "auto",
-              px: 1.5,
-              pb: 1.5,
+              flex: 1,
+              minHeight: 0,
+              px: 1,
+              pb: 1,
             }}
           >
-            {upcomingEvents.length === 0 ? (
+            {filteredEvents.length === 0 ? (
               <Box
                 sx={{
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  height: "100%",
-                  minHeight: 120,
+                  minHeight: 80,
                 }}
               >
                 <Typography
                   sx={{
                     color: "text.secondary",
-                    fontSize: "0.75rem",
+                    fontSize: "0.72rem",
                     opacity: 0.6,
                     fontStyle: "italic",
                   }}
                 >
-                  No upcoming events
+                  No events {selectedDate ? "on this date" : `this ${rangeFilter}`}
                 </Typography>
               </Box>
             ) : (
-              <Stack spacing={0.75}>
-                {upcomingEvents.map((ev, idx) => {
+              <Stack spacing={0.25}>
+                {filteredEvents.map((ev, idx) => {
                   const evDate = new Date(ev.event_date);
                   const daysUntil = Math.ceil(
                     (evDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
                   );
-                  const isImminent = daysUntil <= 3;
+                  const isImminent = daysUntil >= 0 && daysUntil <= 3;
 
                   return (
-                    <Paper
-                      key={ev.id}
+                    <Box
+                      key={`${ev.id}-${idx}`}
                       onClick={() => router.push(`/stock/${ev.code}`)}
                       sx={{
-                        p: 1.25,
-                        borderRadius: 1.5,
+                        px: 0.75,
+                        py: 0.5,
+                        borderRadius: 1,
                         cursor: "pointer",
-                        transition: "all 0.15s ease",
+                        transition: "all 0.12s ease",
                         bgcolor: isImminent
                           ? isDark ? "rgba(251,191,36,0.04)" : "rgba(217,119,6,0.03)"
                           : "transparent",
@@ -635,18 +597,17 @@ export function EventCalendar({ events }: EventCalendarProps) {
                           bgcolor: isDark
                             ? "rgba(212,168,67,0.06)"
                             : "rgba(161,124,47,0.04)",
-                          transform: "translateX(2px)",
                         },
                       }}
                     >
-                      <Stack direction="row" spacing={1.25} alignItems="flex-start">
+                      <Stack direction="row" spacing={0.75} alignItems="flex-start">
                         <Box
                           sx={{
-                            width: 38,
-                            height: 42,
-                            borderRadius: 1.5,
+                            width: 28,
+                            height: 30,
+                            borderRadius: 1,
                             bgcolor: isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)",
-                            border: `1px solid ${isDark ? "rgba(107,127,163,0.1)" : "rgba(12,18,34,0.06)"}`,
+                            border: `1px solid ${isDark ? "rgba(107,127,163,0.08)" : "rgba(12,18,34,0.05)"}`,
                             display: "flex",
                             flexDirection: "column",
                             alignItems: "center",
@@ -656,10 +617,10 @@ export function EventCalendar({ events }: EventCalendarProps) {
                         >
                           <Typography
                             sx={{
-                              fontSize: "0.48rem",
+                              fontSize: "0.4rem",
                               fontWeight: 700,
                               textTransform: "uppercase",
-                              letterSpacing: "0.08em",
+                              letterSpacing: "0.06em",
                               color: eventTypeColor(ev.event_type),
                               lineHeight: 1,
                             }}
@@ -670,7 +631,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
                             sx={{
                               fontFamily: '"JetBrains Mono", monospace',
                               fontWeight: 800,
-                              fontSize: "0.95rem",
+                              fontSize: "0.78rem",
                               lineHeight: 1.1,
                               color: "text.primary",
                             }}
@@ -680,12 +641,12 @@ export function EventCalendar({ events }: EventCalendarProps) {
                         </Box>
 
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mb: 0.25 }}>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
                             <Typography
                               sx={{
                                 fontFamily: '"JetBrains Mono", monospace',
                                 fontWeight: 700,
-                                fontSize: "0.72rem",
+                                fontSize: "0.7rem",
                                 color: "primary.main",
                               }}
                             >
@@ -695,8 +656,8 @@ export function EventCalendar({ events }: EventCalendarProps) {
                               label={ev.event_type}
                               size="small"
                               sx={{
-                                height: 16,
-                                fontSize: "0.5rem",
+                                height: 15,
+                                fontSize: "0.48rem",
                                 fontWeight: 700,
                                 bgcolor: eventTypeBg(ev.event_type),
                                 color: eventTypeColor(ev.event_type),
@@ -707,8 +668,8 @@ export function EventCalendar({ events }: EventCalendarProps) {
                                 label={daysUntil === 0 ? "Today" : daysUntil === 1 ? "Tomorrow" : `${daysUntil}d`}
                                 size="small"
                                 sx={{
-                                  height: 16,
-                                  fontSize: "0.48rem",
+                                  height: 15,
+                                  fontSize: "0.45rem",
                                   fontWeight: 700,
                                   bgcolor: isDark ? "rgba(251,191,36,0.12)" : "rgba(217,119,6,0.08)",
                                   color: isDark ? "#fbbf24" : "#d97706",
@@ -718,7 +679,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
                           </Stack>
                           <Typography
                             sx={{
-                              fontSize: "0.65rem",
+                              fontSize: "0.62rem",
                               color: "text.secondary",
                               lineHeight: 1.3,
                               overflow: "hidden",
@@ -729,12 +690,12 @@ export function EventCalendar({ events }: EventCalendarProps) {
                             {ev.description}
                           </Typography>
                           {ev.rups_datetime && (
-                            <Stack direction="row" spacing={0.3} alignItems="center" sx={{ mt: 0.25 }}>
+                            <Stack direction="row" spacing={0.3} alignItems="center" sx={{ mt: 0.15 }}>
                               <AccessTimeIcon sx={{ fontSize: 9, color: "text.secondary", opacity: 0.5 }} />
                               <Typography
                                 sx={{
                                   fontFamily: '"JetBrains Mono", monospace',
-                                  fontSize: "0.58rem",
+                                  fontSize: "0.55rem",
                                   color: "text.secondary",
                                   opacity: 0.7,
                                 }}
@@ -745,14 +706,14 @@ export function EventCalendar({ events }: EventCalendarProps) {
                           )}
                         </Box>
                       </Stack>
-                    </Paper>
+                    </Box>
                   );
                 })}
               </Stack>
             )}
           </Box>
         </Paper>
-      </Grid>
-    </Grid>
+      </Box>
+    </Box>
   );
 }

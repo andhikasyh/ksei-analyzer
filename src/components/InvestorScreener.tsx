@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@mui/material/styles";
 import { supabase, TABLE_NAME } from "@/lib/supabase";
-import { KSEIRecord, INVESTOR_TYPE_MAP, formatShares } from "@/lib/types";
+import { KSEIRecord, IDXStockSummary, INVESTOR_TYPE_MAP, formatShares, formatValue } from "@/lib/types";
 import { InvestorTypeBadge, LocalForeignBadge } from "@/components/Badge";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
@@ -32,9 +32,11 @@ interface InvestorRow {
   name: string;
   type: string;
   origin: string;
+  nationality: string;
   stockCount: number;
   stocks: string[];
   totalShares: number;
+  totalValue: number;
   avgPercentage: number;
   maxPercentage: number;
   topStock: string;
@@ -46,8 +48,10 @@ type InvestorSortKey =
   | "origin"
   | "stockCount"
   | "totalShares"
+  | "totalValue"
   | "avgPercentage"
-  | "maxPercentage";
+  | "maxPercentage"
+  | "topStock";
 
 type SortDir = "asc" | "desc";
 
@@ -59,10 +63,12 @@ const COLUMNS: {
 }[] = [
   { key: "name", label: "Investor Name" },
   { key: "type", label: "Type" },
-  { key: "origin", label: "Origin" },
-  { key: "stockCount", label: "Stocks", align: "right", numeric: true },
+  { key: "origin", label: "L/F" },
+  { key: "stockCount", label: "Holdings", align: "right", numeric: true },
   { key: "totalShares", label: "Total Shares", align: "right", numeric: true },
-  { key: "maxPercentage", label: "Largest Stake", align: "right", numeric: true },
+  { key: "totalValue", label: "Portfolio Value", align: "right", numeric: true },
+  { key: "topStock", label: "Top Holding" },
+  { key: "maxPercentage", label: "Top Stake", align: "right", numeric: true },
   { key: "avgPercentage", label: "Avg Stake", align: "right", numeric: true },
 ];
 
@@ -83,23 +89,41 @@ export function InvestorScreener() {
 
   useEffect(() => {
     async function fetchInvestors() {
-      const { data: raw, error } = await supabase
-        .from(TABLE_NAME)
-        .select("INVESTOR_NAME, INVESTOR_TYPE, LOCAL_FOREIGN, SHARE_CODE, PERCENTAGE, TOTAL_HOLDING_SHARES");
+      const [kseiRes, stockRes] = await Promise.all([
+        supabase
+          .from(TABLE_NAME)
+          .select("INVESTOR_NAME, INVESTOR_TYPE, LOCAL_FOREIGN, NATIONALITY, SHARE_CODE, PERCENTAGE, TOTAL_HOLDING_SHARES"),
+        supabase
+          .from("idx_stock_summary")
+          .select("stock_code, date, close")
+          .order("date", { ascending: false })
+          .limit(2000),
+      ]);
 
-      if (error || !raw) {
+      if (kseiRes.error || !kseiRes.data) {
         setLoading(false);
         return;
       }
 
-      const records = raw as KSEIRecord[];
+      const latestPrice = new Map<string, number>();
+      if (stockRes.data) {
+        (stockRes.data as Pick<IDXStockSummary, "stock_code" | "date" | "close">[]).forEach((r) => {
+          if (!latestPrice.has(r.stock_code)) {
+            latestPrice.set(r.stock_code, parseFloat(r.close) || 0);
+          }
+        });
+      }
+
+      const records = kseiRes.data as KSEIRecord[];
       const investorMap = new Map<
         string,
         {
           type: string;
           origin: string;
+          nationality: string;
           stocks: Set<string>;
           totalShares: number;
+          totalValue: number;
           totalPct: number;
           maxPct: number;
           topStock: string;
@@ -110,10 +134,13 @@ export function InvestorScreener() {
         const existing = investorMap.get(r.INVESTOR_NAME);
         const shares = parseInt(r.TOTAL_HOLDING_SHARES || "0", 10);
         const pct = r.PERCENTAGE || 0;
+        const price = latestPrice.get(r.SHARE_CODE) || 0;
+        const holdingValue = shares * price;
 
         if (existing) {
           existing.stocks.add(r.SHARE_CODE);
           existing.totalShares += shares;
+          existing.totalValue += holdingValue;
           existing.totalPct += pct;
           if (pct > existing.maxPct) {
             existing.maxPct = pct;
@@ -123,8 +150,10 @@ export function InvestorScreener() {
           investorMap.set(r.INVESTOR_NAME, {
             type: r.INVESTOR_TYPE,
             origin: r.LOCAL_FOREIGN,
+            nationality: r.NATIONALITY || "-",
             stocks: new Set([r.SHARE_CODE]),
             totalShares: shares,
+            totalValue: holdingValue,
             totalPct: pct,
             maxPct: pct,
             topStock: r.SHARE_CODE,
@@ -137,9 +166,11 @@ export function InvestorScreener() {
           name,
           type: v.type,
           origin: v.origin,
+          nationality: v.nationality,
           stockCount: v.stocks.size,
           stocks: Array.from(v.stocks),
           totalShares: v.totalShares,
+          totalValue: v.totalValue,
           avgPercentage: v.stocks.size > 0 ? v.totalPct / v.stocks.size : 0,
           maxPercentage: v.maxPct,
           topStock: v.topStock,
@@ -203,7 +234,11 @@ export function InvestorScreener() {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
       setSortKey(key);
-      setSortDir(key === "name" ? "asc" : "desc");
+      setSortDir(
+        key === "name" || key === "type" || key === "origin" || key === "topStock"
+          ? "asc"
+          : "desc"
+      );
     }
   };
 
@@ -352,10 +387,11 @@ export function InvestorScreener() {
           size="small"
           stickyHeader
           sx={{
-            minWidth: 780,
+            tableLayout: "fixed",
+            minWidth: 980,
             "& th, & td": {
               px: 0.75,
-              py: 0.5,
+              py: 0.4,
               fontSize: "0.72rem",
               whiteSpace: "nowrap",
             },
@@ -376,12 +412,18 @@ export function InvestorScreener() {
                   sx={{
                     width:
                       col.key === "name"
-                        ? 240
+                        ? 200
                         : col.key === "type"
-                          ? 100
+                          ? 105
                           : col.key === "origin"
-                            ? 70
-                            : 90,
+                            ? 58
+                            : col.key === "topStock"
+                              ? 72
+                              : col.key === "totalValue"
+                                ? 90
+                                : col.key === "totalShares"
+                                  ? 82
+                                  : 66,
                   }}
                 >
                   <TableSortLabel
@@ -397,7 +439,6 @@ export function InvestorScreener() {
                   </TableSortLabel>
                 </TableCell>
               ))}
-              <TableCell>Top Stock</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -424,7 +465,6 @@ export function InvestorScreener() {
                 <TableCell
                   sx={{
                     fontWeight: 500,
-                    maxWidth: 240,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                   }}
@@ -453,16 +493,7 @@ export function InvestorScreener() {
                   align="right"
                   sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}
                 >
-                  {r.maxPercentage.toFixed(2)}%
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    fontFamily: '"JetBrains Mono", monospace',
-                    color: "text.secondary",
-                  }}
-                >
-                  {r.avgPercentage.toFixed(2)}%
+                  {r.totalValue > 0 ? formatValue(r.totalValue) : "-"}
                 </TableCell>
                 <TableCell>
                   <Chip
@@ -485,6 +516,21 @@ export function InvestorScreener() {
                       "& .MuiChip-label": { px: 0.75 },
                     }}
                   />
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600 }}
+                >
+                  {r.maxPercentage.toFixed(2)}%
+                </TableCell>
+                <TableCell
+                  align="right"
+                  sx={{
+                    fontFamily: '"JetBrains Mono", monospace',
+                    color: "text.secondary",
+                  }}
+                >
+                  {r.avgPercentage.toFixed(2)}%
                 </TableCell>
               </TableRow>
             ))}

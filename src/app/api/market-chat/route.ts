@@ -1,7 +1,33 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "anonymous";
+
+  const { allowed, remaining, retryAfterMs } = checkRateLimit(ip);
+
+  if (!allowed) {
+    const retryAfterSec = Math.ceil(retryAfterMs / 1000);
+    return new Response(
+      JSON.stringify({
+        error: `Rate limit exceeded. Try again in ${Math.ceil(retryAfterSec / 60)} minute(s).`,
+        retryAfterMs,
+      }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(retryAfterSec),
+          "X-RateLimit-Remaining": "0",
+        },
+      }
+    );
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return new Response(
@@ -91,6 +117,7 @@ Use this context when relevant to provide more specific answers about that day's
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
+      "X-RateLimit-Remaining": String(remaining),
     },
   });
 }

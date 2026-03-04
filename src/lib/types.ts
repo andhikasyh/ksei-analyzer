@@ -159,6 +159,23 @@ export interface IDXDividend {
   created_at: string;
 }
 
+export interface IDXIndexSummary {
+  id: number;
+  date: string;
+  index_code: string;
+  previous: string;
+  highest: string;
+  lowest: string;
+  close: string;
+  change: string;
+  volume: string;
+  value: string;
+  frequency: string;
+  market_capital: string;
+  number_of_stocks: number;
+  created_at: string;
+}
+
 export interface IDXBrokerSummary {
   id: number;
   code: string;

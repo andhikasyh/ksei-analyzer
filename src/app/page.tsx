@@ -1,22 +1,22 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@mui/material/styles";
 import { supabase, TABLE_NAME } from "@/lib/supabase";
 import {
   KSEIRecord,
   IDXStockSummary,
+  IDXIndexSummary,
   IDXDividend,
   IDXCorporateAction,
   IDXStockSplit,
   IDXCalendarEvent,
-  INVESTOR_TYPE_MAP,
   formatShares,
   formatValue,
   formatRatio,
 } from "@/lib/types";
-import { StatsCard, StatsCardSkeleton } from "@/components/StatsCard";
+import { INDEX_LABELS } from "@/lib/index-constituents";
 import { GlobalSearch } from "@/components/SearchInput";
 import { InvestorTypeBadge, LocalForeignBadge } from "@/components/Badge";
 import { EventCalendar } from "@/components/EventCalendar";
@@ -33,25 +33,6 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Chip from "@mui/material/Chip";
-import LinearProgress from "@mui/material/LinearProgress";
-import ShowChartIcon from "@mui/icons-material/ShowChart";
-import PeopleIcon from "@mui/icons-material/People";
-import PublicIcon from "@mui/icons-material/Public";
-import FlagIcon from "@mui/icons-material/Flag";
-import TrendingUpIcon from "@mui/icons-material/TrendingUp";
-import TrendingDownIcon from "@mui/icons-material/TrendingDown";
-import WhatshotIcon from "@mui/icons-material/Whatshot";
-import EventIcon from "@mui/icons-material/Event";
-import PaymentsIcon from "@mui/icons-material/Payments";
-import SplitscreenIcon from "@mui/icons-material/Splitscreen";
-import CampaignIcon from "@mui/icons-material/Campaign";
-
-interface TypeBreakdown {
-  code: string;
-  name: string;
-  count: number;
-  totalPct: number;
-}
 
 interface TopInvestor {
   name: string;
@@ -72,11 +53,6 @@ interface Conglomerate {
 }
 
 interface DashboardData {
-  totalTickers: number;
-  totalInvestors: number;
-  avgLocalPct: number;
-  avgForeignPct: number;
-  investorTypeBreakdown: TypeBreakdown[];
   topForeignInvestors: TopInvestor[];
   topLocalInvestors: TopInvestor[];
   conglomerates: Conglomerate[];
@@ -131,56 +107,6 @@ interface MarketMover {
   foreignNet: number;
 }
 
-function SectionHeader({
-  title,
-  subtitle,
-}: {
-  title: string;
-  subtitle?: string;
-}) {
-  const theme = useTheme();
-  return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
-      <Box
-        sx={{
-          width: 3,
-          height: 20,
-          borderRadius: 2,
-          background: `linear-gradient(180deg, ${theme.palette.primary.main}, ${theme.palette.primary.light}55)`,
-          flexShrink: 0,
-          boxShadow: `0 0 10px ${theme.palette.primary.main}30`,
-        }}
-      />
-      <Box>
-        <Typography
-          variant="subtitle1"
-          sx={{
-            fontFamily: '"Outfit", sans-serif',
-            fontWeight: 700,
-            fontSize: "0.95rem",
-            letterSpacing: "-0.01em",
-            lineHeight: 1.2,
-          }}
-        >
-          {title}
-        </Typography>
-        {subtitle && (
-          <Typography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              fontSize: "0.65rem",
-              opacity: 0.7,
-            }}
-          >
-            {subtitle}
-          </Typography>
-        )}
-      </Box>
-    </Box>
-  );
-}
-
 export default function DashboardPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -190,16 +116,21 @@ export default function DashboardPage() {
     losers: MarketMover[];
     active: MarketMover[];
   } | null>(null);
+  const [indexes, setIndexes] = useState<
+    { code: string; close: number; change: number; changePct: number; history: number[] }[]
+  >([]);
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<IDXCalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [moverTab, setMoverTab] = useState<"gain" | "loss" | "active">("gain");
+  const [playerTab, setPlayerTab] = useState<"foreign" | "local" | "conglom">("foreign");
   const router = useRouter();
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [kseiRes, stockRes] = await Promise.all([
+        const [kseiRes, stockRes, indexRes] = await Promise.all([
           supabase
             .from(TABLE_NAME)
             .select("*")
@@ -209,6 +140,12 @@ export default function DashboardPage() {
             .select("*")
             .order("date", { ascending: false })
             .limit(2000),
+          supabase
+            .from("idx_index_summary")
+            .select("*")
+            .in("index_code", ["COMPOSITE", "LQ45", "IDX30", "IDXHIDIV20", "IDXBUMN20", "IDX80", "IDXV30", "IDXQ30"])
+            .order("date", { ascending: false })
+            .limit(500),
         ]);
 
         if (stockRes.data) {
@@ -247,6 +184,35 @@ export default function DashboardPage() {
             .sort((a, b) => b.value - a.value)
             .slice(0, 8);
           setMovers({ gainers, losers, active });
+        }
+
+        if (indexRes.data) {
+          const raw = indexRes.data as IDXIndexSummary[];
+          const byCode = new Map<string, IDXIndexSummary[]>();
+          raw.forEach((r) => {
+            const arr = byCode.get(r.index_code) || [];
+            arr.push(r);
+            byCode.set(r.index_code, arr);
+          });
+          const priority = ["COMPOSITE", "LQ45", "IDX30", "IDXHIDIV20", "IDXBUMN20", "IDX80", "IDXV30", "IDXQ30"];
+          const parsed = priority
+            .filter((c) => byCode.has(c))
+            .map((code) => {
+              const rows = byCode.get(code)!.sort(
+                (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+              );
+              const latest = rows[0];
+              const close = parseFloat(latest.close) || 0;
+              const prev = parseFloat(latest.previous) || 0;
+              const change = parseFloat(latest.change) || 0;
+              const changePct = prev > 0 ? (change / prev) * 100 : 0;
+              const history = rows
+                .slice(0, 20)
+                .map((r) => parseFloat(r.close) || 0)
+                .reverse();
+              return { code, close, change, changePct, history };
+            });
+          setIndexes(parsed);
         }
 
         const thirtyDaysAgo = new Date();
@@ -343,50 +309,6 @@ export default function DashboardPage() {
 
         const typed = records as KSEIRecord[];
 
-        const uniqueTickers = new Set(typed.map((r) => r.SHARE_CODE));
-        const uniqueInvestors = new Set(typed.map((r) => r.INVESTOR_NAME));
-
-        const stockOwnership = new Map<
-          string,
-          { local: number; foreign: number }
-        >();
-        typed.forEach((r) => {
-          if (!stockOwnership.has(r.SHARE_CODE)) {
-            stockOwnership.set(r.SHARE_CODE, { local: 0, foreign: 0 });
-          }
-          const entry = stockOwnership.get(r.SHARE_CODE)!;
-          if (r.LOCAL_FOREIGN === "L") entry.local += r.PERCENTAGE;
-          else entry.foreign += r.PERCENTAGE;
-        });
-        const stockCount = stockOwnership.size;
-        const rawAvgLocal =
-          [...stockOwnership.values()].reduce((s, v) => s + v.local, 0) /
-          stockCount;
-        const rawAvgForeign =
-          [...stockOwnership.values()].reduce((s, v) => s + v.foreign, 0) /
-          stockCount;
-        const rawAvgTotal = rawAvgLocal + rawAvgForeign;
-        const avgLocal =
-          rawAvgTotal > 0 ? (rawAvgLocal / rawAvgTotal) * 100 : 0;
-        const avgForeign =
-          rawAvgTotal > 0 ? (rawAvgForeign / rawAvgTotal) * 100 : 0;
-
-        const typeGroups: Record<string, KSEIRecord[]> = {};
-        typed.forEach((r) => {
-          const code = r.INVESTOR_TYPE;
-          if (!code || code === "null" || !INVESTOR_TYPE_MAP[code]) return;
-          if (!typeGroups[code]) typeGroups[code] = [];
-          typeGroups[code].push(r);
-        });
-        const investorTypeBreakdown = Object.entries(typeGroups)
-          .map(([code, recs]) => ({
-            code,
-            name: INVESTOR_TYPE_MAP[code] || code,
-            count: new Set(recs.map((r) => r.INVESTOR_NAME)).size,
-            totalPct: recs.reduce((s, r) => s + r.PERCENTAGE, 0),
-          }))
-          .sort((a, b) => b.count - a.count);
-
         const foreignRecords = typed.filter((r) => r.LOCAL_FOREIGN === "A");
         const localRecords = typed.filter((r) => r.LOCAL_FOREIGN === "L");
         const topForeignInvestors = aggregateInvestors(foreignRecords);
@@ -424,11 +346,6 @@ export default function DashboardPage() {
           .slice(0, 15);
 
         setData({
-          totalTickers: uniqueTickers.size,
-          totalInvestors: uniqueInvestors.size,
-          avgLocalPct: parseFloat(avgLocal.toFixed(1)),
-          avgForeignPct: parseFloat(avgForeign.toFixed(1)),
-          investorTypeBreakdown,
           topForeignInvestors,
           topLocalInvestors,
           conglomerates,
@@ -444,11 +361,6 @@ export default function DashboardPage() {
 
     fetchData();
   }, []);
-
-  const maxTypeCount = useMemo(() => {
-    if (!data) return 1;
-    return Math.max(...data.investorTypeBreakdown.map((t) => t.count), 1);
-  }, [data]);
 
   if (error) {
     return (
@@ -483,447 +395,81 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <Stack spacing={2.5}>
-        <Skeleton
-          variant="rounded"
-          height={48}
-          sx={{ borderRadius: 2.5 }}
-        />
+      <Stack spacing={1.5}>
+        <Skeleton variant="rounded" height={40} sx={{ borderRadius: 2 }} />
+        <Skeleton variant="rounded" height={52} sx={{ borderRadius: 2 }} />
         <Grid container spacing={1.5}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <Grid size={{ xs: 6, lg: 3 }} key={i}>
-              <StatsCardSkeleton />
-            </Grid>
-          ))}
+          <Grid size={{ xs: 12, lg: 8 }}>
+            <Skeleton variant="rounded" height={340} sx={{ borderRadius: 2 }} />
+          </Grid>
+          <Grid size={{ xs: 12, lg: 4 }}>
+            <Skeleton variant="rounded" height={340} sx={{ borderRadius: 2 }} />
+          </Grid>
         </Grid>
-        <Skeleton
-          variant="rounded"
-          height={240}
-          sx={{ borderRadius: 2.5 }}
-        />
-        <Skeleton
-          variant="rounded"
-          height={280}
-          sx={{ borderRadius: 2.5 }}
-        />
-        <Skeleton
-          variant="rounded"
-          height={280}
-          sx={{ borderRadius: 2.5 }}
-        />
+        <Skeleton variant="rounded" height={280} sx={{ borderRadius: 2 }} />
       </Stack>
     );
   }
 
   if (!data) return null;
 
-  const localForeignTotal = data.avgLocalPct + data.avgForeignPct;
-  const localBarWidth =
-    localForeignTotal > 0 ? (data.avgLocalPct / localForeignTotal) * 100 : 50;
+  const activeMoverList = moverTab === "gain"
+    ? movers?.gainers
+    : moverTab === "loss"
+      ? movers?.losers
+      : movers?.active;
+
+  const activePlayerList = playerTab === "foreign"
+    ? data.topForeignInvestors
+    : playerTab === "local"
+      ? data.topLocalInvestors
+      : null;
 
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={1.5}>
       <Box className="animate-in">
         <GlobalSearch />
       </Box>
 
-      <Grid container spacing={1.5}>
-        <Grid size={{ xs: 6, lg: 3 }} className="animate-in animate-in-delay-1">
-          <StatsCard
-            title="Total Tickers"
-            value={data.totalTickers}
-            subtitle="Unique stocks"
-            icon={<ShowChartIcon />}
-          />
-        </Grid>
-        <Grid size={{ xs: 6, lg: 3 }} className="animate-in animate-in-delay-2">
-          <StatsCard
-            title="Total Investors"
-            value={data.totalInvestors.toLocaleString()}
-            subtitle="Unique entities"
-            icon={<PeopleIcon />}
-          />
-        </Grid>
-        <Grid size={{ xs: 6, lg: 3 }} className="animate-in animate-in-delay-3">
-          <StatsCard
-            title="Avg Local"
-            value={`${data.avgLocalPct}%`}
-            subtitle="Per ticker average"
-            icon={<FlagIcon />}
-            accentColor={theme.palette.success.main}
-          />
-        </Grid>
-        <Grid size={{ xs: 6, lg: 3 }} className="animate-in animate-in-delay-4">
-          <StatsCard
-            title="Avg Foreign"
-            value={`${data.avgForeignPct}%`}
-            subtitle="Per ticker average"
-            icon={<PublicIcon />}
-            accentColor={theme.palette.warning.main}
-          />
-        </Grid>
-      </Grid>
-
-      <Paper
-        className="animate-in animate-in-delay-3"
-        sx={{ p: 2, borderRadius: 2.5 }}
-      >
+      {indexes.length > 0 && (
         <Box
+          className="animate-in animate-in-delay-1"
           sx={{
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            mb: 1.5,
+            gap: 1,
+            overflowX: "auto",
+            pb: 0.5,
+            scrollbarWidth: "none",
+            "&::-webkit-scrollbar": { display: "none" },
           }}
         >
-          <Typography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              fontSize: "0.65rem",
-            }}
-          >
-            Local vs Foreign
-          </Typography>
-          <Stack direction="row" spacing={2}>
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <Box
-                sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  bgcolor: theme.palette.success.main,
-                }}
-              />
-              <Typography
-                variant="caption"
-                sx={{ fontSize: "0.65rem", color: "text.secondary" }}
-              >
-                Local
-              </Typography>
-            </Stack>
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <Box
-                sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  bgcolor: theme.palette.warning.main,
-                }}
-              />
-              <Typography
-                variant="caption"
-                sx={{ fontSize: "0.65rem", color: "text.secondary" }}
-              >
-                Foreign
-              </Typography>
-            </Stack>
-          </Stack>
-        </Box>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Typography
-            sx={{
-              fontFamily: '"JetBrains Mono", monospace',
-              fontWeight: 700,
-              color: theme.palette.success.main,
-              minWidth: 48,
-              fontSize: "0.85rem",
-            }}
-          >
-            {data.avgLocalPct}%
-          </Typography>
-          <Box
-            sx={{
-              flex: 1,
-              height: 6,
-              borderRadius: 3,
-              bgcolor: isDark
-                ? "rgba(251,191,36,0.15)"
-                : "rgba(217,119,6,0.12)",
-              overflow: "hidden",
-              position: "relative",
-            }}
-          >
-            <Box
-              sx={{
-                width: `${localBarWidth}%`,
-                height: "100%",
-                borderRadius: 3,
-                background: `linear-gradient(90deg, ${theme.palette.success.main}, ${isDark ? "#6ee7b7" : "#34d399"})`,
-                transition: "width 0.8s cubic-bezier(0.4,0,0.2,1)",
-                position: "relative",
-                "&::after": {
-                  content: '""',
-                  position: "absolute",
-                  right: 0,
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  width: 2,
-                  height: 12,
-                  borderRadius: 1,
-                  bgcolor: theme.palette.success.main,
-                  opacity: 0.5,
-                },
-              }}
+          {indexes.map((idx) => (
+            <IndexCard
+              key={idx.code}
+              idx={idx}
+              onClick={() => router.push(`/screener?index=${idx.code}`)}
             />
-          </Box>
-          <Typography
-            sx={{
-              fontFamily: '"JetBrains Mono", monospace',
-              fontWeight: 700,
-              color: theme.palette.warning.main,
-              minWidth: 48,
-              textAlign: "right",
-              fontSize: "0.85rem",
-            }}
-          >
-            {data.avgForeignPct}%
-          </Typography>
-        </Box>
-      </Paper>
-
-      {movers && (
-        <Box className="animate-in animate-in-delay-4">
-          <SectionHeader title="Market Movers" />
-          <Grid container spacing={1.5}>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <MoverTable
-                title="Top Gainers"
-                icon={
-                  <TrendingUpIcon
-                    sx={{ color: theme.palette.success.main, fontSize: 16 }}
-                  />
-                }
-                movers={movers.gainers}
-                router={router}
-                type="gain"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <MoverTable
-                title="Top Losers"
-                icon={
-                  <TrendingDownIcon
-                    sx={{ color: theme.palette.error.main, fontSize: 16 }}
-                  />
-                }
-                movers={movers.losers}
-                router={router}
-                type="loss"
-              />
-            </Grid>
-            <Grid size={{ xs: 12, md: 4 }}>
-              <MoverTable
-                title="Most Active"
-                icon={
-                  <WhatshotIcon
-                    sx={{ color: theme.palette.warning.main, fontSize: 16 }}
-                  />
-                }
-                movers={movers.active}
-                router={router}
-                type="active"
-              />
-            </Grid>
-          </Grid>
+          ))}
         </Box>
       )}
 
-      {upcomingEvents.length > 0 && (
-        <Box className="animate-in animate-in-delay-5">
-          <SectionHeader
-            title="Corporate Actions"
-            subtitle="Recent & upcoming events"
-          />
-          <Paper sx={{ borderRadius: 2.5, overflow: "hidden" }}>
-            <TableContainer sx={{ maxHeight: 380 }}>
-              <Table size="small" stickyHeader>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Code</TableCell>
-                    <TableCell>Type</TableCell>
-                    <TableCell>Detail</TableCell>
-                    <TableCell>Date</TableCell>
-                    <TableCell>End</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {upcomingEvents.map((ev, i) => {
-                    const eventDate = new Date(ev.date);
-                    const isUpcoming = eventDate >= new Date();
-                    return (
-                      <TableRow
-                        key={`${ev.code}-${ev.type}-${i}`}
-                        hover
-                        sx={{
-                          cursor: "pointer",
-                          "&:last-child td": { borderBottom: 0 },
-                          opacity: isUpcoming ? 1 : 0.7,
-                        }}
-                        onClick={() => router.push(`/stock/${ev.code}`)}
-                      >
-                        <TableCell>
-                          <Typography
-                            sx={{
-                              fontWeight: 700,
-                              fontFamily: '"JetBrains Mono", monospace',
-                              color: "primary.main",
-                              fontSize: "0.75rem",
-                            }}
-                          >
-                            {ev.code}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: "text.secondary",
-                              fontSize: "0.55rem",
-                              display: "block",
-                              maxWidth: 90,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {ev.name}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={ev.type}
-                            size="small"
-                            icon={
-                              ev.type === "Dividend" ? <PaymentsIcon sx={{ fontSize: "12px !important" }} /> :
-                              ev.type === "Stock Split" ? <SplitscreenIcon sx={{ fontSize: "12px !important" }} /> :
-                              <CampaignIcon sx={{ fontSize: "12px !important" }} />
-                            }
-                            sx={{
-                              fontSize: "0.58rem",
-                              height: 20,
-                              fontWeight: 600,
-                              bgcolor: ev.type === "Dividend"
-                                ? isDark ? "rgba(52,211,153,0.12)" : "rgba(5,150,105,0.08)"
-                                : ev.type === "Right Issue"
-                                  ? isDark ? "rgba(96,165,250,0.12)" : "rgba(59,130,246,0.08)"
-                                  : ev.type === "Stock Split"
-                                    ? isDark ? "rgba(168,85,247,0.12)" : "rgba(139,92,246,0.08)"
-                                    : isDark ? "rgba(251,191,36,0.12)" : "rgba(217,119,6,0.08)",
-                              color: ev.type === "Dividend"
-                                ? "#34d399"
-                                : ev.type === "Right Issue"
-                                  ? isDark ? "#60a5fa" : "#3b82f6"
-                                  : ev.type === "Stock Split"
-                                    ? isDark ? "#a855f7" : "#8b5cf6"
-                                    : "#fbbf24",
-                              "& .MuiChip-icon": {
-                                color: "inherit",
-                                ml: 0.5,
-                              },
-                            }}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: "text.secondary",
-                              maxWidth: 200,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              display: "block",
-                              fontSize: "0.7rem",
-                            }}
-                          >
-                            {ev.detail}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            {isUpcoming && (
-                              <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: "#34d399", flexShrink: 0 }} />
-                            )}
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                fontFamily: '"JetBrains Mono", monospace',
-                                whiteSpace: "nowrap",
-                                fontSize: "0.68rem",
-                                fontWeight: isUpcoming ? 600 : 400,
-                              }}
-                            >
-                              {eventDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}
-                            </Typography>
-                          </Stack>
-                        </TableCell>
-                        <TableCell>
-                          {ev.endDate && (
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                fontFamily: '"JetBrains Mono", monospace',
-                                whiteSpace: "nowrap",
-                                fontSize: "0.68rem",
-                                color: "text.secondary",
-                              }}
-                            >
-                              {new Date(ev.endDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}
-                            </Typography>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Box>
-      )}
-
-      {calendarEvents.length > 0 && (
-        <Box className="animate-in animate-in-delay-5">
-          <SectionHeader
-            title="IDX Calendar"
-            subtitle="Scheduled RUPS & corporate events"
-          />
-          <EventCalendar events={calendarEvents} />
-        </Box>
-      )}
-
-      <Box className="animate-in animate-in-delay-5">
-        <SectionHeader
-          title="Market Overview"
-          subtitle="Investor type breakdown"
-        />
-        <Grid container spacing={1}>
-          {data.investorTypeBreakdown.map((t) => (
-            <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }} key={t.code}>
+      {/* ---- MAIN: movers + actions ---- */}
+      <Box
+        sx={{
+          display: { xs: "block", lg: "flex" },
+          gap: 1.5,
+          alignItems: "stretch",
+        }}
+      >
+        <Box sx={{ flex: "7 1 0%", minWidth: 0, mb: { xs: 1.5, lg: 0 }, display: "flex" }}>
+            {movers && (
               <Paper
-                onClick={() => router.push(`/category/${t.code}`)}
+                className="animate-in animate-in-delay-2"
                 sx={{
-                  p: 1.5,
                   borderRadius: 2,
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 0.75,
-                  cursor: "pointer",
-                  transition:
-                    "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-                  "&:hover": {
-                    borderColor: "primary.main",
-                    bgcolor: isDark
-                      ? "rgba(212,168,67,0.04)"
-                      : "rgba(161,124,47,0.03)",
-                    transform: "translateY(-2px)",
-                    boxShadow: isDark
-                      ? `0 8px 24px rgba(0,0,0,0.3), 0 0 16px rgba(212,168,67,0.05)`
-                      : "0 8px 24px rgba(0,0,0,0.06)",
-                  },
+                  overflow: "hidden",
+                  position: "relative",
+                  flex: 1,
                 }}
               >
                 <Box
@@ -931,548 +477,785 @@ export default function DashboardPage() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between",
+                    px: 1.5,
+                    pt: 1.25,
+                    pb: 0.5,
                   }}
                 >
                   <Typography
                     sx={{
-                      fontFamily: '"JetBrains Mono", monospace',
+                      fontFamily: '"Outfit", sans-serif',
                       fontWeight: 700,
-                      fontSize: "0.72rem",
-                      color: "primary.main",
+                      fontSize: "0.85rem",
+                      letterSpacing: "-0.02em",
                     }}
                   >
-                    {t.code}
+                    Market Movers
                   </Typography>
+                  <Stack direction="row" spacing={0}>
+                    {([
+                      { key: "gain" as const, label: "Gainers", color: theme.palette.success.main },
+                      { key: "loss" as const, label: "Losers", color: theme.palette.error.main },
+                      { key: "active" as const, label: "Active", color: theme.palette.warning.main },
+                    ]).map((tab) => (
+                      <Box
+                        key={tab.key}
+                        onClick={() => setMoverTab(tab.key)}
+                        sx={{
+                          px: 1.25,
+                          py: 0.5,
+                          cursor: "pointer",
+                          borderRadius: 1,
+                          fontSize: "0.68rem",
+                          fontWeight: moverTab === tab.key ? 700 : 500,
+                          fontFamily: '"Outfit", sans-serif',
+                          color: moverTab === tab.key ? tab.color : "text.secondary",
+                          bgcolor: moverTab === tab.key
+                            ? isDark ? `${tab.color}14` : `${tab.color}0a`
+                            : "transparent",
+                          transition: "all 0.15s ease",
+                          "&:hover": {
+                            bgcolor: isDark ? `${tab.color}0c` : `${tab.color}06`,
+                          },
+                        }}
+                      >
+                        {tab.label}
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
+
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ py: 0.5, width: 160 }}>Stock</TableCell>
+                        <TableCell align="right" sx={{ py: 0.5 }}>Price</TableCell>
+                        <TableCell align="right" sx={{ py: 0.5 }}>
+                          {moverTab === "active" ? "Value" : "Chg%"}
+                        </TableCell>
+                        <TableCell align="right" sx={{ py: 0.5 }}>Vol</TableCell>
+                        <TableCell align="right" sx={{ py: 0.5, display: { xs: "none", md: "table-cell" } }}>
+                          Foreign Net
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {activeMoverList?.map((m) => {
+                        const changeColor =
+                          m.change > 0
+                            ? theme.palette.success.main
+                            : m.change < 0
+                              ? theme.palette.error.main
+                              : "text.secondary";
+                        const foreignColor =
+                          m.foreignNet > 0
+                            ? theme.palette.success.main
+                            : m.foreignNet < 0
+                              ? theme.palette.error.main
+                              : "text.secondary";
+                        return (
+                          <TableRow
+                            key={m.code}
+                            hover
+                            sx={{
+                              cursor: "pointer",
+                              "&:last-child td": { borderBottom: 0 },
+                              "&:hover": {
+                                bgcolor: isDark
+                                  ? "rgba(212,168,67,0.03)"
+                                  : "rgba(161,124,47,0.02)",
+                              },
+                            }}
+                            onClick={() => router.push(`/stock/${m.code}`)}
+                          >
+                            <TableCell sx={{ py: 0.4 }}>
+                              <Stack direction="row" spacing={0.75} alignItems="center">
+                                <Typography
+                                  sx={{
+                                    fontWeight: 700,
+                                    fontFamily: '"JetBrains Mono", monospace',
+                                    color: "primary.main",
+                                    fontSize: "0.73rem",
+                                  }}
+                                >
+                                  {m.code}
+                                </Typography>
+                                <Typography
+                                  sx={{
+                                    color: "text.secondary",
+                                    fontSize: "0.55rem",
+                                    opacity: 0.6,
+                                    maxWidth: 80,
+                                    overflow: "hidden",
+                                    textOverflow: "ellipsis",
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  {m.name}
+                                </Typography>
+                              </Stack>
+                            </TableCell>
+                            <TableCell align="right" sx={{ py: 0.4 }}>
+                              <Typography
+                                sx={{
+                                  fontFamily: '"JetBrains Mono", monospace',
+                                  fontWeight: 600,
+                                  fontSize: "0.73rem",
+                                }}
+                              >
+                                {m.close.toLocaleString()}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right" sx={{ py: 0.4 }}>
+                              {moverTab === "active" ? (
+                                <Typography
+                                  sx={{
+                                    fontFamily: '"JetBrains Mono", monospace',
+                                    fontWeight: 600,
+                                    fontSize: "0.73rem",
+                                  }}
+                                >
+                                  {formatValue(m.value)}
+                                </Typography>
+                              ) : (
+                                <Typography
+                                  sx={{
+                                    fontFamily: '"JetBrains Mono", monospace',
+                                    fontWeight: 700,
+                                    fontSize: "0.73rem",
+                                    color: changeColor,
+                                  }}
+                                >
+                                  {m.changePct > 0 ? "+" : ""}
+                                  {m.changePct.toFixed(2)}%
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell align="right" sx={{ py: 0.4 }}>
+                              <Typography
+                                sx={{
+                                  fontFamily: '"JetBrains Mono", monospace',
+                                  fontSize: "0.68rem",
+                                  color: "text.secondary",
+                                }}
+                              >
+                                {formatValue(m.volume)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell
+                              align="right"
+                              sx={{ py: 0.4, display: { xs: "none", md: "table-cell" } }}
+                            >
+                              <Typography
+                                sx={{
+                                  fontFamily: '"JetBrains Mono", monospace',
+                                  fontSize: "0.68rem",
+                                  fontWeight: 600,
+                                  color: foreignColor,
+                                }}
+                              >
+                                {m.foreignNet > 0 ? "+" : ""}
+                                {formatValue(m.foreignNet)}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            )}
+        </Box>
+
+        {/* RIGHT: Corporate actions feed */}
+        <Box sx={{ flex: "5 1 0%", minWidth: 0 }}>
+          {upcomingEvents.length > 0 && (
+            <Paper
+              className="animate-in animate-in-delay-3"
+              sx={{
+                borderRadius: 2,
+                overflow: "hidden",
+                position: "relative",
+                "&::before": {
+                  content: '""',
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: 2,
+                  bottom: 0,
+                  background: `linear-gradient(180deg, ${theme.palette.success.main}60, ${theme.palette.primary.main}40, transparent)`,
+                },
+              }}
+            >
+              <Box sx={{ px: 1.5, pt: 1.25, pb: 0.5 }}>
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
                   <Typography
                     sx={{
-                      fontFamily: '"JetBrains Mono", monospace',
-                      fontSize: "0.68rem",
-                      color: "text.secondary",
-                      fontWeight: 600,
+                      fontFamily: '"Outfit", sans-serif',
+                      fontWeight: 700,
+                      fontSize: "0.85rem",
+                      letterSpacing: "-0.02em",
                     }}
                   >
-                    {t.count}
+                    Corporate Actions
                   </Typography>
-                </Box>
-                <Typography
-                  variant="body2"
-                  sx={{ fontWeight: 600, fontSize: "0.75rem", lineHeight: 1.3 }}
-                >
-                  {t.name}
-                </Typography>
-                <LinearProgress
-                  variant="determinate"
-                  value={(t.count / maxTypeCount) * 100}
-                  sx={{
-                    height: 3,
-                    borderRadius: 2,
-                    bgcolor: isDark
-                      ? "rgba(212,168,67,0.08)"
-                      : "rgba(161,124,47,0.06)",
-                    "& .MuiLinearProgress-bar": {
-                      bgcolor: "primary.main",
-                      borderRadius: 2,
-                    },
-                  }}
-                />
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
+                  <Chip
+                    label={`${upcomingEvents.length} events`}
+                    size="small"
+                    sx={{
+                      height: 18,
+                      fontSize: "0.55rem",
+                      fontWeight: 700,
+                      bgcolor: isDark ? "rgba(52,211,153,0.08)" : "rgba(5,150,105,0.05)",
+                      color: isDark ? "#34d399" : "#059669",
+                    }}
+                  />
+                </Stack>
+              </Box>
 
-      <Box className="animate-in animate-in-delay-5">
-        <InvestorTable
-          title="Top Foreign Investors"
-          investors={data.topForeignInvestors}
-          router={router}
-        />
-      </Box>
+              <Box sx={{ maxHeight: 360, overflow: "auto", px: 1, pb: 1 }}>
+                <Stack spacing={0.25}>
+                  {upcomingEvents.map((ev, i) => {
+                    const eventDate = new Date(ev.date);
+                    const isUpcoming = eventDate >= new Date();
+                    const typeColor =
+                      ev.type === "Dividend"
+                        ? isDark ? "#34d399" : "#059669"
+                        : ev.type === "Right Issue"
+                          ? isDark ? "#60a5fa" : "#3b82f6"
+                          : ev.type === "Stock Split"
+                            ? isDark ? "#a855f7" : "#8b5cf6"
+                            : isDark ? "#fbbf24" : "#d97706";
 
-      <Box className="animate-in animate-in-delay-6">
-        <InvestorTable
-          title="Top Local Investors"
-          investors={data.topLocalInvestors}
-          router={router}
-        />
-      </Box>
-
-      <Box className="animate-in animate-in-delay-6">
-        <SectionHeader
-          title="Conglomerates"
-          subtitle="Multi-stock holders, sorted by total value"
-        />
-        <TableContainer
-          component={Paper}
-          sx={{ borderRadius: 2.5, overflow: "hidden" }}
-        >
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ width: 36 }}>#</TableCell>
-                <TableCell>Investor</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Origin</TableCell>
-                <TableCell align="center">Stocks</TableCell>
-                <TableCell>Tickers</TableCell>
-                <TableCell align="right">Total Value</TableCell>
-                <TableCell align="right">Max %</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {data.conglomerates.map((g, i) => (
-                <TableRow
-                  key={g.name}
-                  hover
-                  sx={{
-                    cursor: "pointer",
-                    "&:last-child td": { borderBottom: 0 },
-                    transition: "background-color 0.1s ease",
-                    "&:hover": {
-                      bgcolor: isDark
-                        ? "rgba(212,168,67,0.04)"
-                        : "rgba(161,124,47,0.03)",
-                    },
-                  }}
-                  onClick={() =>
-                    router.push(`/investor/${encodeURIComponent(g.name)}`)
-                  }
-                >
-                  <TableCell>
-                    <Typography
-                      sx={{
-                        fontFamily: '"JetBrains Mono", monospace',
-                        fontSize: "0.7rem",
-                        color: "text.secondary",
-                      }}
-                    >
-                      {i + 1}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: 600, fontSize: "0.8rem" }}
-                    >
-                      {g.name}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <InvestorTypeBadge type={g.type} />
-                  </TableCell>
-                  <TableCell>
-                    <LocalForeignBadge type={g.origin} />
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={g.stockCount}
-                      size="small"
-                      sx={{
-                        fontWeight: 700,
-                        fontFamily: '"JetBrains Mono", monospace',
-                        minWidth: 28,
-                        height: 22,
-                        fontSize: "0.7rem",
-                        bgcolor: "primary.main",
-                        color: isDark ? "#060a14" : "#fff",
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        gap: 0.5,
-                        flexWrap: "wrap",
-                        maxWidth: 220,
-                      }}
-                    >
-                      {g.stocks.slice(0, 4).map((s) => (
-                        <Chip
-                          key={s}
-                          label={s}
-                          size="small"
+                    return (
+                      <Box
+                        key={`${ev.code}-${ev.type}-${i}`}
+                        onClick={() => router.push(`/stock/${ev.code}`)}
+                        sx={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 1,
+                          px: 1,
+                          py: 0.75,
+                          borderRadius: 1.5,
+                          cursor: "pointer",
+                          opacity: isUpcoming ? 1 : 0.55,
+                          transition: "all 0.12s ease",
+                          "&:hover": {
+                            bgcolor: isDark ? "rgba(212,168,67,0.04)" : "rgba(161,124,47,0.03)",
+                          },
+                        }}
+                      >
+                        <Box
                           sx={{
-                            fontFamily: '"JetBrains Mono", monospace',
-                            fontSize: "0.65rem",
-                            height: 20,
-                            bgcolor: isDark
-                              ? "rgba(212,168,67,0.08)"
-                              : "rgba(161,124,47,0.06)",
-                            color: "primary.main",
-                            fontWeight: 600,
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/stock/${s}`);
+                            width: 3,
+                            minHeight: 28,
+                            borderRadius: 1,
+                            bgcolor: typeColor,
+                            opacity: 0.7,
+                            flexShrink: 0,
+                            mt: 0.25,
                           }}
                         />
-                      ))}
-                      {g.stocks.length > 4 && (
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <Typography
+                              sx={{
+                                fontFamily: '"JetBrains Mono", monospace',
+                                fontWeight: 700,
+                                fontSize: "0.7rem",
+                                color: "primary.main",
+                              }}
+                            >
+                              {ev.code}
+                            </Typography>
+                            <Typography
+                              sx={{
+                                fontSize: "0.52rem",
+                                fontWeight: 700,
+                                color: typeColor,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.04em",
+                              }}
+                            >
+                              {ev.type}
+                            </Typography>
+                          </Stack>
+                          <Typography
+                            sx={{
+                              color: "text.secondary",
+                              fontSize: "0.6rem",
+                              lineHeight: 1.3,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {ev.detail}
+                          </Typography>
+                        </Box>
                         <Typography
-                          variant="caption"
                           sx={{
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontSize: "0.58rem",
                             color: "text.secondary",
-                            alignSelf: "center",
-                            fontSize: "0.62rem",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                            fontWeight: isUpcoming ? 600 : 400,
                           }}
                         >
-                          +{g.stocks.length - 4}
+                          {eventDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
                         </Typography>
-                      )}
-                    </Box>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography
-                      sx={{
-                        fontFamily: '"JetBrains Mono", monospace',
-                        fontWeight: 700,
-                        fontSize: "0.78rem",
-                      }}
-                    >
-                      {formatShares(g.totalShares)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography
-                      sx={{
-                        fontFamily: '"JetBrains Mono", monospace',
-                        fontSize: "0.78rem",
-                      }}
-                    >
-                      {g.maxPct.toFixed(2)}%
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              </Box>
+            </Paper>
+          )}
+        </Box>
       </Box>
-    </Stack>
-  );
-}
 
-function InvestorTable({
-  title,
-  investors,
-  router,
-}: {
-  title: string;
-  investors: TopInvestor[];
-  router: ReturnType<typeof useRouter>;
-}) {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === "dark";
+      {/* ---- CALENDAR ---- */}
+      {calendarEvents.length > 0 && (
+        <Box className="animate-in animate-in-delay-4">
+          <EventCalendar events={calendarEvents} />
+        </Box>
+      )}
 
-  return (
-    <Box>
-      <SectionHeader title={title} />
-      <TableContainer
-        component={Paper}
-        sx={{ borderRadius: 2.5, overflow: "hidden" }}
+      {/* ---- POWER PLAYERS (tabbed) ---- */}
+      <Paper
+        className="animate-in animate-in-delay-5"
+        sx={{
+          borderRadius: 2,
+          overflow: "hidden",
+        }}
       >
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ width: 36 }}>#</TableCell>
-              <TableCell>Investor</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Stocks</TableCell>
-              <TableCell align="right">Total Value</TableCell>
-              <TableCell align="right">Max %</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {investors.map((inv, i) => (
-              <TableRow
-                key={inv.name}
-                hover
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            px: 1.5,
+            pt: 1.25,
+            pb: 0.5,
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: '"Outfit", sans-serif',
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Power Players
+          </Typography>
+          <Stack direction="row" spacing={0}>
+            {([
+              { key: "foreign" as const, label: "Foreign" },
+              { key: "local" as const, label: "Local" },
+              { key: "conglom" as const, label: "Multi-Stock" },
+            ]).map((tab) => (
+              <Box
+                key={tab.key}
+                onClick={() => setPlayerTab(tab.key)}
                 sx={{
+                  px: 1.25,
+                  py: 0.5,
                   cursor: "pointer",
-                  "&:last-child td": { borderBottom: 0 },
-                  transition: "background-color 0.1s ease",
+                  borderRadius: 1,
+                  fontSize: "0.68rem",
+                  fontWeight: playerTab === tab.key ? 700 : 500,
+                  fontFamily: '"Outfit", sans-serif',
+                  color: playerTab === tab.key ? "primary.main" : "text.secondary",
+                  bgcolor: playerTab === tab.key
+                    ? isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.06)"
+                    : "transparent",
+                  transition: "all 0.15s ease",
                   "&:hover": {
-                    bgcolor: isDark
-                      ? "rgba(212,168,67,0.04)"
-                      : "rgba(161,124,47,0.03)",
+                    bgcolor: isDark ? "rgba(212,168,67,0.06)" : "rgba(161,124,47,0.04)",
                   },
                 }}
-                onClick={() =>
-                  router.push(`/investor/${encodeURIComponent(inv.name)}`)
-                }
               >
-                <TableCell>
-                  <Typography
+                {tab.label}
+              </Box>
+            ))}
+          </Stack>
+        </Box>
+
+        {playerTab !== "conglom" && activePlayerList && (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ py: 0.5, width: 28 }}>#</TableCell>
+                  <TableCell sx={{ py: 0.5 }}>Investor</TableCell>
+                  <TableCell sx={{ py: 0.5 }}>Type</TableCell>
+                  <TableCell sx={{ py: 0.5 }}>Stocks</TableCell>
+                  <TableCell align="right" sx={{ py: 0.5 }}>Holdings</TableCell>
+                  <TableCell align="right" sx={{ py: 0.5 }}>Max %</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {activePlayerList.map((inv, i) => (
+                  <TableRow
+                    key={inv.name}
+                    hover
                     sx={{
-                      fontFamily: '"JetBrains Mono", monospace',
-                      fontSize: "0.7rem",
-                      color: "text.secondary",
+                      cursor: "pointer",
+                      "&:last-child td": { borderBottom: 0 },
+                      "&:hover": {
+                        bgcolor: isDark ? "rgba(212,168,67,0.03)" : "rgba(161,124,47,0.02)",
+                      },
                     }}
+                    onClick={() => router.push(`/investor/${encodeURIComponent(inv.name)}`)}
                   >
-                    {i + 1}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <Typography
-                    variant="body2"
-                    sx={{ fontWeight: 600, fontSize: "0.8rem" }}
-                  >
-                    {inv.name}
-                  </Typography>
-                </TableCell>
-                <TableCell>
-                  <InvestorTypeBadge type={inv.type} />
-                </TableCell>
-                <TableCell>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      gap: 0.5,
-                      flexWrap: "wrap",
-                      maxWidth: 200,
-                    }}
-                  >
-                    {inv.stocks.slice(0, 3).map((s) => (
-                      <Chip
-                        key={s}
-                        label={s}
-                        size="small"
+                    <TableCell sx={{ py: 0.4 }}>
+                      <Typography
                         sx={{
                           fontFamily: '"JetBrains Mono", monospace',
                           fontSize: "0.65rem",
-                          height: 20,
-                          bgcolor: isDark
-                            ? "rgba(212,168,67,0.08)"
-                            : "rgba(161,124,47,0.06)",
-                          color: "primary.main",
-                          fontWeight: 600,
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.push(`/stock/${s}`);
-                        }}
-                      />
-                    ))}
-                    {inv.stocks.length > 3 && (
-                      <Typography
-                        variant="caption"
-                        sx={{
                           color: "text.secondary",
-                          alignSelf: "center",
-                          fontSize: "0.62rem",
                         }}
                       >
-                        +{inv.stocks.length - 3}
+                        {i + 1}
                       </Typography>
-                    )}
-                  </Box>
-                </TableCell>
-                <TableCell align="right">
-                  <Typography
-                    sx={{
-                      fontFamily: '"JetBrains Mono", monospace',
-                      fontWeight: 700,
-                      fontSize: "0.78rem",
-                    }}
-                  >
-                    {formatShares(inv.totalShares)}
-                  </Typography>
-                </TableCell>
-                <TableCell align="right">
-                  <Typography
-                    sx={{
-                      fontFamily: '"JetBrains Mono", monospace',
-                      fontSize: "0.78rem",
-                    }}
-                  >
-                    {inv.maxPct.toFixed(2)}%
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </Box>
-  );
-}
-
-function MoverTable({
-  title,
-  icon,
-  movers,
-  router,
-  type,
-}: {
-  title: string;
-  icon: React.ReactNode;
-  movers: MarketMover[];
-  router: ReturnType<typeof useRouter>;
-  type: "gain" | "loss" | "active";
-}) {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === "dark";
-
-  const accentColor =
-    type === "gain"
-      ? theme.palette.success.main
-      : type === "loss"
-        ? theme.palette.error.main
-        : theme.palette.warning.main;
-
-  return (
-    <Paper
-      sx={{
-        borderRadius: 2.5,
-        overflow: "hidden",
-        height: "100%",
-        position: "relative",
-        transition:
-          "border-color 0.25s ease, box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
-        "&:hover": {
-          transform: "translateY(-2px)",
-          boxShadow: isDark
-            ? `0 8px 32px rgba(0,0,0,0.35), 0 0 20px ${accentColor}10`
-            : `0 8px 32px rgba(0,0,0,0.07)`,
-        },
-        "&::before": {
-          content: '""',
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 2,
-          background: `linear-gradient(90deg, ${accentColor}, transparent)`,
-          opacity: 0.6,
-          boxShadow: `0 0 12px ${accentColor}30`,
-        },
-      }}
-    >
-      <Stack
-        direction="row"
-        spacing={0.75}
-        alignItems="center"
-        sx={{ px: 1.5, pt: 1.5, pb: 0.75 }}
-      >
-        {icon}
-        <Typography
-          variant="subtitle2"
-          sx={{
-            fontFamily: '"Outfit", sans-serif',
-            fontWeight: 700,
-            fontSize: "0.82rem",
-          }}
-        >
-          {title}
-        </Typography>
-      </Stack>
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell sx={{ py: 0.75 }}>Code</TableCell>
-              <TableCell align="right" sx={{ py: 0.75 }}>
-                Price
-              </TableCell>
-              <TableCell align="right" sx={{ py: 0.75 }}>
-                {type === "active" ? "Value" : "Change"}
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {movers.map((m) => {
-              const color =
-                m.change > 0
-                  ? theme.palette.success.main
-                  : m.change < 0
-                    ? theme.palette.error.main
-                    : "text.secondary";
-              return (
-                <TableRow
-                  key={m.code}
-                  hover
-                  sx={{
-                    cursor: "pointer",
-                    "&:last-child td": { borderBottom: 0 },
-                    transition: "background-color 0.1s ease",
-                    "&:hover": {
-                      bgcolor: isDark
-                        ? "rgba(212,168,67,0.04)"
-                        : "rgba(161,124,47,0.03)",
-                    },
-                  }}
-                  onClick={() => router.push(`/stock/${m.code}`)}
-                >
-                  <TableCell sx={{ py: 0.5 }}>
-                    <Typography
-                      sx={{
-                        fontWeight: 700,
-                        fontFamily: '"JetBrains Mono", monospace',
-                        color: "primary.main",
-                        fontSize: "0.75rem",
-                      }}
-                    >
-                      {m.code}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{
-                        fontSize: "0.58rem",
-                        display: "block",
-                        maxWidth: 100,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        opacity: 0.7,
-                      }}
-                    >
-                      {m.name}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right" sx={{ py: 0.5 }}>
-                    <Typography
-                      sx={{
-                        fontFamily: '"JetBrains Mono", monospace',
-                        fontWeight: 600,
-                        fontSize: "0.75rem",
-                      }}
-                    >
-                      {m.close.toLocaleString()}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right" sx={{ py: 0.5 }}>
-                    {type === "active" ? (
-                      <Typography
-                        sx={{
-                          fontFamily: '"JetBrains Mono", monospace',
-                          fontWeight: 600,
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        {formatValue(m.value)}
+                    </TableCell>
+                    <TableCell sx={{ py: 0.4 }}>
+                      <Typography sx={{ fontWeight: 600, fontSize: "0.75rem" }}>
+                        {inv.name}
                       </Typography>
-                    ) : (
+                    </TableCell>
+                    <TableCell sx={{ py: 0.4 }}>
+                      <InvestorTypeBadge type={inv.type} />
+                    </TableCell>
+                    <TableCell sx={{ py: 0.4 }}>
+                      <Stack direction="row" spacing={0.4} sx={{ flexWrap: "wrap", maxWidth: 180 }}>
+                        {inv.stocks.slice(0, 3).map((s) => (
+                          <Chip
+                            key={s}
+                            label={s}
+                            size="small"
+                            sx={{
+                              fontFamily: '"JetBrains Mono", monospace',
+                              fontSize: "0.6rem",
+                              height: 18,
+                              bgcolor: isDark ? "rgba(212,168,67,0.07)" : "rgba(161,124,47,0.05)",
+                              color: "primary.main",
+                              fontWeight: 600,
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/stock/${s}`);
+                            }}
+                          />
+                        ))}
+                        {inv.stocks.length > 3 && (
+                          <Typography
+                            sx={{
+                              color: "text.secondary",
+                              alignSelf: "center",
+                              fontSize: "0.55rem",
+                            }}
+                          >
+                            +{inv.stocks.length - 3}
+                          </Typography>
+                        )}
+                      </Stack>
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 0.4 }}>
                       <Typography
                         sx={{
                           fontFamily: '"JetBrains Mono", monospace',
                           fontWeight: 700,
-                          fontSize: "0.75rem",
-                          color,
+                          fontSize: "0.73rem",
                         }}
                       >
-                        {m.changePct > 0 ? "+" : ""}
-                        {m.changePct.toFixed(2)}%
+                        {formatShares(inv.totalShares)}
                       </Typography>
-                    )}
-                  </TableCell>
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 0.4 }}>
+                      <Typography
+                        sx={{
+                          fontFamily: '"JetBrains Mono", monospace',
+                          fontSize: "0.73rem",
+                        }}
+                      >
+                        {inv.maxPct.toFixed(2)}%
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+
+        {playerTab === "conglom" && (
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ py: 0.5, width: 28 }}>#</TableCell>
+                  <TableCell sx={{ py: 0.5 }}>Investor</TableCell>
+                  <TableCell sx={{ py: 0.5 }}>Origin</TableCell>
+                  <TableCell align="center" sx={{ py: 0.5 }}>N</TableCell>
+                  <TableCell sx={{ py: 0.5 }}>Tickers</TableCell>
+                  <TableCell align="right" sx={{ py: 0.5 }}>Holdings</TableCell>
+                  <TableCell align="right" sx={{ py: 0.5 }}>Max %</TableCell>
                 </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              </TableHead>
+              <TableBody>
+                {data.conglomerates.map((g, i) => (
+                  <TableRow
+                    key={g.name}
+                    hover
+                    sx={{
+                      cursor: "pointer",
+                      "&:last-child td": { borderBottom: 0 },
+                      "&:hover": {
+                        bgcolor: isDark ? "rgba(212,168,67,0.03)" : "rgba(161,124,47,0.02)",
+                      },
+                    }}
+                    onClick={() => router.push(`/investor/${encodeURIComponent(g.name)}`)}
+                  >
+                    <TableCell sx={{ py: 0.4 }}>
+                      <Typography
+                        sx={{
+                          fontFamily: '"JetBrains Mono", monospace',
+                          fontSize: "0.65rem",
+                          color: "text.secondary",
+                        }}
+                      >
+                        {i + 1}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 0.4 }}>
+                      <Typography sx={{ fontWeight: 600, fontSize: "0.75rem" }}>
+                        {g.name}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 0.4 }}>
+                      <LocalForeignBadge type={g.origin} />
+                    </TableCell>
+                    <TableCell align="center" sx={{ py: 0.4 }}>
+                      <Typography
+                        sx={{
+                          fontFamily: '"JetBrains Mono", monospace',
+                          fontWeight: 700,
+                          fontSize: "0.7rem",
+                          color: "primary.main",
+                        }}
+                      >
+                        {g.stockCount}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ py: 0.4 }}>
+                      <Stack direction="row" spacing={0.4} sx={{ flexWrap: "wrap", maxWidth: 200 }}>
+                        {g.stocks.slice(0, 4).map((s) => (
+                          <Chip
+                            key={s}
+                            label={s}
+                            size="small"
+                            sx={{
+                              fontFamily: '"JetBrains Mono", monospace',
+                              fontSize: "0.6rem",
+                              height: 18,
+                              bgcolor: isDark ? "rgba(212,168,67,0.07)" : "rgba(161,124,47,0.05)",
+                              color: "primary.main",
+                              fontWeight: 600,
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/stock/${s}`);
+                            }}
+                          />
+                        ))}
+                        {g.stocks.length > 4 && (
+                          <Typography
+                            sx={{
+                              color: "text.secondary",
+                              alignSelf: "center",
+                              fontSize: "0.55rem",
+                            }}
+                          >
+                            +{g.stocks.length - 4}
+                          </Typography>
+                        )}
+                      </Stack>
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 0.4 }}>
+                      <Typography
+                        sx={{
+                          fontFamily: '"JetBrains Mono", monospace',
+                          fontWeight: 700,
+                          fontSize: "0.73rem",
+                        }}
+                      >
+                        {formatShares(g.totalShares)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="right" sx={{ py: 0.4 }}>
+                      <Typography
+                        sx={{
+                          fontFamily: '"JetBrains Mono", monospace',
+                          fontSize: "0.73rem",
+                        }}
+                      >
+                        {g.maxPct.toFixed(2)}%
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Paper>
+    </Stack>
+  );
+}
+
+function Sparkline({
+  data,
+  color,
+  width = 72,
+  height = 28,
+}: {
+  data: number[];
+  color: string;
+  width?: number;
+  height?: number;
+}) {
+  if (data.length < 2) return null;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const points = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * width;
+      const y = height - ((v - min) / range) * (height - 4) - 2;
+      return `${x},${y}`;
+    })
+    .join(" ");
+
+  const gradientId = `spark-${color.replace(/[^a-zA-Z0-9]/g, "")}`;
+  const areaPath =
+    `M0,${height} L${points.split(" ").map((p) => p).join(" L")} L${width},${height} Z`;
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ display: "block" }}>
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+          <stop offset="100%" stopColor={color} stopOpacity={0} />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gradientId})`} />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function IndexCard({
+  idx,
+  onClick,
+}: {
+  idx: { code: string; close: number; change: number; changePct: number; history: number[] };
+  onClick: () => void;
+}) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  const isUp = idx.change >= 0;
+  const accentColor = isUp ? theme.palette.success.main : theme.palette.error.main;
+  const label = INDEX_LABELS[idx.code] || idx.code;
+
+  return (
+    <Paper
+      onClick={onClick}
+      sx={{
+        px: 1.5,
+        py: 1,
+        borderRadius: 2,
+        minWidth: 160,
+        flex: "1 1 0%",
+        position: "relative",
+        overflow: "hidden",
+        cursor: "pointer",
+        border: `1px solid ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)"}`,
+        transition: "border-color 0.2s, transform 0.15s",
+        "&:hover": {
+          borderColor: `${accentColor}40`,
+          transform: "translateY(-1px)",
+        },
+      }}
+    >
+      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            sx={{
+              fontSize: "0.6rem",
+              fontWeight: 700,
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              color: "text.secondary",
+              lineHeight: 1,
+              mb: 0.5,
+            }}
+          >
+            {label}
+          </Typography>
+          <Typography
+            sx={{
+              fontFamily: '"JetBrains Mono", monospace',
+              fontWeight: 800,
+              fontSize: "0.95rem",
+              letterSpacing: "-0.03em",
+              lineHeight: 1.1,
+            }}
+          >
+            {idx.close.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+          </Typography>
+          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.25 }}>
+            <Typography
+              sx={{
+                fontFamily: '"JetBrains Mono", monospace',
+                fontWeight: 700,
+                fontSize: "0.65rem",
+                color: accentColor,
+                lineHeight: 1,
+              }}
+            >
+              {isUp ? "+" : ""}{idx.change.toFixed(1)}
+            </Typography>
+            <Typography
+              sx={{
+                fontFamily: '"JetBrains Mono", monospace',
+                fontWeight: 600,
+                fontSize: "0.6rem",
+                color: accentColor,
+                opacity: 0.8,
+                lineHeight: 1,
+              }}
+            >
+              ({isUp ? "+" : ""}{idx.changePct.toFixed(2)}%)
+            </Typography>
+          </Stack>
+        </Box>
+        <Box sx={{ flexShrink: 0, mt: 0.5 }}>
+          <Sparkline data={idx.history} color={accentColor} />
+        </Box>
+      </Stack>
     </Paper>
   );
 }

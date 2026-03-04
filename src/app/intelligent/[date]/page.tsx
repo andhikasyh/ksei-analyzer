@@ -125,14 +125,14 @@ export default function ReportDetailPage({
   };
 
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={1.5}>
       <Box className="animate-in">
         <Box
           sx={{
-            borderRadius: 3,
+            borderRadius: 2.5,
             overflow: "hidden",
             position: "relative",
-            mb: 2,
+            mb: 1.25,
           }}
         >
           {imageUrl ? (
@@ -148,7 +148,7 @@ export default function ReportDetailPage({
               }}
               sx={{
                 width: "100%",
-                height: { xs: 180, md: 260 },
+                height: { xs: 140, md: 200 },
                 objectFit: "cover",
                 display: "block",
               }}
@@ -158,7 +158,7 @@ export default function ReportDetailPage({
             className="hero-fallback"
             sx={{
               width: "100%",
-              height: { xs: 180, md: 260 },
+              height: { xs: 140, md: 200 },
               background: isDark
                 ? "linear-gradient(135deg, rgba(129,140,248,0.1) 0%, rgba(212,168,67,0.06) 100%)"
                 : "linear-gradient(135deg, rgba(129,140,248,0.08) 0%, rgba(161,124,47,0.04) 100%)",
@@ -210,27 +210,27 @@ export default function ReportDetailPage({
           <Box
             sx={{
               position: "absolute",
-              bottom: 16,
-              left: 20,
-              right: 20,
+              bottom: 10,
+              left: 16,
+              right: 16,
             }}
           >
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
-                gap: 1,
-                mb: 0.75,
+                gap: 0.75,
+                mb: 0.5,
               }}
             >
               <CalendarTodayIcon
-                sx={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}
+                sx={{ fontSize: 11, color: "rgba(255,255,255,0.7)" }}
               />
               <Typography
                 variant="caption"
                 sx={{
                   color: "rgba(255,255,255,0.7)",
-                  fontSize: "0.65rem",
+                  fontSize: "0.6rem",
                   fontFamily: '"JetBrains Mono", monospace',
                 }}
               >
@@ -245,7 +245,7 @@ export default function ReportDetailPage({
               sx={{
                 fontFamily: '"Outfit", sans-serif',
                 fontWeight: 800,
-                fontSize: { xs: "1.1rem", md: "1.4rem" },
+                fontSize: { xs: "1rem", md: "1.25rem" },
                 letterSpacing: "-0.02em",
                 lineHeight: 1.2,
                 color: "#fff",
@@ -258,21 +258,21 @@ export default function ReportDetailPage({
         </Box>
       </Box>
 
-      <ReportDashboard report={report} />
+      <ReportDashboard report={report} compact />
 
       <Box className="animate-in animate-in-delay-8">
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 1.5,
-            mb: 1.5,
+            gap: 1.25,
+            mb: 1,
           }}
         >
           <Box
             sx={{
               width: 3,
-              height: 20,
+              height: 16,
               borderRadius: 2,
               background:
                 "linear-gradient(180deg, #818cf8, rgba(129,140,248,0.3))",
@@ -286,7 +286,7 @@ export default function ReportDetailPage({
               sx={{
                 fontFamily: '"Outfit", sans-serif',
                 fontWeight: 700,
-                fontSize: "0.95rem",
+                fontSize: "0.88rem",
                 letterSpacing: "-0.01em",
                 lineHeight: 1.2,
               }}
@@ -297,7 +297,7 @@ export default function ReportDetailPage({
               variant="caption"
               sx={{
                 color: "text.secondary",
-                fontSize: "0.65rem",
+                fontSize: "0.62rem",
                 opacity: 0.7,
               }}
             >
