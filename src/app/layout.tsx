@@ -4,6 +4,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { Navbar } from "@/components/Navbar";
 import { LayoutShell } from "@/components/LayoutShell";
 import { FloatingChat } from "@/components/FloatingChat";
+import { ProProvider } from "@/lib/pro-context";
 import { getBaseUrl, SITE_NAME, SITE_DESCRIPTION, SITE_KEYWORDS } from "@/lib/site";
 import "./globals.css";
 
@@ -91,9 +92,11 @@ export default function RootLayout({
       </head>
       <body>
         <ThemeProvider>
-          <Navbar />
-          <LayoutShell>{children}</LayoutShell>
-          <FloatingChat />
+          <ProProvider>
+            <Navbar />
+            <LayoutShell>{children}</LayoutShell>
+            <FloatingChat />
+          </ProProvider>
         </ThemeProvider>
         <Analytics />
       </body>

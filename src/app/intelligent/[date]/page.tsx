@@ -9,11 +9,15 @@ import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import IconButton from "@mui/material/IconButton";
+import Button from "@mui/material/Button";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import LockIcon from "@mui/icons-material/Lock";
 import { ReportDashboard, SentimentChip } from "@/components/ReportDashboard";
 import { MarketChat } from "@/components/MarketChat";
+import { ProPaywallModal } from "@/components/ProPaywallModal";
+import { useProContext } from "@/lib/pro-context";
 import type { MarketIntelligenceReport } from "@/lib/types";
 
 export default function ReportDetailPage({
@@ -25,11 +29,13 @@ export default function ReportDetailPage({
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const router = useRouter();
+  const { user, isPro, loading: proLoading } = useProContext();
   const [report, setReport] = useState<MarketIntelligenceReport | null>(null);
   const [title, setTitle] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paywallOpen, setPaywallOpen] = useState(false);
 
   const fetchReport = useCallback(async () => {
     try {
@@ -64,7 +70,7 @@ export default function ReportDetailPage({
     year: "numeric",
   });
 
-  if (loading) {
+  if (loading || proLoading) {
     return (
       <Stack spacing={2.5}>
         <Skeleton
@@ -116,6 +122,186 @@ export default function ReportDetailPage({
           </IconButton>
         </Paper>
       </Box>
+    );
+  }
+
+  if (!isPro) {
+    const accent = isDark ? "#d4a843" : "#a17c2f";
+    return (
+      <Stack spacing={2.5}>
+        <Box className="animate-in">
+          <Box
+            sx={{
+              borderRadius: 2.5,
+              overflow: "hidden",
+              position: "relative",
+              mb: 1.25,
+            }}
+          >
+            {imageUrl ? (
+              <Box
+                component="img"
+                src={imageUrl}
+                alt={title || "Market report"}
+                sx={{
+                  width: "100%",
+                  height: { xs: 140, md: 200 },
+                  objectFit: "cover",
+                  display: "block",
+                  filter: "blur(6px) brightness(0.5)",
+                }}
+              />
+            ) : (
+              <Box
+                sx={{
+                  width: "100%",
+                  height: { xs: 140, md: 200 },
+                  background: isDark
+                    ? "linear-gradient(135deg, rgba(129,140,248,0.1) 0%, rgba(212,168,67,0.06) 100%)"
+                    : "linear-gradient(135deg, rgba(129,140,248,0.08) 0%, rgba(161,124,47,0.04) 100%)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <AutoAwesomeIcon
+                  sx={{
+                    fontSize: 56,
+                    color: isDark ? "rgba(129,140,248,0.15)" : "rgba(99,102,241,0.1)",
+                  }}
+                />
+              </Box>
+            )}
+            <Box
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                background: "linear-gradient(0deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 100%)",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 1,
+              }}
+            >
+              <LockIcon sx={{ fontSize: 32, color: accent }} />
+              <Typography
+                sx={{
+                  fontFamily: '"Outfit", sans-serif',
+                  fontWeight: 800,
+                  fontSize: "1rem",
+                  color: "#fff",
+                  letterSpacing: "-0.02em",
+                  textAlign: "center",
+                }}
+              >
+                Konten Pro
+              </Typography>
+            </Box>
+            <Box sx={{ position: "absolute", top: 12, left: 12 }}>
+              <IconButton
+                onClick={() => router.push("/intelligent")}
+                size="small"
+                sx={{
+                  bgcolor: "rgba(0,0,0,0.4)",
+                  backdropFilter: "blur(8px)",
+                  color: "#fff",
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.6)" },
+                }}
+              >
+                <ArrowBackIcon sx={{ fontSize: 18 }} />
+              </IconButton>
+            </Box>
+          </Box>
+        </Box>
+
+        <Paper
+          sx={{
+            p: 3,
+            borderRadius: 3,
+            textAlign: "center",
+            background: isDark
+              ? "linear-gradient(135deg, rgba(212,168,67,0.06) 0%, rgba(129,140,248,0.05) 100%)"
+              : "linear-gradient(135deg, rgba(161,124,47,0.05) 0%, rgba(129,140,248,0.04) 100%)",
+            border: `1px solid ${isDark ? "rgba(212,168,67,0.18)" : "rgba(161,124,47,0.14)"}`,
+          }}
+        >
+          <AutoAwesomeIcon sx={{ fontSize: 36, color: accent, mb: 1.5 }} />
+          <Typography
+            sx={{
+              fontFamily: '"Outfit", sans-serif',
+              fontWeight: 800,
+              fontSize: "1.05rem",
+              letterSpacing: "-0.02em",
+              mb: 0.75,
+            }}
+          >
+            {title || `Market Report — ${dateLabel}`}
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: "0.78rem",
+              color: "text.secondary",
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              lineHeight: 1.6,
+              mb: 2,
+              maxWidth: 400,
+              mx: "auto",
+            }}
+          >
+            Laporan ini hanya tersedia untuk Pro member. Aktifkan Pro untuk membaca analisis lengkap pasar harian, foreign flow, prediksi harga, dan lebih banyak lagi.
+          </Typography>
+
+          <Box sx={{ display: "flex", gap: 1.5, justifyContent: "center", flexWrap: "wrap" }}>
+            <Button
+              variant="contained"
+              onClick={() => setPaywallOpen(true)}
+              sx={{
+                background: isDark
+                  ? "linear-gradient(135deg, #d4a843, #e8c468)"
+                  : "linear-gradient(135deg, #a17c2f, #c49a3a)",
+                color: "#060a14",
+                fontWeight: 800,
+                fontSize: "0.82rem",
+                borderRadius: "12px",
+                px: 2.5,
+                py: 0.9,
+                boxShadow: isDark ? "0 4px 16px rgba(212,168,67,0.2)" : "0 4px 16px rgba(161,124,47,0.15)",
+                fontFamily: '"Outfit", sans-serif',
+                "&:hover": {
+                  boxShadow: isDark ? "0 6px 24px rgba(212,168,67,0.3)" : "0 6px 24px rgba(161,124,47,0.25)",
+                },
+              }}
+            >
+              {user ? "Aktifkan Pro — Rp99.000/bln" : "Masuk & Aktifkan Pro"}
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => router.push("/intelligent")}
+              sx={{
+                borderColor: isDark ? "rgba(107,127,163,0.2)" : "rgba(12,18,34,0.12)",
+                color: "text.secondary",
+                fontSize: "0.78rem",
+                borderRadius: "12px",
+                px: 2,
+                "&:hover": { borderColor: accent, color: "text.primary" },
+              }}
+            >
+              Kembali
+            </Button>
+          </Box>
+        </Paper>
+
+        <ProPaywallModal
+          open={paywallOpen}
+          onClose={() => setPaywallOpen(false)}
+          initialMode={user ? "pro" : "login"}
+          reason="insight"
+        />
+      </Stack>
     );
   }
 

@@ -20,6 +20,8 @@ interface MarketChatProps {
   context?: { reportDate: string; reportSummary: string };
   placeholder?: string;
   compact?: boolean;
+  locked?: boolean;
+  onLockedAttempt?: () => boolean;
 }
 
 interface ChatMessage {
@@ -106,7 +108,7 @@ function useMdStyles(isDark: boolean, accent: string) {
   } as const;
 }
 
-export function MarketChat({ context, placeholder, compact }: MarketChatProps) {
+export function MarketChat({ context, placeholder, compact, locked, onLockedAttempt }: MarketChatProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const [state, setState] = useState<StreamState>("idle");
@@ -253,12 +255,22 @@ export function MarketChat({ context, placeholder, compact }: MarketChatProps) {
     const text = input.trim();
     if (!text || state === "streaming" || state === "loading" || state === "rate_limited") return;
 
+    if (locked) {
+      onLockedAttempt?.();
+      return;
+    }
+
+    if (onLockedAttempt) {
+      const blocked = onLockedAttempt();
+      if (blocked) return;
+    }
+
     const userMsg: ChatMessage = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setInput("");
     streamResponse(newMessages);
-  }, [input, messages, state, streamResponse]);
+  }, [input, messages, state, streamResponse, locked, onLockedAttempt]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -285,6 +297,98 @@ export function MarketChat({ context, placeholder, compact }: MarketChatProps) {
   const isWorking = state === "streaming" || state === "loading";
   const isBlocked = isWorking || state === "rate_limited";
   const maxH = compact ? 360 : 480;
+
+  if (locked) {
+    return (
+      <Paper
+        onClick={() => onLockedAttempt?.()}
+        sx={{
+          borderRadius: 3,
+          overflow: "hidden",
+          border: 1,
+          borderColor: isDark ? "rgba(129,140,248,0.12)" : "rgba(99,102,241,0.1)",
+          cursor: "pointer",
+          position: "relative",
+          minHeight: 120,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+          gap: 1,
+          p: 3,
+          background: isDark
+            ? "linear-gradient(135deg, rgba(212,168,67,0.04) 0%, rgba(129,140,248,0.04) 100%)"
+            : "linear-gradient(135deg, rgba(161,124,47,0.03) 0%, rgba(129,140,248,0.03) 100%)",
+          transition: "border-color 0.2s ease",
+          "&:hover": {
+            borderColor: isDark ? "rgba(212,168,67,0.3)" : "rgba(161,124,47,0.25)",
+          },
+        }}
+      >
+        <Box
+          sx={{
+            width: 36,
+            height: 36,
+            borderRadius: "10px",
+            bgcolor: isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.08)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: isDark ? "#d4a843" : "#a17c2f",
+          }}
+        >
+          <AutoAwesomeIcon sx={{ fontSize: 18 }} />
+        </Box>
+        <Typography
+          sx={{
+            fontFamily: '"Outfit", sans-serif',
+            fontWeight: 700,
+            fontSize: "0.88rem",
+            letterSpacing: "-0.01em",
+            color: "text.primary",
+          }}
+        >
+          AI Chat — Pro Only
+        </Typography>
+        <Typography
+          sx={{
+            fontSize: "0.72rem",
+            color: "text.secondary",
+            fontFamily: '"Plus Jakarta Sans", sans-serif',
+            textAlign: "center",
+            maxWidth: 280,
+            lineHeight: 1.5,
+          }}
+        >
+          Aktifkan Pro untuk tanya AI tanpa batas tentang saham IDX
+        </Typography>
+        <Box
+          sx={{
+            mt: 0.5,
+            px: 2,
+            py: 0.6,
+            borderRadius: "8px",
+            background: isDark
+              ? "linear-gradient(135deg, rgba(212,168,67,0.12), rgba(212,168,67,0.08))"
+              : "linear-gradient(135deg, rgba(161,124,47,0.1), rgba(161,124,47,0.06))",
+            border: `1px solid ${isDark ? "rgba(212,168,67,0.2)" : "rgba(161,124,47,0.15)"}`,
+          }}
+        >
+          <Typography
+            sx={{
+              fontSize: "0.68rem",
+              fontWeight: 700,
+              color: isDark ? "#d4a843" : "#a17c2f",
+              fontFamily: '"JetBrains Mono", monospace',
+              letterSpacing: "0.04em",
+            }}
+          >
+            Klik untuk aktifkan Pro
+          </Typography>
+        </Box>
+      </Paper>
+    );
+  }
 
   return (
     <Paper

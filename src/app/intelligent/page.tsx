@@ -9,30 +9,63 @@ import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
 import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
+import Button from "@mui/material/Button";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import LockIcon from "@mui/icons-material/Lock";
 import { SentimentChip } from "@/components/ReportDashboard";
 import { MarketChat } from "@/components/MarketChat";
+import { ProPaywallModal } from "@/components/ProPaywallModal";
+import { useProContext, FREE_INSIGHT_KEY, MAX_FREE_TRIES } from "@/lib/pro-context";
 import type { MarketIntelligenceListItem } from "@/lib/types";
 
-function ReportCard({ item }: { item: MarketIntelligenceListItem }) {
+function ReportCard({
+  item,
+  onLocked,
+}: {
+  item: MarketIntelligenceListItem;
+  onLocked: () => void;
+}) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const router = useRouter();
+  const { isPro, user, consumeInsightTry, insightTries } = useProContext();
 
   const dateLabel = new Date(item.report_date + "T00:00:00").toLocaleDateString(
     "en-GB",
     { weekday: "short", day: "2-digit", month: "short", year: "numeric" }
   );
 
+  const handleClick = useCallback(() => {
+    if (isPro) {
+      router.push(`/intelligent/${item.report_date}`);
+      return;
+    }
+    if (!user && insightTries < MAX_FREE_TRIES) {
+      const ok = consumeInsightTry();
+      if (ok) {
+        router.push(`/intelligent/${item.report_date}`);
+        return;
+      }
+    }
+    if (user && !isPro) {
+      onLocked();
+      return;
+    }
+    onLocked();
+  }, [isPro, user, insightTries, consumeInsightTry, item.report_date, router, onLocked]);
+
+  const isLocked = !isPro && (user !== null || insightTries >= MAX_FREE_TRIES);
+
   return (
     <Paper
-      onClick={() => router.push(`/intelligent/${item.report_date}`)}
+      onClick={handleClick}
       sx={{
         borderRadius: 3,
         overflow: "hidden",
         cursor: "pointer",
+        position: "relative",
         transition:
           "border-color 0.25s ease, box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
         "&:hover": {
@@ -80,6 +113,7 @@ function ReportCard({ item }: { item: MarketIntelligenceListItem }) {
               height: "100%",
               objectFit: "cover",
               transition: "transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)",
+              filter: isLocked ? "blur(3px) brightness(0.7)" : "none",
             }}
           />
         ) : null}
@@ -132,6 +166,26 @@ function ReportCard({ item }: { item: MarketIntelligenceListItem }) {
         >
           <SentimentChip sentiment={item.sentiment} />
         </Box>
+
+        {isLocked && (
+          <Box
+            sx={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              width: 28,
+              height: 28,
+              borderRadius: "8px",
+              bgcolor: "rgba(0,0,0,0.55)",
+              backdropFilter: "blur(6px)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <LockIcon sx={{ fontSize: 14, color: isDark ? "#d4a843" : "#c49a3a" }} />
+          </Box>
+        )}
       </Box>
 
       <Box sx={{ p: 2 }}>
@@ -171,6 +225,8 @@ function ReportCard({ item }: { item: MarketIntelligenceListItem }) {
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
+            filter: isLocked ? "blur(3px)" : "none",
+            userSelect: isLocked ? "none" : "auto",
           }}
         >
           {item.title || `Market Report -- ${dateLabel}`}
@@ -187,6 +243,8 @@ function ReportCard({ item }: { item: MarketIntelligenceListItem }) {
             WebkitLineClamp: 2,
             WebkitBoxOrient: "vertical",
             overflow: "hidden",
+            filter: isLocked ? "blur(4px)" : "none",
+            userSelect: isLocked ? "none" : "auto",
           }}
         >
           {item.summary}
@@ -204,17 +262,32 @@ function ReportCard({ item }: { item: MarketIntelligenceListItem }) {
             transition: "all 0.25s ease",
           }}
         >
-          <Typography
-            variant="caption"
-            sx={{
-              fontSize: "0.65rem",
-              fontWeight: 600,
-              color: "primary.main",
-            }}
-          >
-            Read full report
-          </Typography>
-          <ArrowForwardIcon sx={{ fontSize: 12, color: "primary.main" }} />
+          {isLocked ? (
+            <Typography
+              variant="caption"
+              sx={{
+                fontSize: "0.65rem",
+                fontWeight: 600,
+                color: isDark ? "#d4a843" : "#a17c2f",
+              }}
+            >
+              Pro members only — Aktifkan untuk baca
+            </Typography>
+          ) : (
+            <>
+              <Typography
+                variant="caption"
+                sx={{
+                  fontSize: "0.65rem",
+                  fontWeight: 600,
+                  color: "primary.main",
+                }}
+              >
+                Read full report
+              </Typography>
+              <ArrowForwardIcon sx={{ fontSize: 12, color: "primary.main" }} />
+            </>
+          )}
         </Box>
       </Box>
     </Paper>
@@ -224,9 +297,12 @@ function ReportCard({ item }: { item: MarketIntelligenceListItem }) {
 export default function IntelligentPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
+  const { user, isPro, loading: proLoading, insightTries, chatTries, consumeChatTry } = useProContext();
   const [reports, setReports] = useState<MarketIntelligenceListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paywallOpen, setPaywallOpen] = useState(false);
+  const [paywallMode, setPaywallMode] = useState<"login" | "pro">("login");
 
   const fetchReports = useCallback(async () => {
     try {
@@ -249,6 +325,27 @@ export default function IntelligentPage() {
   useEffect(() => {
     fetchReports();
   }, [fetchReports]);
+
+  const handleLockedClick = useCallback(() => {
+    if (!user) {
+      setPaywallMode("login");
+    } else {
+      setPaywallMode("pro");
+    }
+    setPaywallOpen(true);
+  }, [user]);
+
+  const chatLocked = !isPro && (user !== null || chatTries >= 1);
+  const handleChatAttempt = useCallback(() => {
+    if (isPro) return false;
+    if (!user && chatTries < 1) {
+      const ok = consumeChatTry();
+      return !ok;
+    }
+    setPaywallMode(user ? "pro" : "login");
+    setPaywallOpen(true);
+    return true;
+  }, [isPro, user, chatTries, consumeChatTry]);
 
   return (
     <Stack spacing={3}>
@@ -316,6 +413,78 @@ export default function IntelligentPage() {
           </Typography>
         </Box>
       </Box>
+
+      {!proLoading && !isPro && (
+        <Box
+          className="animate-in"
+          sx={{
+            p: 2,
+            borderRadius: 2.5,
+            background: isDark
+              ? "linear-gradient(135deg, rgba(212,168,67,0.06) 0%, rgba(129,140,248,0.05) 100%)"
+              : "linear-gradient(135deg, rgba(161,124,47,0.05) 0%, rgba(129,140,248,0.04) 100%)",
+            border: `1px solid ${isDark ? "rgba(212,168,67,0.15)" : "rgba(161,124,47,0.12)"}`,
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            flexWrap: "wrap",
+          }}
+        >
+          <Box sx={{ flex: 1, minWidth: 180 }}>
+            <Typography
+              sx={{
+                fontFamily: '"Outfit", sans-serif',
+                fontWeight: 700,
+                fontSize: "0.88rem",
+                letterSpacing: "-0.01em",
+                mb: 0.25,
+              }}
+            >
+              {user ? "Aktifkan Pro untuk akses penuh" : "Coba gratis 1 laporan"}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: "0.72rem",
+                color: "text.secondary",
+                fontFamily: '"Plus Jakarta Sans", sans-serif',
+                lineHeight: 1.4,
+              }}
+            >
+              {user
+                ? "Dapatkan semua laporan harian + AI Chat tanpa batas + newsletter"
+                : `${MAX_FREE_TRIES - insightTries} dari ${MAX_FREE_TRIES} laporan gratis tersisa. Daftar Pro untuk akses penuh.`}
+            </Typography>
+          </Box>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => {
+              setPaywallMode(user ? "pro" : "login");
+              setPaywallOpen(true);
+            }}
+            sx={{
+              background: isDark
+                ? "linear-gradient(135deg, #d4a843, #e8c468)"
+                : "linear-gradient(135deg, #a17c2f, #c49a3a)",
+              color: "#060a14",
+              fontWeight: 700,
+              fontSize: "0.75rem",
+              borderRadius: "10px",
+              px: 2,
+              py: 0.75,
+              boxShadow: "none",
+              fontFamily: '"Outfit", sans-serif',
+              "&:hover": {
+                boxShadow: isDark
+                  ? "0 4px 16px rgba(212,168,67,0.25)"
+                  : "0 4px 16px rgba(161,124,47,0.2)",
+              },
+            }}
+          >
+            {user ? "Pro — Rp99.000/bln" : "Mulai Gratis"}
+          </Button>
+        </Box>
+      )}
 
       {error && (
         <Paper sx={{ p: 2, borderRadius: 2.5, textAlign: "center" }}>
@@ -430,7 +599,7 @@ export default function IntelligentPage() {
           <Grid container spacing={2} className="animate-in animate-in-delay-1">
           {reports.map((item) => (
             <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={item.id}>
-              <ReportCard item={item} />
+              <ReportCard item={item} onLocked={handleLockedClick} />
             </Grid>
           ))}
           </Grid>
@@ -495,8 +664,19 @@ export default function IntelligentPage() {
             </Typography>
           </Box>
         </Box>
-        <MarketChat placeholder="Ask about Indonesian stocks or tanya dalam Bahasa Indonesia..." />
+        <MarketChat
+          placeholder="Ask about Indonesian stocks or tanya dalam Bahasa Indonesia..."
+          locked={chatLocked}
+          onLockedAttempt={handleChatAttempt}
+        />
       </Box>
+
+      <ProPaywallModal
+        open={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+        initialMode={paywallMode}
+        reason="insight"
+      />
     </Stack>
   );
 }
