@@ -34,14 +34,20 @@ export function StatsCard({
         height: "100%",
         position: "relative",
         overflow: "hidden",
-        transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+        transition:
+          "border-color 0.25s ease, box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
         "&:hover": {
           borderColor: isDark
             ? "rgba(212,168,67,0.2)"
             : "rgba(161,124,47,0.15)",
           boxShadow: isDark
-            ? "0 4px 24px rgba(0,0,0,0.3)"
-            : "0 4px 24px rgba(0,0,0,0.06)",
+            ? `0 8px 32px rgba(0,0,0,0.35), 0 0 24px ${accent}12`
+            : `0 8px 32px rgba(0,0,0,0.07), 0 0 20px ${accent}08`,
+          transform: "translateY(-2px)",
+        },
+        "&:hover .stats-card-icon": {
+          opacity: 0.5,
+          transform: "scale(1.15) rotate(-5deg)",
         },
         "&::before": {
           content: '""',
@@ -51,8 +57,8 @@ export function StatsCard({
           width: 3,
           height: 24,
           borderRadius: "0 3px 3px 0",
-          bgcolor: accent,
-          opacity: 0.7,
+          background: `linear-gradient(180deg, ${accent}, ${accent}44)`,
+          boxShadow: `0 0 10px ${accent}30`,
         },
       }}
     >
@@ -114,9 +120,12 @@ export function StatsCard({
         </Box>
         {icon && (
           <Box
+            className="stats-card-icon"
             sx={{
               color: accent,
-              opacity: 0.3,
+              opacity: 0.25,
+              transition:
+                "opacity 0.3s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
               "& .MuiSvgIcon-root": { fontSize: 28 },
             }}
           >

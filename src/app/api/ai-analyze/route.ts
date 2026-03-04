@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
   const supabase = getSupabase();
 
   const [
+    companyRes,
     ownershipRes,
     financialsRes,
     financialHistoryRes,
@@ -89,7 +90,16 @@ export async function POST(request: NextRequest) {
     shareholderRes,
     directorsRes,
     commissionersRes,
+    subsidiariesRes,
+    bondsRes,
+    splitsRes,
+    corpActionsRes,
   ] = await Promise.all([
+    supabase
+      .from("idx_companies")
+      .select("*")
+      .eq("kode_emiten", stockCode)
+      .maybeSingle(),
     supabase
       .from(TABLE_NAME)
       .select("INVESTOR_NAME, INVESTOR_TYPE, LOCAL_FOREIGN, PERCENTAGE, TOTAL_HOLDING_SHARES")
@@ -115,7 +125,7 @@ export async function POST(request: NextRequest) {
       .order("date", { ascending: false })
       .limit(30),
     supabase
-      .from("idx_dividendends")
+      .from("idx_dividends")
       .select("*")
       .eq("code", stockCode)
       .order("ex_dividend", { ascending: false })
@@ -134,9 +144,53 @@ export async function POST(request: NextRequest) {
       .from("idx_company_commissioners")
       .select("nama, jabatan, afiliasi")
       .eq("kode_emiten", stockCode),
+    supabase
+      .from("idx_subsidiaries")
+      .select("nama, bidang_usaha, lokasi, persentase, jumlah_aset, mata_uang, status_operasi")
+      .eq("kode_emiten", stockCode)
+      .order("jumlah_aset", { ascending: false })
+      .limit(15),
+    supabase
+      .from("idx_bonds")
+      .select("nama_emisi, rating, nominal, margin, listing_date, mature_date")
+      .eq("kode_emiten", stockCode)
+      .order("listing_date", { ascending: false })
+      .limit(10),
+    supabase
+      .from("idx_stock_splits")
+      .select("ratio, ssrs, nominal_value, nominal_value_new, listing_date")
+      .eq("code", stockCode)
+      .order("listing_date", { ascending: false }),
+    supabase
+      .from("idx_corporate_actions")
+      .select("action_type, action_type_raw, num_of_shares, start_date, last_date")
+      .eq("code", stockCode)
+      .order("start_date", { ascending: false })
+      .limit(15),
   ]);
 
   const stockData: Record<string, unknown> = { stockCode };
+
+  if (companyRes.data) {
+    const c = companyRes.data;
+    stockData.companyProfile = {
+      name: c.nama_emiten,
+      sector: c.sektor,
+      subSector: c.sub_sektor,
+      industry: c.industri,
+      subIndustry: c.sub_industri,
+      mainBusiness: c.kegiatan_usaha_utama,
+      address: c.alamat,
+      website: c.website,
+      email: c.email,
+      phone: c.telepon,
+      listingBoard: c.papan_pencatatan,
+      listingDate: c.tanggal_pencatatan,
+      registrar: c.bae,
+      hasStocks: c.efek_saham,
+      hasBonds: c.efek_obligasi,
+    };
+  }
 
   if (ownershipRes.data?.length) {
     const records = ownershipRes.data;
@@ -277,7 +331,50 @@ export async function POST(request: NextRequest) {
     }));
   }
 
-  const companyName = (stockData.financials as any)?.name || "";
+  if (subsidiariesRes.data?.length) {
+    stockData.subsidiaries = subsidiariesRes.data.map((s: any) => ({
+      name: s.nama,
+      business: s.bidang_usaha,
+      location: s.lokasi,
+      ownership: s.persentase + "%",
+      assets: s.jumlah_aset,
+      currency: s.mata_uang,
+      status: s.status_operasi,
+    }));
+  }
+
+  if (bondsRes.data?.length) {
+    stockData.bonds = bondsRes.data.map((b: any) => ({
+      name: b.nama_emisi,
+      rating: b.rating,
+      nominal: b.nominal,
+      margin: b.margin,
+      listed: b.listing_date,
+      maturity: b.mature_date,
+    }));
+  }
+
+  if (splitsRes.data?.length) {
+    stockData.stockSplits = splitsRes.data.map((s: any) => ({
+      ratio: s.ratio,
+      type: s.ssrs === "SS" ? "Stock Split" : "Reverse Split",
+      oldNominal: s.nominal_value,
+      newNominal: s.nominal_value_new,
+      date: s.listing_date,
+    }));
+  }
+
+  if (corpActionsRes.data?.length) {
+    stockData.corporateActions = corpActionsRes.data.map((ca: any) => ({
+      type: ca.action_type,
+      detail: ca.action_type_raw,
+      shares: ca.num_of_shares,
+      startDate: ca.start_date,
+      endDate: ca.last_date,
+    }));
+  }
+
+  const companyName = (stockData.companyProfile as any)?.name || (stockData.financials as any)?.name || "";
   const newsHeadlines = await fetchNews(stockCode, companyName);
 
   if (newsHeadlines.length > 0) {

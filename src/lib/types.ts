@@ -215,6 +215,115 @@ export interface IDXStockSummary {
   created_at: string;
 }
 
+export interface IDXCompany {
+  kode_emiten: string;
+  nama_emiten: string;
+  alamat: string;
+  bae: string;
+  sektor: string;
+  sub_sektor: string;
+  industri: string;
+  sub_industri: string;
+  email: string;
+  fax: string;
+  telepon: string;
+  website: string;
+  kegiatan_usaha_utama: string;
+  npwp: string;
+  papan_pencatatan: string;
+  tanggal_pencatatan: string;
+  efek_saham: boolean;
+  efek_obligasi: boolean;
+  efek_etf: boolean;
+  efek_eba: boolean;
+  efek_spei: boolean;
+  logo: string;
+  details_fetched: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IDXSubsidiary {
+  id: number;
+  kode_emiten: string;
+  nama: string;
+  bidang_usaha: string;
+  lokasi: string;
+  persentase: string;
+  jumlah_aset: string;
+  mata_uang: string;
+  satuan: string;
+  status_operasi: string;
+  tahun_komersil: string;
+  created_at: string;
+}
+
+export interface IDXAuditCommittee {
+  id: number;
+  kode_emiten: string;
+  nama: string;
+  jabatan: string;
+  created_at: string;
+}
+
+export interface IDXBond {
+  id: number;
+  kode_emiten: string;
+  nama_emisi: string;
+  listing_date: string;
+  mature_date: string;
+  rating: string;
+  nominal: string;
+  margin: string;
+  wali_amanat: string;
+  isin_code: string;
+  created_at: string;
+}
+
+export interface IDXStockSplit {
+  id: number;
+  code: string;
+  stock_name: string;
+  ratio: string;
+  ssrs: string;
+  nominal_value: string;
+  nominal_value_new: string;
+  additional_listed_shares: string | null;
+  listed_shares: string;
+  listing_date: string;
+  period_year: number;
+  period_quarter: number;
+  created_at: string;
+}
+
+export interface IDXCorporateAction {
+  id: number;
+  code: string;
+  issuer_name: string;
+  num_of_shares: string;
+  action_type: string;
+  action_type_raw: string;
+  start_date: string;
+  last_date: string;
+  period_year: number;
+  period_quarter: number;
+  created_at: string;
+}
+
+export interface IDXCalendarEvent {
+  id: number;
+  code: string;
+  event_type: string;
+  event_type_raw: string;
+  description: string;
+  location: string;
+  event_date: string;
+  rups_datetime: string | null;
+  pe_datetime: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export function formatBillion(value: string | number): string {
   const num = typeof value === "string" ? parseFloat(value) : value;
   if (isNaN(num)) return "-";

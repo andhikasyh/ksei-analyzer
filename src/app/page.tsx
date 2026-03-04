@@ -7,13 +7,19 @@ import { supabase, TABLE_NAME } from "@/lib/supabase";
 import {
   KSEIRecord,
   IDXStockSummary,
+  IDXDividend,
+  IDXCorporateAction,
+  IDXStockSplit,
+  IDXCalendarEvent,
   INVESTOR_TYPE_MAP,
   formatShares,
   formatValue,
+  formatRatio,
 } from "@/lib/types";
 import { StatsCard, StatsCardSkeleton } from "@/components/StatsCard";
 import { GlobalSearch } from "@/components/SearchInput";
 import { InvestorTypeBadge, LocalForeignBadge } from "@/components/Badge";
+import { EventCalendar } from "@/components/EventCalendar";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -35,6 +41,10 @@ import FlagIcon from "@mui/icons-material/Flag";
 import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 import TrendingDownIcon from "@mui/icons-material/TrendingDown";
 import WhatshotIcon from "@mui/icons-material/Whatshot";
+import EventIcon from "@mui/icons-material/Event";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import SplitscreenIcon from "@mui/icons-material/Splitscreen";
+import CampaignIcon from "@mui/icons-material/Campaign";
 
 interface TypeBreakdown {
   code: string;
@@ -100,6 +110,16 @@ function aggregateInvestors(records: KSEIRecord[]): TopInvestor[] {
     .slice(0, 10);
 }
 
+interface UpcomingEvent {
+  code: string;
+  name: string;
+  type: "Dividend" | "Right Issue" | "Warrant" | "Stock Split" | "Bond Conversion" | "Additional Listing" | "Delisting" | string;
+  detail: string;
+  date: string;
+  endDate?: string;
+  amount?: string;
+}
+
 interface MarketMover {
   code: string;
   name: string;
@@ -124,11 +144,11 @@ function SectionHeader({
       <Box
         sx={{
           width: 3,
-          height: 18,
+          height: 20,
           borderRadius: 2,
-          bgcolor: "primary.main",
-          opacity: 0.7,
+          background: `linear-gradient(180deg, ${theme.palette.primary.main}, ${theme.palette.primary.light}55)`,
           flexShrink: 0,
+          boxShadow: `0 0 10px ${theme.palette.primary.main}30`,
         }}
       />
       <Box>
@@ -170,6 +190,8 @@ export default function DashboardPage() {
     losers: MarketMover[];
     active: MarketMover[];
   } | null>(null);
+  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<IDXCalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -225,6 +247,87 @@ export default function DashboardPage() {
             .sort((a, b) => b.value - a.value)
             .slice(0, 8);
           setMovers({ gainers, losers, active });
+        }
+
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const cutoffDate = thirtyDaysAgo.toISOString().split("T")[0];
+
+        const [divRes, caRes, splitRes, calendarRes] = await Promise.all([
+          supabase
+            .from("idx_dividends")
+            .select("code, name, cash_dividend, cum_dividend, ex_dividend, payment_date, note")
+            .gte("payment_date", cutoffDate)
+            .order("ex_dividend", { ascending: true })
+            .limit(20),
+          supabase
+            .from("idx_corporate_actions")
+            .select("code, issuer_name, action_type, action_type_raw, num_of_shares, start_date, last_date")
+            .gte("last_date", cutoffDate)
+            .order("start_date", { ascending: true })
+            .limit(20),
+          supabase
+            .from("idx_stock_splits")
+            .select("code, stock_name, ratio, ssrs, nominal_value, nominal_value_new, listing_date")
+            .gte("listing_date", cutoffDate)
+            .order("listing_date", { ascending: true })
+            .limit(10),
+          supabase
+            .from("idx_calendar_events")
+            .select("*")
+            .gte("event_date", new Date().toISOString().split("T")[0])
+            .order("event_date", { ascending: true })
+            .limit(100),
+        ]);
+
+        const events: UpcomingEvent[] = [];
+
+        if (divRes.data) {
+          (divRes.data as IDXDividend[]).forEach((d) => {
+            const noteLabel =
+              d.note === "F" ? "Final" : d.note === "I" ? "Interim" : d.note === "S" ? "Special" : d.note || "";
+            events.push({
+              code: d.code,
+              name: d.name,
+              type: "Dividend",
+              detail: `${noteLabel} - Rp ${formatRatio(d.cash_dividend)}/share`,
+              date: d.ex_dividend,
+              endDate: d.payment_date,
+              amount: d.cash_dividend,
+            });
+          });
+        }
+
+        if (caRes.data) {
+          (caRes.data as IDXCorporateAction[]).forEach((ca) => {
+            events.push({
+              code: ca.code,
+              name: ca.issuer_name,
+              type: ca.action_type,
+              detail: `${ca.action_type_raw} - ${formatShares(ca.num_of_shares)} shares`,
+              date: ca.start_date,
+              endDate: ca.last_date,
+            });
+          });
+        }
+
+        if (splitRes.data) {
+          (splitRes.data as IDXStockSplit[]).forEach((s) => {
+            events.push({
+              code: s.code,
+              name: s.stock_name,
+              type: "Stock Split",
+              detail: `${s.ssrs === "SS" ? "Split" : "Reverse"} ${s.ratio} (Rp ${formatRatio(s.nominal_value)} -> Rp ${formatRatio(s.nominal_value_new)})`,
+              date: s.listing_date,
+            });
+          });
+        }
+
+        events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setUpcomingEvents(events.slice(0, 25));
+
+        if (calendarRes.data) {
+          setCalendarEvents(calendarRes.data as IDXCalendarEvent[]);
         }
 
         const { data: records, error: fetchError } = kseiRes;
@@ -629,6 +732,168 @@ export default function DashboardPage() {
         </Box>
       )}
 
+      {upcomingEvents.length > 0 && (
+        <Box className="animate-in animate-in-delay-5">
+          <SectionHeader
+            title="Corporate Actions"
+            subtitle="Recent & upcoming events"
+          />
+          <Paper sx={{ borderRadius: 2.5, overflow: "hidden" }}>
+            <TableContainer sx={{ maxHeight: 380 }}>
+              <Table size="small" stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Code</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Detail</TableCell>
+                    <TableCell>Date</TableCell>
+                    <TableCell>End</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {upcomingEvents.map((ev, i) => {
+                    const eventDate = new Date(ev.date);
+                    const isUpcoming = eventDate >= new Date();
+                    return (
+                      <TableRow
+                        key={`${ev.code}-${ev.type}-${i}`}
+                        hover
+                        sx={{
+                          cursor: "pointer",
+                          "&:last-child td": { borderBottom: 0 },
+                          opacity: isUpcoming ? 1 : 0.7,
+                        }}
+                        onClick={() => router.push(`/stock/${ev.code}`)}
+                      >
+                        <TableCell>
+                          <Typography
+                            sx={{
+                              fontWeight: 700,
+                              fontFamily: '"JetBrains Mono", monospace',
+                              color: "primary.main",
+                              fontSize: "0.75rem",
+                            }}
+                          >
+                            {ev.code}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary",
+                              fontSize: "0.55rem",
+                              display: "block",
+                              maxWidth: 90,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {ev.name}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            label={ev.type}
+                            size="small"
+                            icon={
+                              ev.type === "Dividend" ? <PaymentsIcon sx={{ fontSize: "12px !important" }} /> :
+                              ev.type === "Stock Split" ? <SplitscreenIcon sx={{ fontSize: "12px !important" }} /> :
+                              <CampaignIcon sx={{ fontSize: "12px !important" }} />
+                            }
+                            sx={{
+                              fontSize: "0.58rem",
+                              height: 20,
+                              fontWeight: 600,
+                              bgcolor: ev.type === "Dividend"
+                                ? isDark ? "rgba(52,211,153,0.12)" : "rgba(5,150,105,0.08)"
+                                : ev.type === "Right Issue"
+                                  ? isDark ? "rgba(96,165,250,0.12)" : "rgba(59,130,246,0.08)"
+                                  : ev.type === "Stock Split"
+                                    ? isDark ? "rgba(168,85,247,0.12)" : "rgba(139,92,246,0.08)"
+                                    : isDark ? "rgba(251,191,36,0.12)" : "rgba(217,119,6,0.08)",
+                              color: ev.type === "Dividend"
+                                ? "#34d399"
+                                : ev.type === "Right Issue"
+                                  ? isDark ? "#60a5fa" : "#3b82f6"
+                                  : ev.type === "Stock Split"
+                                    ? isDark ? "#a855f7" : "#8b5cf6"
+                                    : "#fbbf24",
+                              "& .MuiChip-icon": {
+                                color: "inherit",
+                                ml: 0.5,
+                              },
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "text.secondary",
+                              maxWidth: 200,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              display: "block",
+                              fontSize: "0.7rem",
+                            }}
+                          >
+                            {ev.detail}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            {isUpcoming && (
+                              <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: "#34d399", flexShrink: 0 }} />
+                            )}
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontFamily: '"JetBrains Mono", monospace',
+                                whiteSpace: "nowrap",
+                                fontSize: "0.68rem",
+                                fontWeight: isUpcoming ? 600 : 400,
+                              }}
+                            >
+                              {eventDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}
+                            </Typography>
+                          </Stack>
+                        </TableCell>
+                        <TableCell>
+                          {ev.endDate && (
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontFamily: '"JetBrains Mono", monospace',
+                                whiteSpace: "nowrap",
+                                fontSize: "0.68rem",
+                                color: "text.secondary",
+                              }}
+                            >
+                              {new Date(ev.endDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "2-digit" })}
+                            </Typography>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Paper>
+        </Box>
+      )}
+
+      {calendarEvents.length > 0 && (
+        <Box className="animate-in animate-in-delay-5">
+          <SectionHeader
+            title="IDX Calendar"
+            subtitle="Scheduled RUPS & corporate events"
+          />
+          <EventCalendar events={calendarEvents} />
+        </Box>
+      )}
+
       <Box className="animate-in animate-in-delay-5">
         <SectionHeader
           title="Market Overview"
@@ -647,16 +912,17 @@ export default function DashboardPage() {
                   flexDirection: "column",
                   gap: 0.75,
                   cursor: "pointer",
-                  transition: "all 0.2s ease",
+                  transition:
+                    "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
                   "&:hover": {
                     borderColor: "primary.main",
                     bgcolor: isDark
                       ? "rgba(212,168,67,0.04)"
                       : "rgba(161,124,47,0.03)",
-                    transform: "translateY(-1px)",
+                    transform: "translateY(-2px)",
                     boxShadow: isDark
-                      ? "0 4px 16px rgba(0,0,0,0.3)"
-                      : "0 4px 16px rgba(0,0,0,0.06)",
+                      ? `0 8px 24px rgba(0,0,0,0.3), 0 0 16px rgba(212,168,67,0.05)`
+                      : "0 8px 24px rgba(0,0,0,0.06)",
                   },
                 }}
               >
@@ -1062,6 +1328,14 @@ function MoverTable({
         overflow: "hidden",
         height: "100%",
         position: "relative",
+        transition:
+          "border-color 0.25s ease, box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        "&:hover": {
+          transform: "translateY(-2px)",
+          boxShadow: isDark
+            ? `0 8px 32px rgba(0,0,0,0.35), 0 0 20px ${accentColor}10`
+            : `0 8px 32px rgba(0,0,0,0.07)`,
+        },
         "&::before": {
           content: '""',
           position: "absolute",
@@ -1070,7 +1344,8 @@ function MoverTable({
           right: 0,
           height: 2,
           background: `linear-gradient(90deg, ${accentColor}, transparent)`,
-          opacity: 0.5,
+          opacity: 0.6,
+          boxShadow: `0 0 12px ${accentColor}30`,
         },
       }}
     >

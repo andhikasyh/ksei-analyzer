@@ -67,19 +67,23 @@ export function Navbar() {
                 alignItems: "center",
                 justifyContent: "center",
                 flexShrink: 0,
+                boxShadow: isDark
+                  ? "0 0 14px rgba(212,168,67,0.25), 0 0 4px rgba(212,168,67,0.15)"
+                  : "0 0 10px rgba(161,124,47,0.18)",
+                transition: "box-shadow 0.3s ease",
               }}
             >
               <Typography
                 sx={{
-                  fontFamily: '"Outfit", sans-serif',
-                  fontWeight: 800,
-                  fontSize: "0.7rem",
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontWeight: 700,
+                  fontSize: "0.6rem",
                   color: "#060a14",
                   lineHeight: 1,
-                  letterSpacing: "-0.04em",
+                  letterSpacing: "-0.02em",
                 }}
               >
-                iDX
+                {">_"}
               </Typography>
             </Box>
             <Typography
@@ -91,7 +95,7 @@ export function Navbar() {
                 color: "text.primary",
               }}
             >
-              Analyzer
+              Terminal
             </Typography>
           </Box>
 

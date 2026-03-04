@@ -100,7 +100,23 @@ export function FinancialTrendsPanel({ stockCode }: FinancialTrendsProps) {
   }, [records]);
 
   if (loading) return <FinancialTrendsSkeleton />;
-  if (chartData.length < 2) return null;
+  if (chartData.length < 2) {
+    return (
+      <Stack spacing={2}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <TimelineIcon sx={{ fontSize: 18, color: "text.secondary", opacity: 0.6 }} />
+          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+            Financial Trends
+          </Typography>
+        </Stack>
+        <Paper sx={{ p: 4, borderRadius: 3, textAlign: "center" }}>
+          <Typography variant="body2" color="text.secondary">
+            Not enough financial data to show trends for this stock.
+          </Typography>
+        </Paper>
+      </Stack>
+    );
+  }
 
   const tooltipStyle = {
     contentStyle: {

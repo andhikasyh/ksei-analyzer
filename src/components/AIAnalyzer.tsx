@@ -154,13 +154,12 @@ function parseMarkdown(text: string): string {
 function useMarkdownStyles(isDark: boolean, accentColor: string) {
   const borderSub = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
   return {
-    fontFamily: '"Source Serif 4", "Georgia", serif',
-    fontSize: "0.88rem",
-    lineHeight: 1.8,
+    fontSize: "0.85rem",
+    lineHeight: 1.75,
     color: "text.primary",
+    letterSpacing: "0.01em",
     "& .md-h1": {
-      fontFamily: '"Playfair Display", serif',
-      fontSize: "1.3rem",
+      fontSize: "1.15rem",
       fontWeight: 700,
       mt: 3,
       mb: 1.5,
@@ -169,15 +168,14 @@ function useMarkdownStyles(isDark: boolean, accentColor: string) {
       color: accentColor,
     },
     "& .md-h2": {
-      fontFamily: '"Playfair Display", serif',
-      fontSize: "1.1rem",
+      fontSize: "1.02rem",
       fontWeight: 700,
       mt: 2.5,
       mb: 1,
       color: "text.primary",
     },
     "& .md-h3": {
-      fontSize: "0.95rem",
+      fontSize: "0.92rem",
       fontWeight: 700,
       mt: 2,
       mb: 0.75,
@@ -185,7 +183,7 @@ function useMarkdownStyles(isDark: boolean, accentColor: string) {
     },
     "& .md-p": {
       my: 1,
-      color: isDark ? "rgba(232,237,245,0.85)" : "rgba(12,18,34,0.78)",
+      color: isDark ? "rgba(232,237,245,0.88)" : "rgba(12,18,34,0.75)",
     },
     "& .md-code": {
       fontFamily: '"JetBrains Mono", monospace',
@@ -446,7 +444,7 @@ export function AIAnalyzerPanel({ stockCode }: AIAnalyzerProps) {
         </Box>
         <Typography
           variant="h6"
-          sx={{ fontWeight: 700, mb: 0.5, fontFamily: '"Playfair Display", serif' }}
+          sx={{ fontWeight: 700, mb: 0.5 }}
         >
           AI Stock Analysis
         </Typography>

@@ -58,6 +58,9 @@ import CategoryIcon from "@mui/icons-material/Category";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
 import CloseIcon from "@mui/icons-material/Close";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import PeopleIcon from "@mui/icons-material/People";
+import ShowChartIcon from "@mui/icons-material/ShowChart";
+import { InvestorScreener } from "@/components/InvestorScreener";
 
 const SECTOR_ICONS: Record<string, React.ReactNode> = {
   Financials: <AccountBalanceIcon />,
@@ -522,6 +525,7 @@ export default function ScreenerPage() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [screenerTab, setScreenerTab] = useState(0);
 
   useEffect(() => {
     async function fetch() {
@@ -690,45 +694,71 @@ export default function ScreenerPage() {
       >
         <Box>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            Stock Screener
+            Screener
           </Typography>
           <Typography
             variant="body2"
             color="text.secondary"
             sx={{ mt: 0.25 }}
           >
-            {data.length} companies with financial ratios
+            Browse stocks and investors on the IDX
           </Typography>
         </Box>
-        <Button
-          startIcon={<HelpOutlineIcon sx={{ fontSize: 16 }} />}
-          onClick={() => setGuideOpen(true)}
-          size="small"
-          variant="outlined"
+        {screenerTab === 0 && (
+          <Button
+            startIcon={<HelpOutlineIcon sx={{ fontSize: 16 }} />}
+            onClick={() => setGuideOpen(true)}
+            size="small"
+            variant="outlined"
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              px: 1.5,
+              borderColor: isDark
+                ? "rgba(212,168,67,0.25)"
+                : "rgba(161,124,47,0.2)",
+              color: "primary.main",
+              flexShrink: 0,
+              "&:hover": {
+                borderColor: "primary.main",
+                bgcolor: isDark
+                  ? "rgba(212,168,67,0.06)"
+                  : "rgba(161,124,47,0.04)",
+              },
+            }}
+          >
+            Learn Ratios
+          </Button>
+        )}
+      </Box>
+
+      <Paper sx={{ borderRadius: 2.5, overflow: "hidden" }}>
+        <Tabs
+          value={screenerTab}
+          onChange={(_, v) => setScreenerTab(v)}
           sx={{
-            borderRadius: 2,
-            textTransform: "none",
-            fontSize: "0.78rem",
-            fontWeight: 600,
-            px: 1.5,
-            borderColor: isDark
-              ? "rgba(212,168,67,0.25)"
-              : "rgba(161,124,47,0.2)",
-            color: "primary.main",
-            flexShrink: 0,
-            "&:hover": {
-              borderColor: "primary.main",
-              bgcolor: isDark
-                ? "rgba(212,168,67,0.06)"
-                : "rgba(161,124,47,0.04)",
+            minHeight: 38,
+            px: 1,
+            "& .MuiTab-root": {
+              minHeight: 38,
+              py: 0,
+              px: 2,
+              fontSize: "0.8rem",
+              textTransform: "none",
+              fontWeight: 600,
             },
           }}
         >
-          Learn Ratios
-        </Button>
-      </Box>
+          <Tab icon={<ShowChartIcon sx={{ fontSize: 16 }} />} iconPosition="start" label="Stocks" />
+          <Tab icon={<PeopleIcon sx={{ fontSize: 16 }} />} iconPosition="start" label="Investors" />
+        </Tabs>
+      </Paper>
 
-      <Grid container spacing={1.5}>
+      {screenerTab === 1 && <InvestorScreener />}
+
+      {screenerTab === 0 && <><Grid container spacing={1.5}>
         {sectorStats.map((s) => (
           <Grid size={{ xs: 6, sm: 4, md: 3, lg: 2 }} key={s.sector}>
             <StatsCard
@@ -1038,6 +1068,7 @@ export default function ScreenerPage() {
           </Button>
         </Box>
       )}
+      </>}
 
       <RatioGuideModal
         open={guideOpen}

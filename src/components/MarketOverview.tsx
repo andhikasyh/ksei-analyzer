@@ -116,7 +116,7 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
         >
           <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)", gridColumn: { xs: "span 2", sm: "span 1" } }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-              Close
+              Close (Rp)
             </Typography>
             <Typography variant="h6" sx={{ fontWeight: 700, fontFamily: '"JetBrains Mono", monospace', lineHeight: 1.2 }}>
               {close.toLocaleString()}
@@ -135,7 +135,7 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
 
           <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-              Day Range
+              Day Range (Rp)
             </Typography>
             <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.6 }}>
               {p(latest.low).toLocaleString()} - {p(latest.high).toLocaleString()}
@@ -144,7 +144,7 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
 
           <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-              Volume
+              Volume (Lots)
             </Typography>
             <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.6 }}>
               {formatShares(latest.volume)}
@@ -153,7 +153,7 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
 
           <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-              Value
+              Value (Rp)
             </Typography>
             <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.6 }}>
               {formatValue(p(latest.value))}
@@ -162,7 +162,7 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
 
           <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-              Market Cap
+              Market Cap (Rp)
             </Typography>
             <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.6 }}>
               {formatValue(marketCap)}
@@ -180,7 +180,7 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
         >
           <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-              Foreign Net
+              Foreign Net (Lots)
             </Typography>
             <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, color: foreignNetColor, lineHeight: 1.4 }}>
               {foreignNet >= 0 ? "+" : ""}{formatShares(foreignNet)}
@@ -192,7 +192,7 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
 
           <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-              Bid
+              Bid (Rp)
             </Typography>
             <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.4 }}>
               {p(latest.bid).toLocaleString()}
@@ -204,7 +204,7 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
 
           <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)" }}>
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>
-              Offer
+              Offer (Rp)
             </Typography>
             <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, lineHeight: 1.4 }}>
               {p(latest.offer).toLocaleString()}
