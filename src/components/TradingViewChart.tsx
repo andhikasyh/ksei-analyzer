@@ -33,7 +33,6 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
       autosize: true,
       symbol,
       interval: "D",
-      range: "6M",
       timezone: "Asia/Jakarta",
       theme: mode === "dark" ? "dark" : "light",
       style: "1",
@@ -42,7 +41,7 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
         mode === "dark" ? "rgba(24, 24, 27, 1)" : "rgba(255, 255, 255, 1)",
       gridColor:
         mode === "dark" ? "rgba(255, 255, 255, 0.04)" : "rgba(0, 0, 0, 0.04)",
-      hide_top_toolbar: false,
+      hide_top_toolbar: true,
       hide_legend: false,
       allow_symbol_change: false,
       save_image: false,

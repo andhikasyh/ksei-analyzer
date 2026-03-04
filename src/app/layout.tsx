@@ -5,7 +5,7 @@ import { LayoutShell } from "@/components/LayoutShell";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "KSEI Analyzer - BEI Ownership Data",
+  title: "iDX Analyzer - BEI Ownership Data",
   description:
     "Analyze KSEI beneficial ownership data for Indonesian stock exchange",
 };
