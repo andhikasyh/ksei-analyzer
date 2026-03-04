@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, memo } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import { useColorMode } from "@/components/ThemeProvider";
 import Box from "@mui/material/Box";
 
@@ -9,20 +9,34 @@ interface TradingViewChartProps {
 }
 
 function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { mode } = useColorMode();
   const symbol = `IDX:${stockCode}`;
+  const [width, setWidth] = useState(800);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    const observer = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w && w > 0) setWidth(Math.floor(w));
+    });
+    observer.observe(wrapper);
+    setWidth(Math.floor(wrapper.clientWidth));
+
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || width < 100) return;
 
     container.innerHTML = "";
 
     const widgetDiv = document.createElement("div");
     widgetDiv.className = "tradingview-widget-container__widget";
-    widgetDiv.style.height = "100%";
-    widgetDiv.style.width = "100%";
     container.appendChild(widgetDiv);
 
     const script = document.createElement("script");
@@ -30,7 +44,8 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
     script.type = "text/javascript";
     script.async = true;
     script.textContent = JSON.stringify({
-      autosize: true,
+      width,
+      height: 610,
       symbol,
       interval: "D",
       timezone: "Asia/Jakarta",
@@ -54,10 +69,11 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
     return () => {
       if (container) container.innerHTML = "";
     };
-  }, [symbol, mode]);
+  }, [symbol, mode, width]);
 
   return (
     <Box
+      ref={wrapperRef}
       sx={{
         borderRadius: 3,
         overflow: "hidden",
@@ -68,7 +84,7 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
       <div
         ref={containerRef}
         className="tradingview-widget-container"
-        style={{ height: 500, width: "100%" }}
+        style={{ height: 610, width: "100%" }}
       />
     </Box>
   );
