@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
   { href: "/screener", label: "Screener" },
   { href: "/brokers", label: "Brokers" },
+  { href: "/intelligent", label: "Insights" },
 ];
 
 export function Navbar() {

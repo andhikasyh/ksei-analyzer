@@ -338,3 +338,179 @@ export function formatRatio(value: string | number): string {
   if (isNaN(num)) return "-";
   return num.toFixed(2);
 }
+
+export interface MarketOverview {
+  tradingDate: string;
+  totalVolume: number;
+  totalValue: number;
+  advancingCount: number;
+  decliningCount: number;
+  unchangedCount: number;
+  summary: string;
+}
+
+export interface SectorPerformance {
+  sector: string;
+  change: number;
+  topStock: string;
+  topStockChange: number;
+  sentiment: "bullish" | "bearish" | "neutral";
+}
+
+export interface StockMover {
+  code: string;
+  name: string;
+  close: number;
+  change: number;
+  changePct: number;
+  volume: number;
+  reason: string;
+}
+
+export interface ForeignFlowData {
+  netFlow: number;
+  netFlowLabel: string;
+  sentiment: "inflow" | "outflow" | "neutral";
+  summary: string;
+  topBought: { code: string; name: string; netBuy: number }[];
+  topSold: { code: string; name: string; netSell: number }[];
+}
+
+export interface NewsItem {
+  headline: string;
+  source: string;
+  url: string;
+  sentiment: "bullish" | "bearish" | "neutral";
+  impact: string;
+}
+
+export interface StockPick {
+  code: string;
+  name: string;
+  action: "BUY" | "HOLD" | "SELL" | "WATCH";
+  currentPrice: number;
+  rationale: string;
+  targetPrice?: number;
+}
+
+export interface MarketOutlook {
+  sentiment: "bullish" | "bearish" | "neutral" | "cautious";
+  summary: string;
+  keyRisks: string[];
+  keyCatalysts: string[];
+  shortTermForecast: string;
+}
+
+export interface TechnicalSignal {
+  code: string;
+  name: string;
+  signal: "bullish" | "bearish" | "neutral";
+  pattern: string;
+  support: number;
+  resistance: number;
+  rsi: number;
+  notes: string;
+}
+
+export interface TechnicalAnalysis {
+  marketTrend: "uptrend" | "downtrend" | "sideways";
+  marketTrendNotes: string;
+  keyLevels: {
+    label: string;
+    value: string;
+    significance: string;
+  }[];
+  signals: TechnicalSignal[];
+  volumeAnalysis: string;
+}
+
+export interface CommodityItem {
+  commodity: string;
+  sentiment: "bullish" | "bearish" | "neutral";
+  priceDirection: "up" | "down" | "flat";
+  impact: string;
+  affectedStocks: { code: string; name: string; correlation: "positive" | "negative" }[];
+}
+
+export interface CommodityAnalysis {
+  summary: string;
+  commodities: CommodityItem[];
+}
+
+export interface CorporateEvent {
+  type: "acquisition" | "cooperation" | "merger" | "divestment" | "rumor" | "ipo" | "restructuring" | "other";
+  headline: string;
+  companies: string[];
+  impact: string;
+  sentiment: "bullish" | "bearish" | "neutral";
+  source?: string;
+  url?: string;
+}
+
+export interface PricePrediction {
+  code: string;
+  name: string;
+  currentPrice: number;
+  targetShortTerm: number;
+  targetMidTerm: number;
+  stopLoss: number;
+  confidence: "high" | "medium" | "low";
+  timeframe: string;
+  rationale: string;
+}
+
+export interface ChartDataPoint {
+  date: string;
+  value: number;
+  label?: string;
+}
+
+export interface ReportChartData {
+  sectorPerformanceChart: { sector: string; change: number }[];
+  foreignFlowChart: ChartDataPoint[];
+  priceHistoryCharts: {
+    code: string;
+    name: string;
+    data: ChartDataPoint[];
+  }[];
+  marketBreadthChart: ChartDataPoint[];
+}
+
+export interface MarketIntelligenceReport {
+  title: string;
+  marketOverview: MarketOverview;
+  sectorPerformance: SectorPerformance[];
+  topMovers: {
+    gainers: StockMover[];
+    losers: StockMover[];
+    mostActive: StockMover[];
+  };
+  foreignFlow: ForeignFlowData;
+  technicalAnalysis: TechnicalAnalysis;
+  commodityAnalysis: CommodityAnalysis;
+  corporateEvents: CorporateEvent[];
+  pricePredictions: PricePrediction[];
+  chartData: ReportChartData;
+  newsSentiment: NewsItem[];
+  stockPicks: StockPick[];
+  marketOutlook: MarketOutlook;
+}
+
+export interface MarketIntelligenceRow {
+  id: number;
+  report_date: string;
+  report: MarketIntelligenceReport;
+  title: string | null;
+  image_url: string | null;
+  created_at: string;
+}
+
+export interface MarketIntelligenceListItem {
+  id: number;
+  report_date: string;
+  title: string | null;
+  image_url: string | null;
+  sentiment: string;
+  summary: string;
+  created_at: string;
+}
