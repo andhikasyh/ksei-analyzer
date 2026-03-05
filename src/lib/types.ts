@@ -494,6 +494,33 @@ export interface ReportChartData {
   marketBreadthChart: ChartDataPoint[];
 }
 
+export interface BandarmologyBroker {
+  broker: string;
+  name: string;
+  netValue: number;
+  isForeign: boolean;
+}
+
+export interface BandarmologySignalReport {
+  code: string;
+  name: string;
+  phase: "accumulation" | "distribution" | "markup" | "markdown" | "neutral";
+  confidence: "high" | "medium" | "low";
+  topBuyers: BandarmologyBroker[];
+  topSellers: BandarmologyBroker[];
+  buyerConcentration: number;
+  sellerConcentration: number;
+  buyerCount: number;
+  sellerCount: number;
+  interpretation: string;
+}
+
+export interface BandarmologyData {
+  summary: string;
+  signals: BandarmologySignalReport[];
+  alertStocks: string[];
+}
+
 export interface MarketIntelligenceReport {
   title: string;
   marketOverview: MarketOverview;
@@ -511,7 +538,9 @@ export interface MarketIntelligenceReport {
   chartData: ReportChartData;
   newsSentiment: NewsItem[];
   stockPicks: StockPick[];
+  bandarmology?: BandarmologyData;
   marketOutlook: MarketOutlook;
+  _indonesian?: MarketIntelligenceReport;
 }
 
 export interface MarketIntelligenceRow {

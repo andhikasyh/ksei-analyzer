@@ -27,56 +27,62 @@ function decodeEntities(text: string): string {
     .trim();
 }
 
+function parseRssItems(xml: string, maxItems: number): NewsHeadline[] {
+  const items = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
+  const results: NewsHeadline[] = [];
+  for (const item of items.slice(0, maxItems)) {
+    const rawTitle = item.match(/<title>(.*?)<\/title>/)?.[1] || "";
+    const title = decodeEntities(rawTitle);
+    const source = decodeEntities(
+      item.match(/<source[^>]*>(.*?)<\/source>/)?.[1] || ""
+    );
+    const link = item.match(/<link>(.*?)<\/link>/)?.[1]?.trim() || "";
+    const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || "";
+    const dateStr = pubDate
+      ? new Date(pubDate).toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        })
+      : "";
+    if (title) results.push({ title, source, url: link, date: dateStr });
+  }
+  return results;
+}
+
+async function fetchRssFeed(query: string, maxItems: number): Promise<NewsHeadline[]> {
+  try {
+    const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=id&gl=ID&ceid=ID:id`;
+    const res = await fetch(rssUrl, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return [];
+    const xml = await res.text();
+    return parseRssItems(xml, maxItems);
+  } catch {
+    return [];
+  }
+}
+
+function deduplicateHeadlines(all: NewsHeadline[], limit: number): NewsHeadline[] {
+  const seen = new Set<string>();
+  return all.filter((h) => {
+    if (seen.has(h.title)) return false;
+    seen.add(h.title);
+    return true;
+  }).slice(0, limit);
+}
+
 async function fetchMarketNews(): Promise<NewsHeadline[]> {
-  const all: NewsHeadline[] = [];
   const queries = [
     "IHSG saham hari ini",
     "IDX market bursa efek Indonesia",
     "saham Indonesia terbaru",
     "ekonomi Indonesia pasar modal",
   ];
-
-  for (const q of queries) {
-    try {
-      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=id&gl=ID&ceid=ID:id`;
-      const res = await fetch(rssUrl, { signal: AbortSignal.timeout(5000) });
-      if (!res.ok) continue;
-      const xml = await res.text();
-      const items = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
-      for (const item of items.slice(0, 8)) {
-        const rawTitle = item.match(/<title>(.*?)<\/title>/)?.[1] || "";
-        const title = decodeEntities(rawTitle);
-        const source = decodeEntities(
-          item.match(/<source[^>]*>(.*?)<\/source>/)?.[1] || ""
-        );
-        const link = item.match(/<link>(.*?)<\/link>/)?.[1]?.trim() || "";
-        const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || "";
-        const dateStr = pubDate
-          ? new Date(pubDate).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
-          : "";
-        if (title) {
-          all.push({ title, source, url: link, date: dateStr });
-        }
-      }
-    } catch {
-      // best-effort
-    }
-  }
-
-  const seen = new Set<string>();
-  return all.filter((h) => {
-    if (seen.has(h.title)) return false;
-    seen.add(h.title);
-    return true;
-  }).slice(0, 25);
+  const results = await Promise.all(queries.map((q) => fetchRssFeed(q, 8)));
+  return deduplicateHeadlines(results.flat(), 25);
 }
 
 async function fetchCommodityNews(): Promise<NewsHeadline[]> {
-  const all: NewsHeadline[] = [];
   const queries = [
     "harga minyak crude oil hari ini",
     "harga emas gold hari ini",
@@ -85,48 +91,11 @@ async function fetchCommodityNews(): Promise<NewsHeadline[]> {
     "harga nikel nickel Indonesia",
     "harga timah tin Indonesia",
   ];
-
-  for (const q of queries) {
-    try {
-      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=id&gl=ID&ceid=ID:id`;
-      const res = await fetch(rssUrl, { signal: AbortSignal.timeout(5000) });
-      if (!res.ok) continue;
-      const xml = await res.text();
-      const items = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
-      for (const item of items.slice(0, 4)) {
-        const rawTitle = item.match(/<title>(.*?)<\/title>/)?.[1] || "";
-        const title = decodeEntities(rawTitle);
-        const source = decodeEntities(
-          item.match(/<source[^>]*>(.*?)<\/source>/)?.[1] || ""
-        );
-        const link = item.match(/<link>(.*?)<\/link>/)?.[1]?.trim() || "";
-        const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || "";
-        const dateStr = pubDate
-          ? new Date(pubDate).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
-          : "";
-        if (title) {
-          all.push({ title, source, url: link, date: dateStr });
-        }
-      }
-    } catch {
-      // best-effort
-    }
-  }
-
-  const seen = new Set<string>();
-  return all.filter((h) => {
-    if (seen.has(h.title)) return false;
-    seen.add(h.title);
-    return true;
-  }).slice(0, 15);
+  const results = await Promise.all(queries.map((q) => fetchRssFeed(q, 4)));
+  return deduplicateHeadlines(results.flat(), 15);
 }
 
 async function fetchCorporateNews(): Promise<NewsHeadline[]> {
-  const all: NewsHeadline[] = [];
   const queries = [
     "akuisisi perusahaan Indonesia IDX",
     "merger saham Indonesia",
@@ -134,44 +103,179 @@ async function fetchCorporateNews(): Promise<NewsHeadline[]> {
     "IPO saham baru Indonesia",
     "rumor akuisisi saham Indonesia",
   ];
+  const results = await Promise.all(queries.map((q) => fetchRssFeed(q, 4)));
+  return deduplicateHeadlines(results.flat(), 10);
+}
 
-  for (const q of queries) {
-    try {
-      const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=id&gl=ID&ceid=ID:id`;
-      const res = await fetch(rssUrl, { signal: AbortSignal.timeout(5000) });
-      if (!res.ok) continue;
-      const xml = await res.text();
-      const items = xml.match(/<item>[\s\S]*?<\/item>/g) || [];
-      for (const item of items.slice(0, 4)) {
-        const rawTitle = item.match(/<title>(.*?)<\/title>/)?.[1] || "";
-        const title = decodeEntities(rawTitle);
-        const source = decodeEntities(
-          item.match(/<source[^>]*>(.*?)<\/source>/)?.[1] || ""
-        );
-        const link = item.match(/<link>(.*?)<\/link>/)?.[1]?.trim() || "";
-        const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || "";
-        const dateStr = pubDate
-          ? new Date(pubDate).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
-          : "";
-        if (title) {
-          all.push({ title, source, url: link, date: dateStr });
-        }
-      }
-    } catch {
-      // best-effort
+interface BrokerRankingRow {
+  code: string;
+  brokerCode: string;
+  brokerName: string;
+  netValue: number;
+  bVal: number;
+  sVal: number;
+  netVolume: number;
+  bLot: number;
+  sLot: number;
+  valueShare: number;
+  rank: number;
+}
+
+interface BandarmologySignal {
+  code: string;
+  name: string;
+  phase: "accumulation" | "distribution" | "markup" | "markdown" | "neutral";
+  topBuyerConcentration: number;
+  topSellerConcentration: number;
+  topBuyers: { broker: string; name: string; netValue: number; isForeign: boolean }[];
+  topSellers: { broker: string; name: string; netValue: number; isForeign: boolean }[];
+  buyerCount: number;
+  sellerCount: number;
+  rationale: string;
+}
+
+async function fetchBandarmologyData(
+  supabase: ReturnType<typeof getSupabase>,
+  topCodes: string[]
+): Promise<BandarmologySignal[]> {
+  if (topCodes.length === 0) return [];
+
+  const [{ data: brokerList }, { data: stockNames }, { data: rankings }] = await Promise.all([
+    supabase
+      .from("idx_brokers")
+      .select("code, name, is_foreign")
+      .limit(500),
+    supabase
+      .from("idx_stock_summary")
+      .select("stock_code, stock_name")
+      .in("stock_code", topCodes)
+      .order("date", { ascending: false })
+      .limit(topCodes.length),
+    supabase
+      .from("idx_ba_stock_ranking")
+      .select("symbol, date, broker_code, net_value, b_val, s_val, net_volume, b_lot, s_lot, value_share, rank")
+      .in("symbol", topCodes)
+      .eq("period", "1M")
+      .eq("investor_type", "ALL")
+      .order("date", { ascending: false })
+      .order("rank")
+      .limit(topCodes.length * 50),
+  ]);
+
+  const brokerMeta = new Map<string, { name: string; isForeign: boolean }>();
+  if (brokerList) {
+    for (const b of brokerList) {
+      brokerMeta.set(b.code, { name: b.name, isForeign: !!b.is_foreign });
     }
   }
 
-  const seen = new Set<string>();
-  return all.filter((h) => {
-    if (seen.has(h.title)) return false;
-    seen.add(h.title);
-    return true;
-  }).slice(0, 10);
+  const nameMap = new Map<string, string>();
+  if (stockNames) {
+    for (const s of stockNames) {
+      if (!nameMap.has(s.stock_code)) nameMap.set(s.stock_code, s.stock_name);
+    }
+  }
+
+  if (!rankings || rankings.length === 0) return [];
+
+  const byStock = new Map<string, typeof rankings>();
+  for (const r of rankings) {
+    const sym = r.symbol as string;
+    if (!byStock.has(sym)) byStock.set(sym, []);
+    byStock.get(sym)!.push(r);
+  }
+
+  const signals: BandarmologySignal[] = [];
+
+  for (const [sym, rows] of byStock.entries()) {
+    const latestDate = (rows[0] as Record<string, string>).date;
+    const latest = rows.filter((r: Record<string, string>) => r.date === latestDate);
+
+    const buyers: BrokerRankingRow[] = [];
+    const sellers: BrokerRankingRow[] = [];
+    let totalAbsValue = 0;
+
+    for (const r of latest) {
+      const netVal = parseFloat(r.net_value as string) || 0;
+      const bVal = parseFloat(r.b_val as string) || 0;
+      const sVal = parseFloat(r.s_val as string) || 0;
+      totalAbsValue += Math.abs(netVal);
+
+      const entry: BrokerRankingRow = {
+        code: sym,
+        brokerCode: r.broker_code as string,
+        brokerName: brokerMeta.get(r.broker_code as string)?.name || r.broker_code as string,
+        netValue: netVal,
+        bVal,
+        sVal,
+        netVolume: parseFloat(r.net_volume as string) || 0,
+        bLot: parseFloat(r.b_lot as string) || 0,
+        sLot: parseFloat(r.s_lot as string) || 0,
+        valueShare: parseFloat(r.value_share as string) || 0,
+        rank: r.rank as number,
+      };
+
+      if (netVal > 0) buyers.push(entry);
+      else if (netVal < 0) sellers.push(entry);
+    }
+
+    buyers.sort((a, b) => b.netValue - a.netValue);
+    sellers.sort((a, b) => a.netValue - b.netValue);
+
+    const top3BuyVal = buyers.slice(0, 3).reduce((s, b) => s + b.netValue, 0);
+    const top3SellVal = Math.abs(sellers.slice(0, 3).reduce((s, b) => s + b.netValue, 0));
+    const buyConcentration = totalAbsValue > 0 ? (top3BuyVal / totalAbsValue) * 100 : 0;
+    const sellConcentration = totalAbsValue > 0 ? (top3SellVal / totalAbsValue) * 100 : 0;
+
+    let phase: BandarmologySignal["phase"] = "neutral";
+    let rationale = "";
+
+    if (buyConcentration > 40 && buyers.length <= sellers.length * 0.5) {
+      phase = "accumulation";
+      rationale = `Top 3 buyers hold ${buyConcentration.toFixed(1)}% of value with only ${buyers.length} buyers vs ${sellers.length} fragmented sellers -- classic stealth accumulation pattern.`;
+    } else if (sellConcentration > 40 && sellers.length <= buyers.length * 0.5) {
+      phase = "distribution";
+      rationale = `Top 3 sellers hold ${sellConcentration.toFixed(1)}% of value with only ${sellers.length} sellers vs ${buyers.length} fragmented buyers -- institutional distribution detected.`;
+    } else if (buyConcentration > 30 && top3BuyVal > top3SellVal * 1.5) {
+      phase = "markup";
+      rationale = `Strong concentrated buying (${buyConcentration.toFixed(1)}%) with buy-side dominance suggests markup phase.`;
+    } else if (sellConcentration > 30 && top3SellVal > top3BuyVal * 1.5) {
+      phase = "markdown";
+      rationale = `Strong concentrated selling (${sellConcentration.toFixed(1)}%) with sell-side dominance suggests markdown phase.`;
+    } else {
+      rationale = `No clear concentration bias detected. Buy concentration: ${buyConcentration.toFixed(1)}%, Sell concentration: ${sellConcentration.toFixed(1)}%.`;
+    }
+
+    signals.push({
+      code: sym,
+      name: nameMap.get(sym) || sym,
+      phase,
+      topBuyerConcentration: buyConcentration,
+      topSellerConcentration: sellConcentration,
+      topBuyers: buyers.slice(0, 5).map((b) => ({
+        broker: b.brokerCode,
+        name: b.brokerName,
+        netValue: b.netValue,
+        isForeign: brokerMeta.get(b.brokerCode)?.isForeign || false,
+      })),
+      topSellers: sellers.slice(0, 5).map((b) => ({
+        broker: b.brokerCode,
+        name: b.brokerName,
+        netValue: Math.abs(b.netValue),
+        isForeign: brokerMeta.get(b.brokerCode)?.isForeign || false,
+      })),
+      buyerCount: buyers.length,
+      sellerCount: sellers.length,
+      rationale,
+    });
+  }
+
+  signals.sort((a, b) => {
+    const phaseOrder = { accumulation: 0, distribution: 1, markup: 2, markdown: 3, neutral: 4 };
+    return phaseOrder[a.phase] - phaseOrder[b.phase];
+  });
+
+  return signals;
 }
 
 interface PriceHistoryRow {
@@ -257,28 +361,38 @@ interface AggregatedMarketData {
   };
   priceHistory: Map<string, PriceHistoryRow[]>;
   recentCorporateActions: { code: string; issuerName: string; type: string; detail: string; startDate: string }[];
+  bandarmologySignals: BandarmologySignal[];
 }
 
 async function aggregateMarketData(
   supabase: ReturnType<typeof getSupabase>
 ): Promise<AggregatedMarketData | null> {
-  const { data: summaryData } = await supabase
+  const { data: latestDateRow } = await supabase
     .from("idx_stock_summary")
-    .select("*")
+    .select("date")
     .order("date", { ascending: false })
-    .limit(3000);
+    .limit(1);
+
+  if (!latestDateRow?.length) return null;
+
+  const latestDate = latestDateRow[0].date;
+
+  const [{ data: summaryData }, { data: financialData }] = await Promise.all([
+    supabase
+      .from("idx_stock_summary")
+      .select("stock_code, stock_name, date, close, previous, change, volume, value, foreign_buy, foreign_sell")
+      .eq("date", latestDate)
+      .limit(1500),
+    supabase
+      .from("idx_financial_ratios")
+      .select("code, sector")
+      .order("fs_date", { ascending: false })
+      .limit(2000),
+  ]);
 
   if (!summaryData?.length) return null;
 
-  const latestDate = summaryData[0].date;
-  const todayStocks = summaryData.filter(
-    (r: Record<string, string>) => r.date === latestDate
-  );
-
-  const { data: financialData } = await supabase
-    .from("idx_financial_ratios")
-    .select("code, sector, sub_sector")
-    .order("fs_date", { ascending: false });
+  const todayStocks = summaryData;
 
   const sectorMap = new Map<string, string>();
   if (financialData) {
@@ -367,7 +481,12 @@ async function aggregateMarketData(
     .slice(0, 12)
     .map((s) => s.code);
 
-  const [priceHistory, corpActionsRes] = await Promise.all([
+  const bandarmologyCodes = [...stocks]
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 20)
+    .map((s) => s.code);
+
+  const [priceHistory, corpActionsRes, bandarmologySignals] = await Promise.all([
     fetchMultiDayHistory(supabase, topCodes),
     supabase
       .from("idx_corporate_actions")
@@ -375,6 +494,7 @@ async function aggregateMarketData(
       .gte("start_date", new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0])
       .order("start_date", { ascending: false })
       .limit(20),
+    fetchBandarmologyData(supabase, bandarmologyCodes),
   ]);
 
   const recentCorporateActions = (corpActionsRes.data || []).map(
@@ -425,6 +545,7 @@ async function aggregateMarketData(
     },
     priceHistory,
     recentCorporateActions,
+    bandarmologySignals,
   };
 }
 
@@ -553,6 +674,25 @@ const REPORT_SCHEMA = `{
       "targetPrice": number (optional)
     }
   ],
+  "bandarmology": {
+    "summary": "2-3 sentence overview of smart money flow patterns across the market -- are institutions accumulating or distributing?",
+    "signals": [
+      {
+        "code": "TICKER",
+        "name": "Company Name",
+        "phase": "accumulation" | "distribution" | "markup" | "markdown" | "neutral",
+        "confidence": "high" | "medium" | "low",
+        "topBuyers": [{ "broker": "XX", "name": "Broker Name", "netValue": number, "isForeign": boolean }],
+        "topSellers": [{ "broker": "XX", "name": "Broker Name", "netValue": number, "isForeign": boolean }],
+        "buyerConcentration": number (% of total value held by top 3 buyers),
+        "sellerConcentration": number (% of total value held by top 3 sellers),
+        "buyerCount": number,
+        "sellerCount": number,
+        "interpretation": "2-3 sentence institutional-quality analysis of the broker flow pattern, cross-referencing price action, volume, foreign flow, and news"
+      }
+    ],
+    "alertStocks": ["TICKER1", "TICKER2"] (stocks showing strongest accumulation/distribution signals -- top priority watchlist)
+  },
   "marketOutlook": {
     "sentiment": "bullish" | "bearish" | "neutral" | "cautious",
     "summary": "2-3 sentence overall outlook",
@@ -607,9 +747,10 @@ RULES:
 9. For corporateEvents: identify any acquisitions, mergers, cooperations, IPOs, restructurings, or market rumors from the news. Include ticker codes of involved companies. Preserve source URLs when available.
 10. For pricePredictions: provide price predictions for 5-8 key stocks with short-term targets (1-2 weeks), mid-term targets (1-3 months), and stop-loss levels. Use the provided price history data to inform your predictions. State confidence level honestly.
 11. For chartData: include ALL provided data points -- do NOT summarize or reduce them. For priceHistoryCharts, include every date-price pair from the multi-day price history for at least 6 top stocks. For foreignFlowChart, include every date from the multi-day foreign flow data provided. For sectorPerformanceChart, populate from sector data. The charts need enough data points for smooth, meaningful visualizations.
-12. Write all analysis in English with institutional-level depth.
-13. Do not use any emojis anywhere in the response.
-14. Think deeply about inter-market correlations, commodity-equity linkages, sector rotation patterns, and smart money flow.`;
+12. For bandarmology: this is the core of Indonesian market analysis (Bandarmology = tracking the "Bandar"/market makers). Analyze broker summary concentration patterns to detect the 4 phases: Accumulation (concentrated buying, fragmented selling -- stealth phase), Mark-Up (broker self-crossing, rising prices), Distribution (concentrated selling to fragmented retail buyers -- the trap), Mark-Down (price collapse after distribution). Flag stocks with the strongest signals. Cross-reference broker types (foreign/institutional vs retail) with price action. Include at least 8-12 stocks in signals, prioritizing those with clearest phase patterns.
+13. Write all analysis in English with institutional-level depth.
+14. Do not use any emojis anywhere in the response.
+15. Think deeply about inter-market correlations, commodity-equity linkages, sector rotation patterns, and smart money flow. Cross-reference bandarmology signals with technical analysis and foreign flow data.`;
 
   const userMessage = `Here is today's market data for the Indonesia Stock Exchange (${marketData.tradingDate}):
 
@@ -672,22 +813,26 @@ ${commodityNews.length > 0 ? commodityNews.map((h) => `- ${h.title} (${h.source}
 CORPORATE / M&A / COOPERATION NEWS:
 ${corporateNews.length > 0 ? corporateNews.map((h) => `- ${h.title} (${h.source}) [${h.date}] URL: ${h.url}`).join("\n") : "No corporate event news available."}
 
-Generate a comprehensive daily market intelligence report including: deep technical analysis, commodity impact analysis, corporate events, price predictions with targets and stop-losses, and chart data using the real historical prices provided. Cross-reference all data points -- commodity prices with related IDX stocks, news with affected tickers, foreign flow with price action -- to produce the most insightful institutional-quality analysis possible.`;
+BANDARMOLOGY / BROKER SUMMARY ANALYSIS (1-month broker concentration data for top stocks):
+${marketData.bandarmologySignals.length > 0 ? marketData.bandarmologySignals.map((s) => {
+  const buyersList = s.topBuyers.map((b) => `${b.broker}(${b.name}${b.isForeign ? ",F" : ""},Rp${(b.netValue / 1e9).toFixed(2)}B)`).join(", ");
+  const sellersList = s.topSellers.map((b) => `${b.broker}(${b.name}${b.isForeign ? ",F" : ""},Rp${(b.netValue / 1e9).toFixed(2)}B)`).join(", ");
+  return `${s.code} (${s.name}): Phase=${s.phase} | BuyConc=${s.topBuyerConcentration.toFixed(1)}% | SellConc=${s.topSellerConcentration.toFixed(1)}% | Buyers=${s.buyerCount} | Sellers=${s.sellerCount}
+  Top Buyers: ${buyersList || "none"}
+  Top Sellers: ${sellersList || "none"}
+  Signal: ${s.rationale}`;
+}).join("\n\n") : "No bandarmology data available."}
+
+Generate a comprehensive daily market intelligence report including: deep technical analysis, commodity impact analysis, corporate events, price predictions with targets and stop-losses, bandarmology/smart-money analysis, and chart data using the real historical prices provided. Cross-reference all data points -- commodity prices with related IDX stocks, news with affected tickers, foreign flow with price action, broker concentration with accumulation/distribution phases -- to produce the most insightful institutional-quality analysis possible.`;
 
   const anthropic = new Anthropic({ apiKey });
 
-  const stream = anthropic.messages.stream({
-    model: "claude-opus-4-6",
-    max_tokens: 24000,
-    thinking: {
-      type: "enabled",
-      budget_tokens: 12000,
-    },
+  const response = await anthropic.messages.create({
+    model: "claude-sonnet-4-20250514",
+    max_tokens: 16384,
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
   });
-
-  const response = await stream.finalMessage();
 
   const textBlock = response.content.find((b) => b.type === "text");
   const text = textBlock?.type === "text" ? textBlock.text : "";
@@ -703,12 +848,23 @@ Generate a comprehensive daily market intelligence report including: deep techni
   const imageUrl = generateCoverImageUrl(marketData.tradingDate, sentiment);
   const title = report.title || null;
 
+  let indonesianReport: Record<string, unknown> | null = null;
+  try {
+    indonesianReport = await translateReportToIndonesian(anthropic, report);
+  } catch (err) {
+    console.error("Indonesian translation failed:", err);
+  }
+
+  const reportWithTranslation = indonesianReport
+    ? { ...report, _indonesian: indonesianReport }
+    : report;
+
   const { error: upsertError } = await supabase
     .from("market_intelligence")
     .upsert(
       {
         report_date: marketData.tradingDate,
-        report,
+        report: reportWithTranslation,
         title,
         image_url: imageUrl,
       },
@@ -720,10 +876,44 @@ Generate a comprehensive daily market intelligence report including: deep techni
   }
 
   return {
-    report,
+    report: reportWithTranslation,
     reportDate: marketData.tradingDate,
     title,
     imageUrl,
     createdAt: new Date().toISOString(),
   };
+}
+
+async function translateReportToIndonesian(
+  anthropic: Anthropic,
+  englishReport: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const reportJson = JSON.stringify(englishReport);
+
+  const response = await anthropic.messages.create({
+    model: "claude-3-5-haiku-latest",
+    max_tokens: 16384,
+    system: `You are a professional financial translator specializing in Indonesian capital markets (BEI/IDX). Translate the given market intelligence report JSON from English to Bahasa Indonesia.
+
+RULES:
+1. Return ONLY valid JSON -- no markdown, no code fences, no explanation text.
+2. The output JSON must have the EXACT same structure and keys as the input.
+3. Translate ALL human-readable text strings to natural, professional Bahasa Indonesia.
+4. DO NOT translate: ticker codes (e.g. BBCA, TLKM), broker codes, company names, URLs, date strings, enum values (bullish/bearish/neutral/inflow/outflow/up/down/flat/BUY/SELL/HOLD/WATCH/high/medium/low/accumulation/distribution/markup/markdown), field keys.
+5. Keep all numbers exactly as they are.
+6. Use proper Indonesian financial terminology: "saham" for stock, "emiten" for issuer, "asing" for foreign, "domestik" for domestic, "aliran dana" for flow, "dukungan" for support, "resistensi" for resistance, etc.
+7. Keep the translation professional and suitable for institutional-grade reports.
+8. Do not use any emojis.`,
+    messages: [{ role: "user", content: reportJson }],
+  });
+
+  const textBlock = response.content.find((b) => b.type === "text");
+  const translatedText = textBlock?.type === "text" ? textBlock.text : "";
+
+  const cleanedTranslation = translatedText
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+  return JSON.parse(cleanedTranslation);
 }
