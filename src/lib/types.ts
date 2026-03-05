@@ -409,6 +409,16 @@ export interface StockPick {
   currentPrice: number;
   rationale: string;
   targetPrice?: number;
+  fundamentals?: {
+    per: number;
+    pbv: number;
+    roe: number;
+    deRatio: number;
+    eps: number;
+  };
+  technicalSetup?: string;
+  riskAssessment?: string;
+  catalysts?: string[];
 }
 
 export interface MarketOutlook {

@@ -38,6 +38,7 @@ const GREEN = "#16a34a";
 const RED = "#dc2626";
 const AMBER = "#d97706";
 const GRAY = "#64748b";
+const LIGHTGRAY = "#e2e8f0";
 const LIGHT_BG = "#f8fafc";
 const BORDER = "#e2e8f0";
 const WHITE = "#ffffff";
@@ -1033,13 +1034,54 @@ export function MarketReportPDF({
                 sp.action === "SELL" ? RED :
                 sp.action === "HOLD" ? AMBER : GRAY;
               return (
-                <View key={i} style={[s.tableRow, i % 2 === 1 ? s.tableRowAlt : {}]} wrap={false}>
-                  <Text style={[s.tableCellBold, { width: "7%" }]}>{sp.code}</Text>
-                  <Text style={[s.tableCell, { width: "15%" }]}>{sp.name}</Text>
-                  <Text style={[s.tableCell, { width: "8%", fontWeight: 700, color: actionColor }]}>{sp.action}</Text>
-                  <Text style={[s.tableCell, { width: "9%", textAlign: "right" }]}>{fmtNum(sp.currentPrice)}</Text>
-                  <Text style={[s.tableCell, { width: "9%", textAlign: "right" }]}>{sp.targetPrice ? fmtNum(sp.targetPrice) : "-"}</Text>
-                  <Text style={[s.tableCell, { width: "52%", fontSize: 7, lineHeight: 1.4 }]}>{sp.rationale}</Text>
+                <View key={i} wrap={false} style={{ marginBottom: 10, padding: 8, borderRadius: 4, backgroundColor: i % 2 === 1 ? "#f8f9fa" : "#ffffff", border: `0.5pt solid ${LIGHTGRAY}` }}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                      <Text style={{ fontWeight: 700, fontSize: 10, color: NAVY }}>{sp.code}</Text>
+                      <Text style={{ fontSize: 7.5, color: GRAY }}>{sp.name}</Text>
+                      <View style={{ backgroundColor: `${actionColor}20`, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 3 }}>
+                        <Text style={{ fontSize: 7, fontWeight: 700, color: actionColor }}>{sp.action}</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: "row", gap: 10, alignItems: "center" }}>
+                      <Text style={{ fontSize: 7, color: GRAY }}>Current: <Text style={{ fontWeight: 700, color: NAVY }}>{fmtNum(sp.currentPrice)}</Text></Text>
+                      {sp.targetPrice ? <Text style={{ fontSize: 7, color: GRAY }}>Target: <Text style={{ fontWeight: 700, color: ACCENT }}>{fmtNum(sp.targetPrice)}</Text></Text> : null}
+                    </View>
+                  </View>
+
+                  {sp.fundamentals && (
+                    <View style={{ flexDirection: "row", gap: 8, marginBottom: 4 }}>
+                      {[
+                        { label: "PER", val: sp.fundamentals.per?.toFixed(1) },
+                        { label: "PBV", val: sp.fundamentals.pbv?.toFixed(2) },
+                        { label: "ROE", val: `${sp.fundamentals.roe?.toFixed(1)}%` },
+                        { label: "D/E", val: sp.fundamentals.deRatio?.toFixed(2) },
+                        { label: "EPS", val: fmtNum(sp.fundamentals.eps || 0) },
+                      ].map((m) => (
+                        <Text key={m.label} style={{ fontSize: 6.5, color: GRAY }}>{m.label}: <Text style={{ fontWeight: 700, color: NAVY }}>{m.val}</Text></Text>
+                      ))}
+                    </View>
+                  )}
+
+                  <Text style={{ fontSize: 7.5, lineHeight: 1.5, color: "#333", marginBottom: 3 }}>{sp.rationale}</Text>
+
+                  {sp.technicalSetup && (
+                    <Text style={{ fontSize: 7, lineHeight: 1.4, color: ACCENT, fontStyle: "italic", marginBottom: 2 }}>{sp.technicalSetup}</Text>
+                  )}
+
+                  {sp.riskAssessment && (
+                    <Text style={{ fontSize: 7, lineHeight: 1.4, color: RED, marginBottom: 2 }}>Risk: {sp.riskAssessment}</Text>
+                  )}
+
+                  {sp.catalysts && sp.catalysts.length > 0 && (
+                    <View style={{ flexDirection: "row", gap: 4, flexWrap: "wrap" }}>
+                      {sp.catalysts.map((cat, ci) => (
+                        <View key={ci} style={{ backgroundColor: "#e8eaf6", paddingHorizontal: 4, paddingVertical: 1, borderRadius: 2 }}>
+                          <Text style={{ fontSize: 6, color: "#5c6bc0", fontWeight: 600 }}>{cat}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
                 </View>
               );
             })}

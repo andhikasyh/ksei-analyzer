@@ -35,6 +35,7 @@ import type {
   CommodityItem,
   CorporateEvent,
   PricePrediction,
+  BandarmologySignalReport,
 } from "@/lib/types";
 
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
@@ -530,7 +531,43 @@ function StockPicksSection({
                   <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, fontSize: "0.88rem", color: mutedColor(isDark), flexShrink: 0 }}>Rp {p.currentPrice.toLocaleString()}</Typography>
                 </Box>
                 <Typography sx={{ color: mutedColor(isDark), fontSize: "0.78rem", fontWeight: 500, display: "block", mb: 0.75, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 0 }}>{p.name}</Typography>
-                <Typography sx={{ fontSize: "0.9rem", lineHeight: 1.7, color: bodyColor(isDark), fontFamily: '"Plus Jakarta Sans", sans-serif' }}>{p.rationale}</Typography>
+                <Typography sx={{ fontSize: "0.9rem", lineHeight: 1.7, color: bodyColor(isDark), fontFamily: '"Plus Jakarta Sans", sans-serif', mb: 1 }}>{p.rationale}</Typography>
+
+                {p.fundamentals && (
+                  <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", mb: 1 }}>
+                    {[
+                      { label: "PER", value: p.fundamentals.per?.toFixed(1), color: p.fundamentals.per > 0 && p.fundamentals.per < 15 ? "#34d399" : p.fundamentals.per > 25 ? "#f87171" : "#fbbf24" },
+                      { label: "PBV", value: p.fundamentals.pbv?.toFixed(2), color: p.fundamentals.pbv > 0 && p.fundamentals.pbv < 1.5 ? "#34d399" : p.fundamentals.pbv > 3 ? "#f87171" : "#fbbf24" },
+                      { label: "ROE", value: `${p.fundamentals.roe?.toFixed(1)}%`, color: p.fundamentals.roe > 15 ? "#34d399" : p.fundamentals.roe > 8 ? "#fbbf24" : "#f87171" },
+                      { label: "D/E", value: p.fundamentals.deRatio?.toFixed(2), color: p.fundamentals.deRatio < 0.5 ? "#34d399" : p.fundamentals.deRatio > 1.5 ? "#f87171" : "#fbbf24" },
+                    ].map((m) => (
+                      <Box key={m.label} sx={{ display: "flex", alignItems: "center", gap: 0.5, px: 1, py: 0.4, borderRadius: 1.5, bgcolor: `${m.color}08`, border: `1px solid ${m.color}20` }}>
+                        <Typography sx={{ fontSize: "0.6rem", fontWeight: 700, color: mutedColor(isDark), textTransform: "uppercase", letterSpacing: "0.06em" }}>{m.label}</Typography>
+                        <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.72rem", fontWeight: 700, color: m.color }}>{m.value}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+
+                {p.technicalSetup && (
+                  <Typography sx={{ fontSize: "0.82rem", lineHeight: 1.6, color: mutedColor(isDark), fontFamily: '"Plus Jakarta Sans", sans-serif', fontStyle: "italic", mb: 0.5 }}>{p.technicalSetup}</Typography>
+                )}
+
+                {p.riskAssessment && (
+                  <Box sx={{ display: "flex", alignItems: "flex-start", gap: 0.75, mt: 0.5 }}>
+                    <WarningAmberIcon sx={{ fontSize: 14, color: "#fb923c", mt: "2px", flexShrink: 0 }} />
+                    <Typography sx={{ fontSize: "0.78rem", lineHeight: 1.6, color: "#fb923c", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>{p.riskAssessment}</Typography>
+                  </Box>
+                )}
+
+                {p.catalysts && p.catalysts.length > 0 && (
+                  <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", mt: 0.75 }}>
+                    {p.catalysts.map((cat, i) => (
+                      <Chip key={i} label={cat} size="small" sx={{ fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: "0.65rem", height: 22, fontWeight: 600, bgcolor: isDark ? "rgba(129,140,248,0.08)" : "rgba(129,140,248,0.06)", color: "#818cf8" }} />
+                    ))}
+                  </Box>
+                )}
+
                 {p.targetPrice ? (
                   <Typography sx={{ mt: 0.75, fontFamily: '"JetBrains Mono", monospace', fontSize: "0.78rem", color: "primary.main", fontWeight: 600, flexShrink: 0 }}>Target: Rp {p.targetPrice.toLocaleString()}</Typography>
                 ) : null}
@@ -736,7 +773,7 @@ function ChartsSection({ report }: { report: MarketIntelligenceReport }) {
           <Grid size={{ xs: 12, md: 6 }}>
             <Typography sx={{ fontWeight: 700, fontSize: "0.82rem", color: "primary.main", textTransform: "uppercase", letterSpacing: "0.04em", mb: 1.5 }}>Price History (Top Stocks)</Typography>
             <Grid container spacing={1.5}>
-              {cd.priceHistoryCharts.slice(0, 4).map((stock) => {
+              {cd.priceHistoryCharts.slice(0, 6).map((stock) => {
                 const d = stock.data;
                 const first = d[0]?.value ?? 0;
                 const last = d[d.length - 1]?.value ?? 0;
@@ -804,9 +841,9 @@ function ChartsSection({ report }: { report: MarketIntelligenceReport }) {
         )}
 
         {cd.foreignFlowChart?.length > 0 && (
-          <Grid size={{ xs: 12 }}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Typography sx={{ fontWeight: 700, fontSize: "0.82rem", color: "primary.main", textTransform: "uppercase", letterSpacing: "0.04em", mb: compact ? 1 : 1.5 }}>Foreign Flow Trend</Typography>
-            <ResponsiveContainer width="100%" height={compact ? 150 : 180}>
+            <ResponsiveContainer width="100%" height={compact ? 180 : 220}>
               <BarChart data={cd.foreignFlowChart} margin={{ left: 0, right: 16, top: 4, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: isDark ? "#9aabbf" : "#6b7a90" }} axisLine={false} tickLine={false} tickFormatter={(v: string) => v.slice(5)} />
@@ -821,6 +858,143 @@ function ChartsSection({ report }: { report: MarketIntelligenceReport }) {
             </ResponsiveContainer>
           </Grid>
         )}
+
+        {cd.marketBreadthChart?.length > 0 && (
+          <Grid size={{ xs: 12, md: 6 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: "0.82rem", color: "primary.main", textTransform: "uppercase", letterSpacing: "0.04em", mb: compact ? 1 : 1.5 }}>Market Breadth (% Advancing)</Typography>
+            <ResponsiveContainer width="100%" height={compact ? 180 : 220}>
+              <AreaChart data={cd.marketBreadthChart} margin={{ left: 0, right: 16, top: 4, bottom: 4 }}>
+                <defs>
+                  <linearGradient id="breadthGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#818cf8" stopOpacity={0.3} />
+                    <stop offset="85%" stopColor="#818cf8" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: isDark ? "#9aabbf" : "#6b7a90" }} axisLine={false} tickLine={false} tickFormatter={(v: string) => v.slice(5)} />
+                <YAxis tick={{ fontSize: 10, fill: isDark ? "#9aabbf" : "#6b7a90" }} axisLine={false} tickLine={false} domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} />
+                <Tooltip contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: 8, fontSize: "0.85rem" }} formatter={(v: number) => [`${(v as number).toFixed(1)}%`, "Advancing"]} />
+                <Area type="monotone" dataKey="value" stroke="#818cf8" strokeWidth={2} fill="url(#breadthGrad)" dot={{ r: 2.5, fill: "#818cf8", strokeWidth: 0 }} activeDot={{ r: 4, fill: "#818cf8", stroke: isDark ? "#141b2d" : "#fff", strokeWidth: 2 }} />
+                <Line type="monotone" dataKey={() => 50} stroke={isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)"} strokeDasharray="6 4" strokeWidth={1} dot={false} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </Grid>
+        )}
+      </Grid>
+    </GlassCard>
+  );
+}
+
+function BandarmologySection({ report }: { report: MarketIntelligenceReport }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  const router = useRouter();
+  const compact = useContext(ReportCompactContext);
+  const band = report.bandarmology;
+  if (!band?.signals?.length) return null;
+
+  const phaseConfig: Record<string, { color: string; bg: string; label: string }> = {
+    accumulation: { color: "#34d399", bg: "rgba(52,211,153,0.12)", label: "ACCUMULATION" },
+    markup: { color: "#818cf8", bg: "rgba(129,140,248,0.12)", label: "MARK-UP" },
+    distribution: { color: "#f87171", bg: "rgba(248,113,113,0.12)", label: "DISTRIBUTION" },
+    markdown: { color: "#fb923c", bg: "rgba(251,146,60,0.12)", label: "MARK-DOWN" },
+    neutral: { color: "#94a3b8", bg: "rgba(148,163,184,0.12)", label: "NEUTRAL" },
+  };
+
+  const confColor: Record<string, string> = { high: "#34d399", medium: "#fbbf24", low: "#f87171" };
+
+  return (
+    <GlassCard className="animate-in animate-in-delay-5">
+      <SectionHeader title="Bandarmology Analysis" subtitle="Smart money flow & broker concentration patterns" />
+      <Typography sx={{ color: bodyColor(isDark), fontSize: compact ? "0.95rem" : "1rem", lineHeight: 1.85, mb: compact ? 2 : 3, fontFamily: '"Plus Jakarta Sans", sans-serif' }}>{band.summary}</Typography>
+
+      {(band.alertStocks?.length ?? 0) > 0 && (
+        <Box sx={{ mb: compact ? 2 : 3, p: 2, borderRadius: 2.5, bgcolor: isDark ? "rgba(52,211,153,0.04)" : "rgba(52,211,153,0.03)", border: 1, borderColor: "rgba(52,211,153,0.12)" }}>
+          <Typography sx={{ fontWeight: 700, fontSize: "0.78rem", color: "#34d399", textTransform: "uppercase", letterSpacing: "0.06em", mb: 1 }}>Alert Watchlist</Typography>
+          <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
+            {band.alertStocks.map((code) => (
+              <Chip key={code} label={code} size="small" onClick={() => router.push(`/stock/${code}`)} sx={{ cursor: "pointer", fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "0.75rem", height: 26, bgcolor: "rgba(52,211,153,0.15)", color: "#34d399", border: "1px solid rgba(52,211,153,0.25)", "&:hover": { bgcolor: "rgba(52,211,153,0.25)" } }} />
+            ))}
+          </Box>
+        </Box>
+      )}
+
+      <Grid container spacing={compact ? 1.5 : 2}>
+        {band.signals.map((sig: BandarmologySignalReport) => {
+          const pc = phaseConfig[sig.phase] || phaseConfig.neutral;
+          const cc = confColor[sig.confidence] || confColor.medium;
+          return (
+            <Grid size={{ xs: 12, sm: 6 }} key={sig.code}>
+              <Box
+                onClick={() => router.push(`/stock/${sig.code}`)}
+                sx={{
+                  p: 2,
+                  borderRadius: 2.5,
+                  border: 1,
+                  borderColor: isDark ? "rgba(107,127,163,0.1)" : "rgba(12,18,34,0.06)",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  position: "relative",
+                  overflow: "hidden",
+                  "&:hover": {
+                    borderColor: `${pc.color}44`,
+                    transform: "translateY(-1px)",
+                    boxShadow: isDark ? `0 6px 24px rgba(0,0,0,0.25)` : `0 6px 24px rgba(0,0,0,0.06)`,
+                  },
+                }}
+              >
+                <Box sx={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", bgcolor: pc.color }} />
+
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "1rem", letterSpacing: "0.02em" }}>{sig.code}</Typography>
+                    <Chip label={pc.label} size="small" sx={{ bgcolor: pc.bg, color: pc.color, fontWeight: 800, fontSize: "0.6rem", height: 22, fontFamily: '"JetBrains Mono", monospace', letterSpacing: "0.06em" }} />
+                    <Chip label={sig.confidence.toUpperCase()} size="small" sx={{ bgcolor: `${cc}15`, color: cc, fontWeight: 700, fontSize: "0.58rem", height: 20, fontFamily: '"JetBrains Mono", monospace' }} />
+                  </Box>
+                </Box>
+
+                <Typography sx={{ color: mutedColor(isDark), fontSize: "0.78rem", fontWeight: 500, mb: 1.25, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sig.name}</Typography>
+
+                <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
+                  <Box sx={{ flex: 1, textAlign: "center", py: 0.75, px: 0.5, borderRadius: 1.5, bgcolor: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.1)" }}>
+                    <Typography sx={{ fontSize: "0.58rem", color: "#34d399", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Buy Conc.</Typography>
+                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "0.95rem", color: "#34d399" }}>{sig.buyerConcentration?.toFixed(1)}%</Typography>
+                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", color: mutedColor(isDark) }}>{sig.buyerCount} brokers</Typography>
+                  </Box>
+                  <Box sx={{ flex: 1, textAlign: "center", py: 0.75, px: 0.5, borderRadius: 1.5, bgcolor: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.1)" }}>
+                    <Typography sx={{ fontSize: "0.58rem", color: "#f87171", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Sell Conc.</Typography>
+                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "0.95rem", color: "#f87171" }}>{sig.sellerConcentration?.toFixed(1)}%</Typography>
+                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", color: mutedColor(isDark) }}>{sig.sellerCount} brokers</Typography>
+                  </Box>
+                </Box>
+
+                {sig.topBuyers?.length > 0 && (
+                  <Box sx={{ mb: 0.75 }}>
+                    <Typography sx={{ fontSize: "0.62rem", color: "#34d399", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.25 }}>Top Buyers</Typography>
+                    <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                      {sig.topBuyers.slice(0, 3).map((b) => (
+                        <Chip key={b.broker} label={`${b.broker} ${b.isForeign ? "(F)" : ""}`} size="small" sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.6rem", height: 20, fontWeight: 600, bgcolor: b.isForeign ? "rgba(129,140,248,0.1)" : "rgba(52,211,153,0.08)", color: b.isForeign ? "#818cf8" : mutedColor(isDark) }} />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+
+                {sig.topSellers?.length > 0 && (
+                  <Box sx={{ mb: 1 }}>
+                    <Typography sx={{ fontSize: "0.62rem", color: "#f87171", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.25 }}>Top Sellers</Typography>
+                    <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
+                      {sig.topSellers.slice(0, 3).map((b) => (
+                        <Chip key={b.broker} label={`${b.broker} ${b.isForeign ? "(F)" : ""}`} size="small" sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.6rem", height: 20, fontWeight: 600, bgcolor: b.isForeign ? "rgba(129,140,248,0.1)" : "rgba(248,113,113,0.08)", color: b.isForeign ? "#818cf8" : mutedColor(isDark) }} />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+
+                <Typography sx={{ color: bodyColor(isDark), fontSize: "0.85rem", lineHeight: 1.7, fontFamily: '"Plus Jakarta Sans", sans-serif' }}>{sig.interpretation}</Typography>
+              </Box>
+            </Grid>
+          );
+        })}
       </Grid>
     </GlassCard>
   );
@@ -1070,6 +1244,7 @@ export function ReportDashboard({
       <TechnicalAnalysisSection report={report} />
       <PricePredictionsSection report={report} />
       <ForeignFlowSection report={report} />
+      <BandarmologySection report={report} />
       <CommodityAnalysisSection report={report} />
       <CorporateEventsSection report={report} />
       <Grid container spacing={compact ? 1.5 : 2.5}>

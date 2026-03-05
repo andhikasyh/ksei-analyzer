@@ -337,6 +337,26 @@ interface StockRow {
   sector?: string;
 }
 
+interface FundamentalRatio {
+  code: string;
+  stockName: string;
+  sector: string;
+  subSector: string;
+  per: number;
+  pbv: number;
+  roe: number;
+  roa: number;
+  npm: number;
+  deRatio: number;
+  eps: number;
+  bookValue: number;
+  assets: number;
+  liabilities: number;
+  equity: number;
+  sales: number;
+  fsDate: string;
+}
+
 interface AggregatedMarketData {
   tradingDate: string;
   totalStocks: number;
@@ -362,6 +382,7 @@ interface AggregatedMarketData {
   priceHistory: Map<string, PriceHistoryRow[]>;
   recentCorporateActions: { code: string; issuerName: string; type: string; detail: string; startDate: string }[];
   bandarmologySignals: BandarmologySignal[];
+  fundamentals: Map<string, FundamentalRatio>;
 }
 
 async function aggregateMarketData(
@@ -486,7 +507,12 @@ async function aggregateMarketData(
     .slice(0, 20)
     .map((s) => s.code);
 
-  const [priceHistory, corpActionsRes, bandarmologySignals] = await Promise.all([
+  const fundamentalCodes = [...new Set([
+    ...topCodes,
+    ...bandarmologyCodes.slice(0, 15),
+  ])];
+
+  const [priceHistory, corpActionsRes, bandarmologySignals, { data: fundamentalRows }] = await Promise.all([
     fetchMultiDayHistory(supabase, topCodes),
     supabase
       .from("idx_corporate_actions")
@@ -495,7 +521,40 @@ async function aggregateMarketData(
       .order("start_date", { ascending: false })
       .limit(20),
     fetchBandarmologyData(supabase, bandarmologyCodes),
+    supabase
+      .from("idx_financial_ratios")
+      .select("code, stock_name, sector, sub_sector, per, price_bv, roe, roa, npm, de_ratio, eps, book_value, assets, liabilities, equity, sales, fs_date")
+      .in("code", fundamentalCodes)
+      .order("fs_date", { ascending: false })
+      .limit(fundamentalCodes.length * 2),
   ]);
+
+  const fundamentals = new Map<string, FundamentalRatio>();
+  if (fundamentalRows) {
+    for (const f of fundamentalRows) {
+      if (!fundamentals.has(f.code as string)) {
+        fundamentals.set(f.code as string, {
+          code: f.code as string,
+          stockName: f.stock_name as string,
+          sector: f.sector as string,
+          subSector: f.sub_sector as string,
+          per: parseFloat(f.per as string) || 0,
+          pbv: parseFloat(f.price_bv as string) || 0,
+          roe: parseFloat(f.roe as string) || 0,
+          roa: parseFloat(f.roa as string) || 0,
+          npm: parseFloat(f.npm as string) || 0,
+          deRatio: parseFloat(f.de_ratio as string) || 0,
+          eps: parseFloat(f.eps as string) || 0,
+          bookValue: parseFloat(f.book_value as string) || 0,
+          assets: parseFloat(f.assets as string) || 0,
+          liabilities: parseFloat(f.liabilities as string) || 0,
+          equity: parseFloat(f.equity as string) || 0,
+          sales: parseFloat(f.sales as string) || 0,
+          fsDate: f.fs_date as string,
+        });
+      }
+    }
+  }
 
   const recentCorporateActions = (corpActionsRes.data || []).map(
     (ca: Record<string, string>) => ({
@@ -546,6 +605,7 @@ async function aggregateMarketData(
     priceHistory,
     recentCorporateActions,
     bandarmologySignals,
+    fundamentals,
   };
 }
 
@@ -575,7 +635,7 @@ const REPORT_SCHEMA = `{
     }
   ],
   "topMovers": {
-    "gainers": [{ "code": "TICKER", "name": "Company Name", "close": number, "change": number, "changePct": number, "volume": number, "reason": "brief reason for move" }],
+    "gainers": [{ "code": "TICKER", "name": "Company Name", "close": number, "change": number, "changePct": number, "volume": number,     "reason": "3-5 sentence in-depth analysis: explain the WHY behind this move by cross-referencing sector rotation, foreign flow direction, commodity prices, technical breakout/breakdown patterns, broker activity, recent news catalysts, and fundamental valuation. Connect the dots." }],
     "losers": [same shape],
     "mostActive": [same shape]
   },
@@ -583,13 +643,13 @@ const REPORT_SCHEMA = `{
     "netFlow": number,
     "netFlowLabel": "human-readable net flow like Rp 1.2T",
     "sentiment": "inflow" | "outflow" | "neutral",
-    "summary": "1-2 sentence analysis",
+    "summary": "3-5 sentence analysis explaining foreign flow patterns, what sectors/stocks are being targeted, and what this flow direction signals about institutional sentiment",
     "topBought": [{ "code": "TICKER", "name": "Company Name", "netBuy": number }],
     "topSold": [{ "code": "TICKER", "name": "Company Name", "netSell": number }]
   },
   "technicalAnalysis": {
     "marketTrend": "uptrend" | "downtrend" | "sideways",
-    "marketTrendNotes": "2-3 sentence analysis of overall market trend based on price action, volume, and breadth",
+    "marketTrendNotes": "4-6 sentence deep analysis of overall market trend based on multi-day price action patterns, volume dynamics, market breadth (advance-decline), and inter-day momentum shifts",
     "keyLevels": [
       { "label": "level description (e.g. IHSG Support 1)", "value": "price level as string", "significance": "why this level matters" }
     ],
@@ -602,19 +662,19 @@ const REPORT_SCHEMA = `{
         "support": number (nearest support price),
         "resistance": number (nearest resistance price),
         "rsi": number (estimated RSI 0-100 based on recent price action),
-        "notes": "brief technical observation"
+        "notes": "3-5 sentence technical observation: describe the chart pattern setup, what price action tells us, volume confirmation, and actionable trade setup with entry/exit zones"
       }
     ],
-    "volumeAnalysis": "1-2 sentence analysis of overall volume trends and what they indicate"
+    "volumeAnalysis": "3-4 sentence analysis of overall volume trends, unusual volume spikes, volume-price divergences, and what these indicate about conviction behind the current trend"
   },
   "commodityAnalysis": {
-    "summary": "2-3 sentence overview of how global commodity prices affect IDX",
+    "summary": "4-6 sentence overview analyzing how global commodity price movements are affecting IDX stocks, export-oriented sectors, and Indonesia's trade balance. Include macro context like USD/IDR, global demand outlook, and supply chain dynamics",
     "commodities": [
       {
         "commodity": "Crude Oil" | "Gold" | "Coal" | "Palm Oil (CPO)" | "Nickel" | "Tin" | "Copper" | "Natural Gas",
         "sentiment": "bullish" | "bearish" | "neutral",
         "priceDirection": "up" | "down" | "flat",
-        "impact": "1-2 sentence explanation of how this commodity's movement impacts Indonesian market",
+        "impact": "3-5 sentence explanation of how this commodity price movement impacts Indonesian producers, export revenues, government royalties, and which specific IDX stocks benefit or suffer. Include global supply-demand context.",
         "affectedStocks": [{ "code": "TICKER", "name": "Company Name", "correlation": "positive" | "negative" }]
       }
     ]
@@ -640,7 +700,7 @@ const REPORT_SCHEMA = `{
       "stopLoss": number (recommended stop loss),
       "confidence": "high" | "medium" | "low",
       "timeframe": "e.g. 1-2 weeks",
-      "rationale": "2-3 sentence rationale combining technical, fundamental, and flow analysis"
+      "rationale": "5-8 sentence deep rationale: combine technical setup (pattern, support/resistance, RSI), fundamental valuation (PER vs sector avg, PBV, ROE quality, earnings trajectory), foreign flow direction, bandarmology phase, and risk factors. Justify why this specific price target makes sense."
     }
   ],
   "chartData": {
@@ -670,12 +730,22 @@ const REPORT_SCHEMA = `{
       "name": "Company Name",
       "action": "BUY" | "HOLD" | "SELL" | "WATCH",
       "currentPrice": number,
-      "rationale": "2-3 sentence rationale",
-      "targetPrice": number (optional)
+      "rationale": "6-10 sentence comprehensive rationale: MUST cover (1) fundamental thesis -- valuation metrics vs sector/historical averages, earnings quality, balance sheet health, (2) technical setup -- chart pattern, trend, support/resistance, volume, (3) flow analysis -- foreign flow direction, bandarmology phase, broker concentration, (4) catalysts -- upcoming events, sector tailwinds, macro factors. This is an investment thesis, not a summary.",
+      "targetPrice": number (optional),
+      "fundamentals": {
+        "per": number (Price-to-Earnings ratio),
+        "pbv": number (Price-to-Book Value),
+        "roe": number (Return on Equity %),
+        "deRatio": number (Debt-to-Equity ratio),
+        "eps": number (Earnings Per Share)
+      },
+      "technicalSetup": "2-3 sentence technical chart setup description",
+      "riskAssessment": "2-3 sentence risk factors specific to this stock",
+      "catalysts": ["catalyst1", "catalyst2", ...]
     }
   ],
   "bandarmology": {
-    "summary": "2-3 sentence overview of smart money flow patterns across the market -- are institutions accumulating or distributing?",
+    "summary": "4-6 sentence deep overview of smart money flow patterns across the market: identify whether institutions are in accumulation, distribution, or transitional mode. Analyze which brokers dominate the buy/sell side, whether foreign institutions are rotating, and what this means for the next 1-4 weeks.",
     "signals": [
       {
         "code": "TICKER",
@@ -688,17 +758,17 @@ const REPORT_SCHEMA = `{
         "sellerConcentration": number (% of total value held by top 3 sellers),
         "buyerCount": number,
         "sellerCount": number,
-        "interpretation": "2-3 sentence institutional-quality analysis of the broker flow pattern, cross-referencing price action, volume, foreign flow, and news"
+        "interpretation": "4-6 sentence institutional-quality analysis: describe WHO is buying/selling (institutional vs retail, foreign vs domestic), WHY (cross-reference with price trend, volume pattern, news catalysts, fundamental value), and WHAT it means for the stock's near-term direction. Include specific broker behavior patterns."
       }
     ],
     "alertStocks": ["TICKER1", "TICKER2"] (stocks showing strongest accumulation/distribution signals -- top priority watchlist)
   },
   "marketOutlook": {
     "sentiment": "bullish" | "bearish" | "neutral" | "cautious",
-    "summary": "2-3 sentence overall outlook",
-    "keyRisks": ["risk1", "risk2", ...],
-    "keyCatalysts": ["catalyst1", "catalyst2", ...],
-    "shortTermForecast": "1-2 sentence short-term forecast"
+    "summary": "5-8 sentence comprehensive market outlook: synthesize all data points (technical trend, foreign flow direction, commodity impact, bandarmology signals, news sentiment, sector rotation) into a cohesive market thesis. What is the weight of evidence suggesting?",
+    "keyRisks": ["detailed risk description 2-3 sentences each", ...],
+    "keyCatalysts": ["detailed catalyst description 2-3 sentences each", ...],
+    "shortTermForecast": "4-6 sentence actionable short-term forecast: specify expected direction, key levels to watch, which sectors to overweight/underweight, and what signals would invalidate this view"
   }
 }`;
 
@@ -729,28 +799,44 @@ export async function generateMarketIntelligenceReport(): Promise<GenerateReport
     throw new Error("No market data available");
   }
 
-  const systemPrompt = `You are a senior Indonesian stock market analyst and technical chartist providing an institutional-grade daily market intelligence report. You have deep expertise in the Indonesia Stock Exchange (BEI/IDX), technical analysis, market microstructure, and macroeconomic factors affecting Indonesian equities.
+  const systemPrompt = `You are a CFA-level senior Indonesian stock market analyst, technical chartist, and fundamental researcher producing an institutional-grade daily market intelligence report for professional portfolio managers. You have deep expertise in the Indonesia Stock Exchange (BEI/IDX), technical analysis, fundamental valuation, market microstructure, and macroeconomic factors affecting Indonesian equities.
+
+Your analysis must demonstrate the depth of a paid research report -- NOT a surface-level summary. Every insight should connect multiple data points and explain the "so what" implication for portfolio positioning.
 
 You MUST respond with ONLY valid JSON matching this exact schema (no markdown, no code fences, no explanation text outside the JSON):
 
 ${REPORT_SCHEMA}
 
+ANALYSIS DEPTH REQUIREMENTS:
+- Every "reason", "rationale", "interpretation", "notes", "summary", and "impact" field must be substantive multi-sentence analysis, NOT brief one-liners
+- Cross-reference AT LEAST 2-3 data dimensions for every insight (e.g. price + volume + flow, or fundamental + technical + news)
+- Name specific numbers, percentages, and comparisons -- avoid vague qualitative statements
+- For each stock mentioned, explain the causal mechanism, not just the correlation
+
 RULES:
 1. Return ONLY the JSON object, nothing else. No markdown formatting, no code blocks.
 2. All number values must be actual numbers, not strings.
-3. For topMovers, include the top 8 gainers, 8 losers, and 8 most active stocks. The "reason" field should be deeply insightful -- cross-reference sector trends, foreign flow, commodity impacts, news catalysts, and technical patterns.
+3. For topMovers, include the top 8 gainers, 8 losers, and 8 most active stocks. The "reason" field MUST be 3-5 sentences minimum: cross-reference sector trends, foreign flow, commodity impacts, news catalysts, technical patterns, fundamental valuation, AND broker activity. Explain the narrative behind each move.
 4. For sectorPerformance, include all sectors present in the data, filtering out "Unknown".
-5. For stockPicks, select 5-8 stocks you find most compelling -- mix of buy, hold, watch recommendations. Be specific about entry/exit levels.
+5. For stockPicks, this is the MOST IMPORTANT section -- you are making a research recommendation that people may act on:
+   - Select 5-8 stocks with a mix of BUY, HOLD, SELL, WATCH recommendations
+   - EVERY pick MUST be justified with: (a) fundamental valuation analysis using the provided PER, PBV, ROE, D/E data and how they compare to sector averages, (b) technical setup with specific chart patterns and key price levels, (c) flow analysis -- what are foreign investors and brokers doing with this stock, (d) specific near-term catalysts or risk factors
+   - The "rationale" must be 6-10 sentences -- a full investment thesis
+   - Include the "fundamentals" object with actual values from the provided data
+   - Include "technicalSetup", "riskAssessment", and "catalysts" fields
+   - Be RESPONSIBLE: clearly state risks, do not present uncertain calls as high-conviction. If fundamentals are deteriorating, flag it even for technically attractive setups.
+   - Include a "targetPrice" with justification (e.g. based on PBV reversion, sector-relative PER, or technical resistance)
 6. For newsSentiment, preserve the original URL for each news item in the "url" field exactly as provided.
-7. For technicalAnalysis: analyze price action patterns, support/resistance levels, volume trends, and estimate RSI. Identify 5-8 stocks showing notable technical patterns. Include key market index levels.
-8. For commodityAnalysis: analyze at least 4-6 key commodities (Oil, Gold, Coal, Palm Oil/CPO, Nickel, Tin). Map each to affected IDX companies (e.g. oil affects MEDC, ELSA; coal affects ADRO, PTBA, ITMG; CPO affects AALI, LSIP, SIMP; nickel affects ANTM, INCO, MBMA; gold affects ANTM, MDKA).
+7. For technicalAnalysis: provide detailed multi-day pattern analysis, not just today's snapshot. Identify support/resistance from the price history provided. Estimate RSI from recent price momentum. The "notes" for each signal should be 3-5 sentences describing the setup, volume confirmation, and actionable trade parameters. Include 5-8 stocks.
+8. For commodityAnalysis: analyze at least 4-6 key commodities (Oil, Gold, Coal, Palm Oil/CPO, Nickel, Tin). For each: explain the global supply-demand context, current price trajectory, and specifically HOW it flows through to Indonesian producers' revenue/margins. Name specific IDX tickers with the transmission mechanism (e.g. "ADRO benefits from thermal coal spot at $X as ~70% of revenue is coal mining with ASP tracking Newcastle benchmark").
 9. For corporateEvents: identify any acquisitions, mergers, cooperations, IPOs, restructurings, or market rumors from the news. Include ticker codes of involved companies. Preserve source URLs when available.
-10. For pricePredictions: provide price predictions for 5-8 key stocks with short-term targets (1-2 weeks), mid-term targets (1-3 months), and stop-loss levels. Use the provided price history data to inform your predictions. State confidence level honestly.
-11. For chartData: include ALL provided data points -- do NOT summarize or reduce them. For priceHistoryCharts, include every date-price pair from the multi-day price history for at least 6 top stocks. For foreignFlowChart, include every date from the multi-day foreign flow data provided. For sectorPerformanceChart, populate from sector data. The charts need enough data points for smooth, meaningful visualizations.
-12. For bandarmology: this is the core of Indonesian market analysis (Bandarmology = tracking the "Bandar"/market makers). Analyze broker summary concentration patterns to detect the 4 phases: Accumulation (concentrated buying, fragmented selling -- stealth phase), Mark-Up (broker self-crossing, rising prices), Distribution (concentrated selling to fragmented retail buyers -- the trap), Mark-Down (price collapse after distribution). Flag stocks with the strongest signals. Cross-reference broker types (foreign/institutional vs retail) with price action. Include at least 8-12 stocks in signals, prioritizing those with clearest phase patterns.
-13. Write all analysis in English with institutional-level depth.
-14. Do not use any emojis anywhere in the response.
-15. Think deeply about inter-market correlations, commodity-equity linkages, sector rotation patterns, and smart money flow. Cross-reference bandarmology signals with technical analysis and foreign flow data.`;
+10. For pricePredictions: provide predictions for 5-8 key stocks with targets backed by the fundamental and technical data provided. Rationale must be 5-8 sentences combining price history analysis, fundamental valuation, flow signals, and risk assessment. Be honest about confidence -- "high" only when multiple dimensions align.
+11. For chartData: include ALL provided data points -- do NOT summarize or reduce them. For priceHistoryCharts, include every date-price pair from the multi-day price history for at least 6 top stocks. For foreignFlowChart, include every date from the multi-day foreign flow data provided. For sectorPerformanceChart, populate from sector data. For marketBreadthChart, calculate from the daily advance-decline data. The charts need enough data points for smooth, meaningful visualizations.
+12. For bandarmology: this is the core of Indonesian market analysis. Analyze broker concentration patterns to detect the 4 Wyckoff phases: Accumulation (concentrated institutional buying, fragmented retail selling -- stealth buying phase), Mark-Up (price rising with broker self-crossing confirming controlled distribution), Distribution (concentrated selling to fragmented retail buyers -- the smart money exit), Mark-Down (price collapse after distribution completes). For each stock signal: the "interpretation" must be 4-6 sentences connecting broker behavior to price action, volume patterns, and fundamental context. Flag the highest-conviction signals in "alertStocks".
+13. For marketOutlook: synthesize ALL data dimensions into a cohesive macro thesis. The "summary" must be 5-8 sentences. "keyRisks" and "keyCatalysts" should each have 3-5 items, each being 2-3 sentences. The "shortTermForecast" must be 4-6 sentences with actionable guidance.
+14. Write all analysis in English with institutional-level depth.
+15. Do not use any emojis anywhere in the response.
+16. Think deeply about inter-market correlations, commodity-equity linkages, sector rotation patterns, and smart money flow. The hallmark of great analysis is connecting seemingly unrelated data points into a coherent narrative.`;
 
   const userMessage = `Here is today's market data for the Indonesia Stock Exchange (${marketData.tradingDate}):
 
@@ -801,6 +887,15 @@ ${(() => {
     : "No multi-day foreign flow data available.";
 })()}
 
+FUNDAMENTAL DATA (latest available financial ratios for key stocks):
+${(() => {
+  const entries = Array.from(marketData.fundamentals.entries());
+  if (entries.length === 0) return "No fundamental data available.";
+  return entries.map(([code, f]) => {
+    return `${code} (${f.stockName}) | Sector: ${f.sector}/${f.subSector} | PER: ${f.per.toFixed(2)} | PBV: ${f.pbv.toFixed(2)} | ROE: ${f.roe.toFixed(2)}% | ROA: ${f.roa.toFixed(2)}% | NPM: ${f.npm.toFixed(2)}% | D/E: ${f.deRatio.toFixed(2)} | EPS: ${f.eps.toFixed(0)} | BV: ${f.bookValue.toFixed(0)} | Assets: Rp ${(f.assets / 1e9).toFixed(1)}B | Equity: Rp ${(f.equity / 1e9).toFixed(1)}B | Sales: Rp ${(f.sales / 1e9).toFixed(1)}B | FS Date: ${f.fsDate}`;
+  }).join("\n");
+})()}
+
 RECENT CORPORATE ACTIONS (from IDX database, last 30 days):
 ${marketData.recentCorporateActions.length > 0 ? marketData.recentCorporateActions.map((ca) => `${ca.code} (${ca.issuerName}): ${ca.type} - ${ca.detail} [${ca.startDate}]`).join("\n") : "No recent corporate actions."}
 
@@ -823,13 +918,23 @@ ${marketData.bandarmologySignals.length > 0 ? marketData.bandarmologySignals.map
   Signal: ${s.rationale}`;
 }).join("\n\n") : "No bandarmology data available."}
 
-Generate a comprehensive daily market intelligence report including: deep technical analysis, commodity impact analysis, corporate events, price predictions with targets and stop-losses, bandarmology/smart-money analysis, and chart data using the real historical prices provided. Cross-reference all data points -- commodity prices with related IDX stocks, news with affected tickers, foreign flow with price action, broker concentration with accumulation/distribution phases -- to produce the most insightful institutional-quality analysis possible.`;
+Generate a comprehensive daily market intelligence report. CRITICAL DEPTH REQUIREMENTS:
+
+1. CROSS-REFERENCE EVERYTHING: Every insight must connect at least 2-3 data dimensions. Example: "ADRO rose 3.2% on Rp 45B foreign net buy (technical breakout above 2,850 resistance confirmed by 2.3x average volume), as Newcastle coal spot prices climbed to $135/ton. PER at 5.2x remains well below the mining sector average of 8.1x, with ROE of 24.3% indicating strong capital efficiency."
+
+2. STOCK PICKS MUST BE RESEARCH-QUALITY: Use the fundamental data provided (PER, PBV, ROE, D/E, EPS) to build valuation arguments. Compare to sector averages. State specific price levels from the chart data. Cross-reference with bandarmology phase and foreign flow.
+
+3. EVERY REASON/RATIONALE must be multi-sentence with specific numbers and causal explanations -- NOT generic summaries like "stock rose on positive sentiment". Explain the mechanism.
+
+4. INCLUDE ALL CHART DATA POINTS: Preserve every date-price pair in the price history. Do not truncate the data.
+
+5. BE RESPONSIBLE WITH PICKS: Flag deteriorating fundamentals honestly. If D/E is high, say so. If PER is expensive vs sector, acknowledge it. High-conviction calls require fundamental, technical, AND flow alignment.`;
 
   const anthropic = new Anthropic({ apiKey });
 
   const response = await anthropic.messages.create({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 16384,
+    max_tokens: 32000,
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
   });
