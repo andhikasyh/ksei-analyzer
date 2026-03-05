@@ -5,6 +5,14 @@ import { useRouter } from "next/navigation";
 import { useTheme } from "@mui/material/styles";
 import { supabase } from "@/lib/supabase";
 import { IDXBroker, formatValue, formatShares } from "@/lib/types";
+import {
+  DateRange,
+  mapDateRange,
+  BROKER_COLORS,
+  BrokerFlowPoint,
+  BrokerPosition,
+  BandarmologyEntry,
+} from "@/lib/brokerUtils";
 import { GlobalSearch } from "@/components/SearchInput";
 import { StatsCard } from "@/components/StatsCard";
 import {
@@ -12,6 +20,9 @@ import {
   Area,
   BarChart,
   Bar,
+  ComposedChart,
+  Line,
+  Legend,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -26,6 +37,7 @@ import Stack from "@mui/material/Stack";
 import Skeleton from "@mui/material/Skeleton";
 import Chip from "@mui/material/Chip";
 import TextField from "@mui/material/TextField";
+import Autocomplete from "@mui/material/Autocomplete";
 import InputAdornment from "@mui/material/InputAdornment";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
@@ -52,6 +64,8 @@ import ShowChartIcon from "@mui/icons-material/ShowChart";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import EqualizerIcon from "@mui/icons-material/Equalizer";
+import InsightsIcon from "@mui/icons-material/Insights";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 const LICENSE_LABELS: Record<string, { short: string; color: string }> = {
   "Penjamin Emisi Efek, Perantara Pedagang Efek": {
@@ -81,6 +95,21 @@ const TREND_CONFIG = {
   steady: { label: "Steady", color: "#94a3b8", icon: "none" },
   declining: { label: "Declining", color: "#f87171", icon: "down" },
 } as const;
+
+const BA_PERIOD_OPTS = [
+  { label: "1D", value: "1D" },
+  { label: "1M", value: "1M" },
+  { label: "3M", value: "3M" },
+  { label: "6M", value: "6M" },
+  { label: "1Y", value: "1Y" },
+];
+
+function hhiIndicator(score: number): { label: string; color: string } {
+  if (score >= 5000) return { label: "High", color: "#ef4444" };
+  if (score >= 2500) return { label: "Concentrated", color: "#f59e0b" };
+  if (score >= 1500) return { label: "Moderate", color: "#3b82f6" };
+  return { label: "Dispersed", color: "#22c55e" };
+}
 
 interface BrokerRecord {
   date: string;
@@ -120,6 +149,20 @@ interface DailyTotal {
   activeBrokers: number;
 }
 
+type ActTickerBreakdown = {
+  symbol: string;
+  net_value: number;
+  b_val: number;
+  s_val: number;
+  net_volume: number;
+  b_lot: number;
+  s_lot: number;
+  b_avg: number;
+  s_avg: number;
+  value_share: number;
+  rank: number;
+};
+
 export default function BrokersPage() {
   const router = useRouter();
   const theme = useTheme();
@@ -137,11 +180,33 @@ export default function BrokersPage() {
   const [period, setPeriod] = useState(30);
   const [expandedBroker, setExpandedBroker] = useState<string | null>(null);
 
+  const [actDateRange, setActDateRange] = useState<DateRange>("1M");
+  const [actSelectedBroker, setActSelectedBroker] = useState("BK");
+  const [actBrokerInput, setActBrokerInput] = useState("");
+  const [actMetric, setActMetric] = useState<"value" | "volume">("value");
+  const [actFlowData, setActFlowData] = useState<BrokerFlowPoint[]>([]);
+  const [actAllTickers, setActAllTickers] = useState<string[]>([]);
+  const [actVisibleTickers, setActVisibleTickers] = useState<string[]>([]);
+  const [actAddTickerOpen, setActAddTickerOpen] = useState(false);
+  const [actAddTickerInput, setActAddTickerInput] = useState("");
+  const [actBuyRows, setActBuyRows] = useState<ActTickerBreakdown[]>([]);
+  const [actSellRows, setActSellRows] = useState<ActTickerBreakdown[]>([]);
+  const [loadingAct, setLoadingAct] = useState(false);
+
+  const [baPeriod, setBaPeriod] = useState("1D");
+  const [baView, setBaView] = useState<"leaderboard" | "lookup">("leaderboard");
+  const [baLeaderboard, setBaLeaderboard] = useState<BandarmologyEntry[]>([]);
+  const [loadingBA, setLoadingBA] = useState(false);
+  const [brokerLookup, setBrokerLookup] = useState("");
+  const [brokerLookupStocks, setBrokerLookupStocks] = useState<BrokerPosition[]>([]);
+  const [loadingBrokerLookup, setLoadingBrokerLookup] = useState(false);
+  const [brokerLookupCode, setBrokerLookupCode] = useState("");
+
   useEffect(() => {
     async function fetchBrokers() {
       const { data, error } = await supabase
         .from("idx_brokers")
-        .select("*")
+        .select("code, name, license, is_foreign, created_at, updated_at")
         .order("name");
       if (!error && data) setBrokers(data as IDXBroker[]);
       setLoadingBrokers(false);
@@ -155,8 +220,7 @@ export default function BrokersPage() {
       let query = supabase
         .from("idx_broker_summary")
         .select("date, broker_code, broker_name, volume, value, frequency")
-        .order("date", { ascending: true })
-        .limit(10000);
+        .order("date", { ascending: true });
 
       if (period > 0) {
         const startDate = new Date();
@@ -170,6 +234,280 @@ export default function BrokersPage() {
     }
     fetchActivity();
   }, [period]);
+
+  const actMapping = useMemo(() => mapDateRange(actDateRange), [actDateRange]);
+  const brokerOptions = useMemo(
+    () => [...brokers].sort((a, b) => a.code.localeCompare(b.code)),
+    [brokers]
+  );
+
+  const getBrokerMeta = (b: IDXBroker) => {
+    const licenseMeta = LICENSE_LABELS[b.license] || {
+      short: b.license || "Unknown",
+      color: "#64748b",
+    };
+    const originMeta = b.is_foreign
+      ? { label: "Foreign", color: "#38bdf8" }
+      : { label: "Local", color: "#22c55e" };
+    return { licenseMeta, originMeta };
+  };
+
+  useEffect(() => {
+    if (tab !== 1 || !actSelectedBroker) return;
+    let cancelled = false;
+    async function loadAct() {
+      setLoadingAct(true);
+      let valueQuery = supabase
+        .from("idx_broker_activity")
+        .select("symbol, date, time, value_raw")
+        .eq("broker_code", actSelectedBroker)
+        .eq("period", actMapping.period)
+        .eq("investor_type", "ALL")
+        .eq("market_board", "REGULAR")
+        .eq("chart_type", "TYPE_CHART_VALUE")
+        .order("date")
+        .order("time")
+        .limit(50000);
+      let volumeQuery = supabase
+        .from("idx_broker_activity")
+        .select("symbol, date, time, value_raw")
+        .eq("broker_code", actSelectedBroker)
+        .eq("period", actMapping.period)
+        .eq("investor_type", "ALL")
+        .eq("market_board", "REGULAR")
+        .eq("chart_type", "TYPE_CHART_VOLUME")
+        .order("date")
+        .order("time")
+        .limit(50000);
+
+      if (actMapping.dateFrom) {
+        valueQuery = valueQuery.gte("date", actMapping.dateFrom);
+        volumeQuery = volumeQuery.gte("date", actMapping.dateFrom);
+      }
+      if (actMapping.dateTo) {
+        valueQuery = valueQuery.lte("date", actMapping.dateTo);
+        volumeQuery = volumeQuery.lte("date", actMapping.dateTo);
+      }
+
+      const [{ data: valueRows }, { data: volumeRows }] = await Promise.all([
+        valueQuery,
+        volumeQuery,
+      ]);
+      if (cancelled) return;
+
+      if (!valueRows || valueRows.length === 0) {
+        setActFlowData([]);
+        setActAllTickers([]);
+        setActVisibleTickers([]);
+        setActAddTickerOpen(false);
+        setActAddTickerInput("");
+        setActBuyRows([]);
+        setActSellRows([]);
+        setLoadingAct(false);
+        return;
+      }
+
+      const isIntraday = actMapping.period === "1D";
+      const sourceValueRows = [...(valueRows as any[])];
+      const sourceVolumeRows = [...((volumeRows || []) as any[])];
+
+      if (isIntraday) {
+        const latestDate =
+          sourceValueRows.reduce(
+            (latest, row) => (row.date > latest ? row.date : latest),
+            sourceValueRows[0]?.date || ""
+          ) || "";
+        for (let i = sourceValueRows.length - 1; i >= 0; i -= 1) {
+          if (sourceValueRows[i].date !== latestDate) sourceValueRows.splice(i, 1);
+        }
+        for (let i = sourceVolumeRows.length - 1; i >= 0; i -= 1) {
+          if (sourceVolumeRows[i].date !== latestDate) sourceVolumeRows.splice(i, 1);
+        }
+      }
+
+      const timelineSet = new Set<string>();
+      sourceValueRows.forEach((r: any) => {
+        timelineSet.add(isIntraday ? String(r.time || "") : String(r.date || ""));
+      });
+      const timeline = Array.from(timelineSet)
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b));
+
+      const pointsMap: Record<string, BrokerFlowPoint> = {};
+      timeline.forEach((key) => {
+        pointsMap[key] = {
+          label: isIntraday
+            ? key
+            : new Date(`${key}T00:00:00`).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+              }),
+          date: isIntraday ? String(sourceValueRows[0]?.date || "") : key,
+          time: isIntraday ? key : "00:00",
+        };
+      });
+
+      const seriesRows =
+        actMetric === "value" ? sourceValueRows : sourceVolumeRows;
+      const latestSeriesByTicker: Record<string, number> = {};
+      seriesRows.forEach((r: any) => {
+        const symbol = String(r.symbol || "").toUpperCase();
+        const key = isIntraday ? String(r.time || "") : String(r.date || "");
+        if (!symbol || !key || !pointsMap[key]) return;
+        const val = parseFloat(r.value_raw) || 0;
+        pointsMap[key][symbol] = val;
+        latestSeriesByTicker[symbol] = val;
+      });
+
+      const sortedTickers = Object.entries(latestSeriesByTicker)
+        .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+        .map(([symbol]) => symbol);
+      const defaultVisible = sortedTickers.slice(0, 6);
+
+      const flowData = timeline.map((key) => pointsMap[key]);
+
+      const latestVolumeByTicker: Record<string, number> = {};
+      sourceVolumeRows.forEach((r: any) => {
+        const symbol = String(r.symbol || "").toUpperCase();
+        if (!symbol) return;
+        latestVolumeByTicker[symbol] = parseFloat(r.value_raw) || 0;
+      });
+
+      const latestValueByTicker: Record<string, number> = {};
+      sourceValueRows.forEach((r: any) => {
+        const symbol = String(r.symbol || "").toUpperCase();
+        if (!symbol) return;
+        latestValueByTicker[symbol] = parseFloat(r.value_raw) || 0;
+      });
+
+      const totalAbs = Object.values(latestValueByTicker).reduce(
+        (sum, v) => sum + Math.abs(v),
+        0
+      );
+      const rows: ActTickerBreakdown[] = sortedTickers.map((symbol, idx) => {
+        const netVal = latestValueByTicker[symbol] || 0;
+        const netVol = latestVolumeByTicker[symbol] || 0;
+        const bVal = Math.max(netVal, 0);
+        const sVal = Math.abs(Math.min(netVal, 0));
+        const bLot = Math.max(netVol, 0);
+        const sLot = Math.abs(Math.min(netVol, 0));
+        return {
+          symbol,
+          net_value: netVal,
+          b_val: bVal,
+          s_val: sVal,
+          net_volume: netVol,
+          b_lot: bLot,
+          s_lot: sLot,
+          b_avg: bLot > 0 ? bVal / bLot : 0,
+          s_avg: sLot > 0 ? sVal / sLot : 0,
+          value_share: totalAbs > 0 ? (Math.abs(netVal) / totalAbs) * 100 : 0,
+          rank: idx + 1,
+        };
+      });
+
+      const buyRows = rows
+        .filter((r) => r.b_val > 0 || r.b_lot > 0)
+        .sort((a, b) =>
+          actMetric === "value" ? b.b_val - a.b_val : b.b_lot - a.b_lot
+        )
+        .slice(0, 20);
+      const sellRows = rows
+        .filter((r) => r.s_val > 0 || r.s_lot > 0)
+        .sort((a, b) =>
+          actMetric === "value" ? b.s_val - a.s_val : b.s_lot - a.s_lot
+        )
+        .slice(0, 20);
+
+      setActFlowData(flowData);
+      setActAllTickers(sortedTickers);
+      setActVisibleTickers((prev) => {
+        const stillValid = prev.filter((t) => sortedTickers.includes(t));
+        return stillValid.length > 0 ? stillValid : defaultVisible;
+      });
+      setActAddTickerInput("");
+      setActBuyRows(buyRows);
+      setActSellRows(sellRows);
+      if (!cancelled) setLoadingAct(false);
+    }
+    loadAct();
+    return () => { cancelled = true; };
+  }, [tab, actSelectedBroker, actMetric, actMapping]);
+
+  useEffect(() => {
+    if (tab !== 2) return;
+    let cancelled = false;
+    async function fetchBA() {
+      setLoadingBA(true);
+      setBrokerLookupStocks([]);
+      setBrokerLookupCode("");
+      const { data, error } = await supabase.rpc("get_bandarmology", {
+        p_period: baPeriod,
+        p_investor_type: "ALL",
+      });
+      if (cancelled) return;
+      if (!error && data) {
+        setBaLeaderboard(
+          (data as BandarmologyEntry[]).sort(
+            (a, b) => b.hhi_score - a.hhi_score
+          )
+        );
+      } else {
+        setBaLeaderboard([]);
+      }
+      setLoadingBA(false);
+    }
+    fetchBA();
+    return () => { cancelled = true; };
+  }, [tab, baPeriod]);
+
+  async function handleBrokerLookup() {
+    const code = brokerLookup.trim().toUpperCase();
+    if (!code) return;
+    setLoadingBrokerLookup(true);
+    setBrokerLookupCode(code);
+    const { data } = await supabase
+      .from("idx_ba_broker_ranking")
+      .select("*")
+      .eq("broker_code", code)
+      .eq("period", baPeriod)
+      .eq("investor_type", "ALL")
+      .order("date", { ascending: false })
+      .order("rank")
+      .limit(500);
+    if (data && data.length > 0) {
+      const latest = (data as any[])[0].date;
+      const filtered = (data as any[]).filter((r) => r.date === latest);
+      setBrokerLookupStocks(
+        filtered.map((r: any) => ({
+          broker_code: r.broker_code,
+          net_value: parseFloat(r.net_value) || 0,
+          b_val: parseFloat(r.b_val) || 0,
+          s_val: parseFloat(r.s_val) || 0,
+          net_volume: parseFloat(r.net_volume) || 0,
+          b_lot: parseFloat(r.b_lot) || 0,
+          s_lot: parseFloat(r.s_lot) || 0,
+          b_avg: 0,
+          s_avg: 0,
+          value_share: parseFloat(r.value_share) || 0,
+          rank: r.rank,
+          symbol: r.symbol,
+        })) as any
+      );
+    } else {
+      setBrokerLookupStocks([]);
+    }
+    setLoadingBrokerLookup(false);
+  }
+
+  const baStats = useMemo(() => {
+    if (baLeaderboard.length === 0) return null;
+    const avgHHI =
+      baLeaderboard.reduce((s, l) => s + l.hhi_score, 0) / baLeaderboard.length;
+    const totalVal = baLeaderboard.reduce((s, l) => s + l.total_abs_value, 0);
+    const top = baLeaderboard[0];
+    return { avgHHI, totalVal, topSymbol: top.symbol, topHHI: top.hhi_score, stockCount: baLeaderboard.length };
+  }, [baLeaderboard]);
 
   const brokerAggregates = useMemo<BrokerAggregate[]>(() => {
     const map: Record<
@@ -381,7 +719,9 @@ export default function BrokersPage() {
   const isLoading =
     tab === 0
       ? loadingActivity && records.length === 0
-      : loadingBrokers && brokers.length === 0;
+      : tab === 3
+        ? loadingBrokers && brokers.length === 0
+        : false;
 
   if (isLoading) {
     return (
@@ -470,6 +810,16 @@ export default function BrokersPage() {
           icon={<EqualizerIcon sx={{ fontSize: 16 }} />}
           iconPosition="start"
           label="Market Activity"
+        />
+        <Tab
+          icon={<ShowChartIcon sx={{ fontSize: 16 }} />}
+          iconPosition="start"
+          label="Broker Activity"
+        />
+        <Tab
+          icon={<InsightsIcon sx={{ fontSize: 16 }} />}
+          iconPosition="start"
+          label="Bandarmology"
         />
         <Tab
           icon={<StorefrontIcon sx={{ fontSize: 16 }} />}
@@ -1303,6 +1653,945 @@ export default function BrokersPage() {
       )}
 
       {tab === 1 && (
+        <Stack spacing={2.5} className="animate-in">
+          <Paper sx={{ p: 2.5, borderRadius: 3 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 0.4 }}>
+              Broker Activity Controls
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ color: "text.secondary", display: "block", mb: 1.6 }}
+            >
+              Pilih satu broker untuk melihat buy/sell ticker pada timeframe
+              yang dipilih.
+            </Typography>
+            <Stack
+              direction="row"
+              spacing={1}
+              alignItems="center"
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ mb: 1.2 }}
+            >
+              <Autocomplete
+                size="small"
+                options={brokerOptions}
+                value={
+                  brokerOptions.find((b) => b.code === actSelectedBroker) || null
+                }
+                inputValue={actBrokerInput}
+                onInputChange={(_, v) => setActBrokerInput(v.toUpperCase())}
+                onChange={(_, selected) => {
+                  if (!selected) return;
+                  const c = selected.code.toUpperCase();
+                  setActSelectedBroker(c);
+                  setActBrokerInput("");
+                }}
+                getOptionLabel={(o) => `${o.code} - ${o.name}`}
+                isOptionEqualToValue={(a, b) => a.code === b.code}
+                sx={{
+                  width: { xs: "100%", sm: 380 },
+                  "& .MuiOutlinedInput-root": { borderRadius: 2, minHeight: 38 },
+                }}
+                renderOption={(props, option) => {
+                  const { key, ...optionProps } = props;
+                  const { licenseMeta, originMeta } = getBrokerMeta(option);
+                  return (
+                    <Box key={key} component="li" {...optionProps} sx={{ py: 0.8 }}>
+                      <Stack
+                        direction="row"
+                        spacing={0.8}
+                        alignItems="center"
+                        sx={{ width: "100%" }}
+                      >
+                        <Typography
+                          sx={{
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontWeight: 800,
+                            fontSize: "0.73rem",
+                            color: "primary.main",
+                            minWidth: 36,
+                          }}
+                        >
+                          {option.code}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontSize: "0.72rem",
+                            color: "text.primary",
+                            flex: 1,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {option.name}
+                        </Typography>
+                        <Chip
+                          size="small"
+                          label={originMeta.label}
+                          sx={{
+                            height: 18,
+                            fontSize: "0.58rem",
+                            fontWeight: 700,
+                            color: originMeta.color,
+                            border: "1px solid",
+                            borderColor: `${originMeta.color}66`,
+                            bgcolor: `${originMeta.color}1A`,
+                          }}
+                        />
+                        <Chip
+                          size="small"
+                          label={licenseMeta.short}
+                          sx={{
+                            height: 18,
+                            fontSize: "0.56rem",
+                            fontWeight: 700,
+                            color: licenseMeta.color,
+                            border: "1px solid",
+                            borderColor: `${licenseMeta.color}66`,
+                            bgcolor: `${licenseMeta.color}1A`,
+                          }}
+                        />
+                      </Stack>
+                    </Box>
+                  );
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Select broker code..."
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <>
+                          <InputAdornment position="start">
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontFamily: '"JetBrains Mono", monospace',
+                                color: "text.secondary",
+                                fontSize: "0.62rem",
+                              }}
+                            >
+                              BR
+                            </Typography>
+                          </InputAdornment>
+                          {params.InputProps.startAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+              />
+            </Stack>
+            <Stack
+              direction="row"
+              spacing={0.8}
+              alignItems="center"
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ mb: 1.2 }}
+            >
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.secondary",
+                  fontWeight: 700,
+                  mr: 0.4,
+                  fontSize: "0.68rem",
+                }}
+              >
+                RANGE
+              </Typography>
+              {(["1D", "1M", "3M", "6M", "1Y"] as DateRange[]).map((r) => (
+                <Chip
+                  key={r}
+                  label={r}
+                  size="small"
+                  onClick={() => setActDateRange(r)}
+                  sx={{
+                    fontFamily: '"JetBrains Mono", monospace',
+                    fontWeight: 700,
+                    fontSize: "0.69rem",
+                    height: 28,
+                    px: 0.2,
+                    cursor: "pointer",
+                    bgcolor:
+                      actDateRange === r
+                        ? isDark
+                          ? "rgba(212,168,67,0.18)"
+                          : "rgba(161,124,47,0.11)"
+                        : "transparent",
+                    color: actDateRange === r ? "primary.main" : "text.secondary",
+                    border: "1px solid",
+                    borderColor: actDateRange === r ? "primary.main" : "transparent",
+                  }}
+                />
+              ))}
+              <Box sx={{ mx: 0.35, height: 16, width: 1, bgcolor: "divider" }} />
+              <Chip
+                label="Value"
+                size="small"
+                onClick={() => setActMetric("value")}
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "0.67rem",
+                  height: 26,
+                  cursor: "pointer",
+                  bgcolor:
+                    actMetric === "value"
+                      ? isDark
+                        ? "rgba(59,130,246,0.14)"
+                        : "rgba(59,130,246,0.09)"
+                      : "transparent",
+                  color: actMetric === "value" ? "#3b82f6" : "text.secondary",
+                  border: "1px solid",
+                  borderColor: actMetric === "value" ? "#3b82f6" : "transparent",
+                }}
+              />
+              <Chip
+                label="Volume"
+                size="small"
+                onClick={() => setActMetric("volume")}
+                sx={{
+                  fontWeight: 700,
+                  fontSize: "0.67rem",
+                  height: 26,
+                  cursor: "pointer",
+                  bgcolor:
+                    actMetric === "volume"
+                      ? isDark
+                        ? "rgba(34,197,94,0.14)"
+                        : "rgba(34,197,94,0.09)"
+                      : "transparent",
+                  color: actMetric === "volume" ? "#22c55e" : "text.secondary",
+                  border: "1px solid",
+                  borderColor: actMetric === "volume" ? "#22c55e" : "transparent",
+                }}
+              />
+            </Stack>
+            {actSelectedBroker && (
+              <Chip
+                size="small"
+                label={`Broker ${actSelectedBroker}`}
+                sx={{
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontWeight: 800,
+                  fontSize: "0.69rem",
+                  height: 26,
+                  bgcolor: `${BROKER_COLORS[0]}20`,
+                  color: BROKER_COLORS[0],
+                  border: "1px solid",
+                  borderColor: BROKER_COLORS[0],
+                }}
+              />
+            )}
+          </Paper>
+
+          {!actSelectedBroker ? (
+            <Paper sx={{ p: 5, borderRadius: 3, textAlign: "center" }}>
+              <Typography color="text.secondary">
+                Select a broker to view buy/sell ticker activity
+              </Typography>
+            </Paper>
+          ) : (
+            <>
+              {actAllTickers.length > 0 && (
+                <Paper sx={{ p: 2, borderRadius: 3 }}>
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "block",
+                      mb: 1,
+                      color: "text.secondary",
+                      fontWeight: 700,
+                      fontSize: "0.68rem",
+                    }}
+                  >
+                    SELECTED TICKERS
+                  </Typography>
+                  <Stack direction="row" spacing={0.6} flexWrap="wrap" useFlexGap sx={{ mb: actAddTickerOpen ? 1 : 0 }}>
+                    {actVisibleTickers.map((ticker, idx) => {
+                      return (
+                        <Chip
+                          key={ticker}
+                          size="small"
+                          label={ticker}
+                          onDelete={() =>
+                            setActVisibleTickers((prev) =>
+                              prev.filter((t) => t !== ticker)
+                            )
+                          }
+                          sx={{
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontWeight: 700,
+                            fontSize: "0.67rem",
+                            height: 24,
+                            border: "1px solid",
+                            borderColor: BROKER_COLORS[idx % BROKER_COLORS.length],
+                            color: BROKER_COLORS[idx % BROKER_COLORS.length],
+                            bgcolor: `${BROKER_COLORS[idx % BROKER_COLORS.length]}1A`,
+                            "& .MuiChip-deleteIcon": {
+                              color: BROKER_COLORS[idx % BROKER_COLORS.length],
+                            },
+                          }}
+                        />
+                      );
+                    })}
+                    <Chip
+                      size="small"
+                      label="+"
+                      onClick={() => setActAddTickerOpen((v) => !v)}
+                      sx={{
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontWeight: 800,
+                        fontSize: "0.75rem",
+                        height: 24,
+                        minWidth: 28,
+                        border: "1px dashed",
+                        borderColor: "divider",
+                        color: "text.secondary",
+                        bgcolor: "transparent",
+                      }}
+                    />
+                  </Stack>
+                  {actAddTickerOpen && (
+                    <Autocomplete
+                      size="small"
+                      options={actAllTickers.filter(
+                        (ticker) => !actVisibleTickers.includes(ticker)
+                      )}
+                      inputValue={actAddTickerInput}
+                      onInputChange={(_, v) => setActAddTickerInput(v.toUpperCase())}
+                      onChange={(_, selected) => {
+                        if (!selected) return;
+                        setActVisibleTickers((prev) =>
+                          prev.includes(selected)
+                            ? prev
+                            : [...prev, selected].slice(-10)
+                        );
+                        setActAddTickerInput("");
+                        setActAddTickerOpen(false);
+                      }}
+                      sx={{
+                        width: { xs: "100%", sm: 260 },
+                        "& .MuiOutlinedInput-root": { borderRadius: 2, minHeight: 34 },
+                      }}
+                      renderInput={(params) => (
+                        <TextField {...params} placeholder="Search ticker to add..." />
+                      )}
+                    />
+                  )}
+                </Paper>
+              )}
+
+              <Paper sx={{ p: 2.5, borderRadius: 3 }}>
+                {loadingAct ? (
+                  <Skeleton variant="rounded" height={320} sx={{ borderRadius: 2 }} />
+                ) : actFlowData.length === 0 || actVisibleTickers.length === 0 ? (
+                  <Box sx={{ py: 6, textAlign: "center" }}>
+                    <Typography color="text.secondary">
+                      No ticker activity found for this broker in selected
+                      period.
+                    </Typography>
+                  </Box>
+                ) : (
+                  <ResponsiveContainer width="100%" height={340}>
+                    <ComposedChart data={actFlowData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
+                      <XAxis dataKey="label" tick={{ fill: textColor, fontSize: 9 }} interval="preserveStartEnd" />
+                      <YAxis yAxisId="left" tick={{ fill: textColor, fontSize: 9 }}
+                        tickFormatter={(v) => actMetric === "value" ? formatValue(v) : formatShares(v)} width={60} />
+                      <RechartsTooltip contentStyle={tooltipStyle}
+                        formatter={(v: number, name: string) => [
+                          actMetric === "value" ? formatValue(v) : formatShares(v),
+                          name
+                        ]} />
+                      <Legend wrapperStyle={{ fontSize: "11px", paddingTop: 8 }} />
+                      {actVisibleTickers.map((ticker, idx) => (
+                        <Line
+                          key={ticker}
+                          yAxisId="left"
+                          type="monotone"
+                          dataKey={ticker}
+                          stroke={BROKER_COLORS[idx % BROKER_COLORS.length]}
+                          strokeWidth={2}
+                          dot={false}
+                          connectNulls
+                          name={ticker}
+                        />
+                      ))}
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                )}
+              </Paper>
+
+              {(actBuyRows.length > 0 || actSellRows.length > 0) && (
+                <Paper sx={{ p: 2.5, borderRadius: 3 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.2 }}>
+                    Broker Activity
+                  </Typography>
+                  <TableContainer>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>BY</TableCell>
+                          <TableCell align="right">B.Val</TableCell>
+                          <TableCell align="right">B.Lot</TableCell>
+                          <TableCell align="right">B.Avg</TableCell>
+                          <TableCell sx={{ width: 28 }} />
+                          <TableCell>SL</TableCell>
+                          <TableCell align="right">S.Val</TableCell>
+                          <TableCell align="right">S.Lot</TableCell>
+                          <TableCell align="right">S.Avg</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {Array.from({
+                          length: Math.max(actBuyRows.length, actSellRows.length),
+                        }).map((_, i) => {
+                          const b = actBuyRows[i];
+                          const s = actSellRows[i];
+                          return (
+                          <TableRow key={`${b?.symbol || "b"}-${s?.symbol || "s"}-${i}`}>
+                            <TableCell>
+                              <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, color: "#22c55e" }}>
+                                {b?.symbol || "-"}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: "#22c55e" }}>
+                                {b ? formatValue(b.b_val) : "-"}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                                {b ? formatShares(b.b_lot) : "-"}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: "text.secondary" }}>
+                                {b && b.b_avg > 0 ? formatValue(b.b_avg) : "-"}
+                              </Typography>
+                            </TableCell>
+                            <TableCell />
+                            <TableCell>
+                              <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, color: "#ef4444" }}>
+                                {s?.symbol || "-"}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: "#ef4444" }}>
+                                {s ? formatValue(s.s_val) : "-"}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace' }}>
+                                {s ? formatShares(s.s_lot) : "-"}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: "text.secondary" }}>
+                                {s && s.s_avg > 0 ? formatValue(s.s_avg) : "-"}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Paper>
+              )}
+            </>
+          )}
+
+        </Stack>
+      )}
+
+      {tab === 2 && (
+        <Stack spacing={2.5} className="animate-in">
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mr: 0.5 }}>Period</Typography>
+            {BA_PERIOD_OPTS.map((opt) => (
+              <Chip key={opt.value} label={opt.label} size="small" onClick={() => setBaPeriod(opt.value)}
+                sx={{
+                  fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, fontSize: "0.7rem", height: 26, cursor: "pointer",
+                  bgcolor: baPeriod === opt.value ? (isDark ? "rgba(212,168,67,0.15)" : "rgba(161,124,47,0.1)") : "transparent",
+                  color: baPeriod === opt.value ? "primary.main" : "text.secondary",
+                  border: "1px solid", borderColor: baPeriod === opt.value ? "primary.main" : "transparent",
+                }} />
+            ))}
+            {loadingBA && <Chip label="Loading..." size="small" sx={{ fontSize: "0.65rem", height: 22, opacity: 0.5 }} />}
+          </Stack>
+
+          {baStats && (
+            <Grid container spacing={2}>
+              <Grid size={{ xs: 6, md: 3 }}><StatsCard title="Stocks Tracked" value={baStats.stockCount} subtitle={`${baPeriod} data`} icon={<InsightsIcon />} /></Grid>
+              <Grid size={{ xs: 6, md: 3 }}><StatsCard title="Avg HHI" value={baStats.avgHHI.toFixed(0)} subtitle={hhiIndicator(baStats.avgHHI).label} /></Grid>
+              <Grid size={{ xs: 6, md: 3 }}><StatsCard title="Most Concentrated" value={baStats.topSymbol} subtitle={`HHI ${baStats.topHHI.toFixed(0)}`} icon={<ShowChartIcon />} /></Grid>
+              <Grid size={{ xs: 6, md: 3 }}><StatsCard title="Total Value" value={formatValue(baStats.totalVal)} subtitle="Combined activity" icon={<EqualizerIcon />} /></Grid>
+            </Grid>
+          )}
+
+          <Paper sx={{ p: 0.75, borderRadius: 3 }}>
+            <Tabs
+              value={baView}
+              onChange={(_, v) => setBaView(v)}
+              sx={{
+                minHeight: 34,
+                "& .MuiTab-root": {
+                  minHeight: 34,
+                  py: 0,
+                  px: 2,
+                  textTransform: "none",
+                  fontSize: "0.76rem",
+                  fontWeight: 700,
+                  fontFamily: '"JetBrains Mono", monospace',
+                },
+              }}
+            >
+              <Tab value="leaderboard" label="HHI Leaderboard" />
+              <Tab value="lookup" label="Broker Lookup" />
+            </Tabs>
+          </Paper>
+
+          {baView === "leaderboard" && (
+          <Paper
+            sx={{ p: 2.5, borderRadius: 3 }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                flexWrap: "wrap",
+                gap: 1,
+                mb: 2,
+              }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                  HHI Concentration Leaderboard
+                </Typography>
+                <Chip
+                  label={`${baLeaderboard.length} stocks`}
+                  size="small"
+                  sx={{
+                    fontSize: "0.65rem",
+                    height: 20,
+                    fontFamily: '"JetBrains Mono", monospace',
+                  }}
+                />
+              </Stack>
+              <Typography variant="caption" color="text.secondary">
+                Higher HHI = fewer brokers dominate trading
+              </Typography>
+            </Box>
+
+            {loadingBA ? (
+              <Stack spacing={1}>
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Skeleton
+                    key={i}
+                    variant="rounded"
+                    height={40}
+                    sx={{ borderRadius: 1.5 }}
+                  />
+                ))}
+              </Stack>
+            ) : baLeaderboard.length === 0 ? (
+              <Box sx={{ py: 4, textAlign: "center" }}>
+                <Typography color="text.secondary">
+                  No concentration data for this period
+                </Typography>
+              </Box>
+            ) : (
+              <TableContainer sx={{ maxHeight: 520 }}>
+                <Table size="small" stickyHeader>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ width: 32 }}>#</TableCell>
+                      <TableCell>Symbol</TableCell>
+                      <TableCell align="right">HHI Score</TableCell>
+                      <TableCell
+                        align="center"
+                        sx={{ display: { xs: "none", sm: "table-cell" } }}
+                      >
+                        Brokers
+                      </TableCell>
+                      <TableCell
+                        align="right"
+                        sx={{ display: { xs: "none", md: "table-cell" } }}
+                      >
+                        Total Value
+                      </TableCell>
+                      <TableCell align="center">Level</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {baLeaderboard.map((entry, i) => {
+                      const hi = hhiIndicator(entry.hhi_score);
+                      return (
+                          <TableRow
+                            key={entry.symbol}
+                            hover
+                            onClick={() => router.push(`/stock/${entry.symbol}`)}
+                            sx={{
+                              cursor: "pointer",
+                              ...(i < 3 && {
+                                borderLeft: `3px solid ${hi.color}`,
+                              }),
+                            }}
+                          >
+                            <TableCell>
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontFamily: '"JetBrains Mono", monospace',
+                                  color: i < 3 ? hi.color : "text.secondary",
+                                  fontWeight: i < 3 ? 700 : 400,
+                                }}
+                              >
+                                {i + 1}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 700,
+                                  fontFamily: '"JetBrains Mono", monospace',
+                                  fontSize: "0.8rem",
+                                  color: "primary.main",
+                                }}
+                              >
+                                {entry.symbol}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontFamily: '"JetBrains Mono", monospace',
+                                  fontWeight: 700,
+                                  color: hi.color,
+                                }}
+                              >
+                                {entry.hhi_score.toFixed(0)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell
+                              align="center"
+                              sx={{
+                                display: { xs: "none", sm: "table-cell" },
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontFamily: '"JetBrains Mono", monospace',
+                                  color: "text.secondary",
+                                }}
+                              >
+                                {entry.active_brokers}
+                              </Typography>
+                            </TableCell>
+                            <TableCell
+                              align="right"
+                              sx={{
+                                display: { xs: "none", md: "table-cell" },
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontFamily: '"JetBrains Mono", monospace',
+                                }}
+                              >
+                                {formatValue(entry.total_abs_value)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Chip
+                                label={hi.label}
+                                size="small"
+                                sx={{
+                                  fontSize: "0.6rem",
+                                  height: 20,
+                                  bgcolor: `${hi.color}18`,
+                                  color: hi.color,
+                                  fontWeight: 600,
+                                }}
+                              />
+                            </TableCell>
+                          </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Paper>
+          )}
+
+          {baView === "lookup" && (
+          <Paper
+            sx={{ p: 2.5, borderRadius: 3 }}
+            className="animate-in animate-in-delay-6"
+          >
+            <Typography
+              variant="subtitle2"
+              sx={{ fontWeight: 700, mb: 1.5 }}
+            >
+              Broker Lookup
+            </Typography>
+            <Stack
+              direction="row"
+              spacing={1.5}
+              alignItems="center"
+              sx={{ mb: 2 }}
+            >
+              <TextField
+                size="small"
+                placeholder="Enter broker code (e.g. YP, ZP)"
+                value={brokerLookup}
+                onChange={(e) => setBrokerLookup(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleBrokerLookup();
+                }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon
+                          sx={{ fontSize: 18, color: "text.secondary" }}
+                        />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+                sx={{
+                  minWidth: 220,
+                  "& .MuiOutlinedInput-root": { borderRadius: 2 },
+                  "& input": {
+                    fontFamily: '"JetBrains Mono", monospace',
+                    textTransform: "uppercase",
+                  },
+                }}
+              />
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handleBrokerLookup}
+                disabled={!brokerLookup.trim() || loadingBrokerLookup}
+                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+              >
+                {loadingBrokerLookup ? "Loading..." : "Search"}
+              </Button>
+            </Stack>
+
+            {brokerLookupCode && (
+              <Box>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  alignItems="center"
+                  sx={{ mb: 1.5 }}
+                >
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{
+                      fontSize: "0.6rem",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                    }}
+                  >
+                    Top stocks for broker
+                  </Typography>
+                  <Chip
+                    label={brokerLookupCode}
+                    size="small"
+                    sx={{
+                      fontFamily: '"JetBrains Mono", monospace',
+                      fontWeight: 700,
+                      fontSize: "0.7rem",
+                      height: 22,
+                      color: "primary.main",
+                      bgcolor: isDark
+                        ? "rgba(212,168,67,0.12)"
+                        : "rgba(161,124,47,0.08)",
+                    }}
+                  />
+                </Stack>
+
+                {brokerLookupStocks.length === 0 ? (
+                  <Box sx={{ py: 2, textAlign: "center" }}>
+                    <Typography variant="caption" color="text.secondary">
+                      No activity found for broker {brokerLookupCode} in{" "}
+                      {baPeriod}
+                    </Typography>
+                  </Box>
+                ) : (
+                  <TableContainer sx={{ maxHeight: 400 }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ width: 32 }}>#</TableCell>
+                          <TableCell>Symbol</TableCell>
+                          <TableCell align="right">Net Value</TableCell>
+                          <TableCell
+                            align="right"
+                            sx={{
+                              display: { xs: "none", sm: "table-cell" },
+                            }}
+                          >
+                            Volume
+                          </TableCell>
+                          <TableCell sx={{ minWidth: 100 }}>Share</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {brokerLookupStocks.map((bs: any) => {
+                          const barW =
+                            brokerLookupStocks[0]?.net_value
+                              ? (Math.abs(bs.net_value) /
+                                  Math.abs((brokerLookupStocks[0] as any).net_value)) *
+                                100
+                              : 0;
+                          return (
+                            <TableRow
+                              key={bs.symbol}
+                              hover
+                              sx={{
+                                cursor: "pointer",
+                                "&:last-child td": { borderBottom: 0 },
+                              }}
+                              onClick={() =>
+                                router.push(`/stock/${bs.symbol}`)
+                              }
+                            >
+                              <TableCell>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontFamily:
+                                      '"JetBrains Mono", monospace',
+                                    color: "text.secondary",
+                                  }}
+                                >
+                                  {bs.rank}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: 700,
+                                    fontFamily:
+                                      '"JetBrains Mono", monospace',
+                                    fontSize: "0.8rem",
+                                    color: "primary.main",
+                                  }}
+                                >
+                                  {bs.symbol}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="right">
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontFamily:
+                                      '"JetBrains Mono", monospace',
+                                    fontWeight: 600,
+                                    color:
+                                      bs.net_value > 0
+                                        ? "#22c55e"
+                                        : bs.net_value < 0
+                                          ? "#ef4444"
+                                          : "text.primary",
+                                  }}
+                                >
+                                  {formatValue(bs.net_value)}
+                                </Typography>
+                              </TableCell>
+                              <TableCell
+                                align="right"
+                                sx={{
+                                  display: {
+                                    xs: "none",
+                                    sm: "table-cell",
+                                  },
+                                }}
+                              >
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontFamily:
+                                      '"JetBrains Mono", monospace',
+                                  }}
+                                >
+                                  {formatShares(bs.net_volume)}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 1,
+                                  }}
+                                >
+                                  <Box sx={{ flex: 1, minWidth: 40 }}>
+                                    <LinearProgress
+                                      variant="determinate"
+                                      value={barW}
+                                      sx={{
+                                        height: 6,
+                                        borderRadius: 3,
+                                        bgcolor: isDark
+                                          ? "rgba(255,255,255,0.06)"
+                                          : "rgba(0,0,0,0.06)",
+                                        "& .MuiLinearProgress-bar": {
+                                          borderRadius: 3,
+                                          bgcolor: "#d4a843",
+                                        },
+                                      }}
+                                    />
+                                  </Box>
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      fontFamily:
+                                        '"JetBrains Mono", monospace',
+                                      color: "text.secondary",
+                                      minWidth: 38,
+                                      textAlign: "right",
+                                      fontSize: "0.6rem",
+                                    }}
+                                  >
+                                    {bs.value_share.toFixed(1)}%
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </Box>
+            )}
+          </Paper>
+          )}
+        </Stack>
+      )}
+
+      {tab === 3 && (
         <Stack spacing={2.5} className="animate-in">
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 4 }}>

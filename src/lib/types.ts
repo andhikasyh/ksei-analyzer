@@ -97,6 +97,7 @@ export interface IDXBroker {
   code: string;
   name: string;
   license: string;
+  is_foreign?: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -530,4 +531,38 @@ export interface MarketIntelligenceListItem {
   sentiment: string;
   summary: string;
   created_at: string;
+}
+
+export interface BAStockRanking {
+  symbol: string;
+  period: string;
+  investor_type: string;
+  market_board: string;
+  date: string;
+  broker_code: string;
+  net_value: number;
+  b_val: number;
+  s_val: number;
+  net_volume: number;
+  b_lot: number;
+  s_lot: number;
+  value_share: number;
+  rank: number;
+}
+
+export interface BABrokerRanking {
+  broker_code: string;
+  period: string;
+  investor_type: string;
+  market_board: string;
+  date: string;
+  symbol: string;
+  net_value: number;
+  b_val: number;
+  s_val: number;
+  net_volume: number;
+  b_lot: number;
+  s_lot: number;
+  value_share: number;
+  rank: number;
 }
