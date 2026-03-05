@@ -482,49 +482,50 @@ export default function ReportDetailPage({
           gap: 1,
         }}
       >
-        {hasIndonesian ? (
-          <ToggleButtonGroup
-            value={lang}
-            exclusive
-            onChange={(_, v) => { if (v) setLang(v); }}
-            size="small"
-            sx={{
-              bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
-              borderRadius: "10px",
-              border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
-              overflow: "hidden",
-              "& .MuiToggleButton-root": {
-                border: "none",
-                borderRadius: "8px !important",
-                px: 1.5,
-                py: 0.4,
-                fontSize: "0.7rem",
-                fontWeight: 700,
-                fontFamily: '"Outfit", sans-serif',
-                letterSpacing: "0.02em",
-                textTransform: "none",
-                color: "text.secondary",
-                transition: "all 0.2s ease",
-                "&.Mui-selected": {
-                  bgcolor: isDark ? "rgba(129,140,248,0.15)" : "rgba(99,102,241,0.1)",
-                  color: isDark ? "#a5b4fc" : "#6366f1",
-                  "&:hover": {
-                    bgcolor: isDark ? "rgba(129,140,248,0.2)" : "rgba(99,102,241,0.15)",
-                  },
+        <ToggleButtonGroup
+          value={lang}
+          exclusive
+          onChange={(_, v) => { if (v) { if (v === "id" && !hasIndonesian) return; setLang(v); } }}
+          size="small"
+          sx={{
+            bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+            borderRadius: "10px",
+            border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
+            overflow: "hidden",
+            "& .MuiToggleButton-root": {
+              border: "none",
+              borderRadius: "8px !important",
+              px: 1.5,
+              py: 0.4,
+              fontSize: "0.7rem",
+              fontWeight: 700,
+              fontFamily: '"Outfit", sans-serif',
+              letterSpacing: "0.02em",
+              textTransform: "none",
+              color: "text.secondary",
+              transition: "all 0.2s ease",
+              "&.Mui-selected": {
+                bgcolor: isDark ? "rgba(129,140,248,0.15)" : "rgba(99,102,241,0.1)",
+                color: isDark ? "#a5b4fc" : "#6366f1",
+                "&:hover": {
+                  bgcolor: isDark ? "rgba(129,140,248,0.2)" : "rgba(99,102,241,0.15)",
                 },
               },
-            }}
-          >
-            <ToggleButton value="en" disableRipple>
-              <TranslateIcon sx={{ fontSize: 14, mr: 0.5 }} />
-              English
-            </ToggleButton>
-            <ToggleButton value="id" disableRipple>
-              <TranslateIcon sx={{ fontSize: 14, mr: 0.5 }} />
-              Bahasa
-            </ToggleButton>
-          </ToggleButtonGroup>
-        ) : <Box />}
+              "&.Mui-disabled": {
+                opacity: 0.35,
+              },
+            },
+          }}
+        >
+          <ToggleButton value="en" disableRipple>
+            <TranslateIcon sx={{ fontSize: 14, mr: 0.5 }} />
+            English
+          </ToggleButton>
+          <ToggleButton value="id" disableRipple disabled={!hasIndonesian}>
+            <TranslateIcon sx={{ fontSize: 14, mr: 0.5 }} />
+            Bahasa
+          </ToggleButton>
+        </ToggleButtonGroup>
 
         <Box sx={{ display: "flex", gap: 0.75 }}>
           <Button
@@ -552,7 +553,7 @@ export default function ReportDetailPage({
           >
             PDF (EN)
           </Button>
-          {hasIndonesian && (
+          {hasIndonesian ? (
             <Button
               size="small"
               variant="outlined"
@@ -574,6 +575,24 @@ export default function ReportDetailPage({
                   color: isDark ? "#a5b4fc" : "#6366f1",
                   bgcolor: isDark ? "rgba(129,140,248,0.08)" : "rgba(99,102,241,0.05)",
                 },
+              }}
+            >
+              PDF (ID)
+            </Button>
+          ) : (
+            <Button
+              size="small"
+              variant="outlined"
+              disabled
+              startIcon={<DownloadIcon sx={{ fontSize: "14px !important" }} />}
+              sx={{
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                fontFamily: '"Outfit", sans-serif',
+                textTransform: "none",
+                borderRadius: "10px",
+                px: 1.5,
+                py: 0.3,
               }}
             >
               PDF (ID)

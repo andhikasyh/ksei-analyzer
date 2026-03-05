@@ -383,6 +383,12 @@ interface AggregatedMarketData {
   recentCorporateActions: { code: string; issuerName: string; type: string; detail: string; startDate: string }[];
   bandarmologySignals: BandarmologySignal[];
   fundamentals: Map<string, FundamentalRatio>;
+  discoveryData: {
+    volumeAnomalies: { code: string; name: string; close: number; changePct: number; volume: number; avgVolume: number; volumeRatio: number; foreignNet: number; sector?: string }[];
+    foreignFlowOutliers: { code: string; name: string; close: number; changePct: number; value: number; foreignNet: number; foreignIntensity: number; sector?: string }[];
+    undervaluedFundamentals: FundamentalRatio[];
+    stealthAccumulation: BandarmologySignal[];
+  };
 }
 
 async function aggregateMarketData(
@@ -502,18 +508,40 @@ async function aggregateMarketData(
     .slice(0, 12)
     .map((s) => s.code);
 
-  const bandarmologyCodes = [...stocks]
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 20)
-    .map((s) => s.code);
+  const topCodesSet = new Set(topCodes);
+  const MIN_DISCOVERY_VALUE = 500_000_000;
 
+  const discoveryPool = stocks
+    .filter(s => !topCodesSet.has(s.code) && s.value >= MIN_DISCOVERY_VALUE && s.close > 0)
+    .map(s => {
+      const foreignNet = s.foreignBuy - s.foreignSell;
+      const foreignIntensity = s.value > 0 ? Math.abs(foreignNet) / s.value : 0;
+      return { ...s, foreignNet, foreignIntensity };
+    })
+    .sort((a, b) => {
+      const aScore = a.foreignIntensity * 40 + Math.abs(a.changePct) * 30 + Math.log10(Math.max(a.value, 1)) * 3;
+      const bScore = b.foreignIntensity * 40 + Math.abs(b.changePct) * 30 + Math.log10(Math.max(b.value, 1)) * 3;
+      return bScore - aScore;
+    });
+
+  const discoveryCodes = discoveryPool.slice(0, 20).map(s => s.code);
+  const volumeCheckCodes = discoveryPool.slice(0, 50).map(s => s.code);
+
+  const allHistoryCodes = [...new Set([...topCodes, ...discoveryCodes.slice(0, 8)])];
+  const bandarmologyCodes = [...new Set([
+    ...[...stocks].sort((a, b) => b.value - a.value).slice(0, 20).map(s => s.code),
+    ...discoveryCodes.slice(0, 10),
+  ])];
   const fundamentalCodes = [...new Set([
     ...topCodes,
     ...bandarmologyCodes.slice(0, 15),
+    ...discoveryCodes,
   ])];
 
-  const [priceHistory, corpActionsRes, bandarmologySignals, { data: fundamentalRows }] = await Promise.all([
-    fetchMultiDayHistory(supabase, topCodes),
+  const volumeCutoff = new Date(Date.now() - 15 * 86400000).toISOString().split("T")[0];
+
+  const [priceHistory, corpActionsRes, bandarmologySignals, { data: fundamentalRows }, { data: volumeHistoryData }] = await Promise.all([
+    fetchMultiDayHistory(supabase, allHistoryCodes),
     supabase
       .from("idx_corporate_actions")
       .select("code, issuer_name, action_type, action_type_raw, start_date")
@@ -527,6 +555,14 @@ async function aggregateMarketData(
       .in("code", fundamentalCodes)
       .order("fs_date", { ascending: false })
       .limit(fundamentalCodes.length * 2),
+    supabase
+      .from("idx_stock_summary")
+      .select("stock_code, date, volume")
+      .in("stock_code", volumeCheckCodes)
+      .gte("date", volumeCutoff)
+      .lt("date", latestDate)
+      .order("date", { ascending: false })
+      .limit(volumeCheckCodes.length * 10),
   ]);
 
   const fundamentals = new Map<string, FundamentalRatio>();
@@ -565,6 +601,68 @@ async function aggregateMarketData(
       startDate: ca.start_date,
     })
   );
+
+  const avgVolumeMap = new Map<string, number>();
+  if (volumeHistoryData) {
+    const volByStock = new Map<string, number[]>();
+    for (const r of volumeHistoryData) {
+      const code = r.stock_code as string;
+      if (!volByStock.has(code)) volByStock.set(code, []);
+      volByStock.get(code)!.push(parseFloat(r.volume as string) || 0);
+    }
+    for (const [code, vols] of volByStock) {
+      if (vols.length >= 3) {
+        avgVolumeMap.set(code, vols.reduce((a, b) => a + b, 0) / vols.length);
+      }
+    }
+  }
+
+  const volumeAnomalies = discoveryPool
+    .filter(s => {
+      const avg = avgVolumeMap.get(s.code);
+      return avg && avg > 0 && s.volume / avg >= 2;
+    })
+    .map(s => ({
+      code: s.code,
+      name: s.name,
+      close: s.close,
+      changePct: s.changePct,
+      volume: s.volume,
+      avgVolume: avgVolumeMap.get(s.code)!,
+      volumeRatio: s.volume / avgVolumeMap.get(s.code)!,
+      foreignNet: s.foreignNet,
+      sector: s.sector,
+    }))
+    .sort((a, b) => b.volumeRatio - a.volumeRatio)
+    .slice(0, 8);
+
+  const foreignFlowOutliers = discoveryPool
+    .filter(s => s.foreignIntensity > 0.15 && Math.abs(s.foreignNet) > 1e9)
+    .sort((a, b) => b.foreignIntensity - a.foreignIntensity)
+    .slice(0, 8)
+    .map(s => ({
+      code: s.code,
+      name: s.name,
+      close: s.close,
+      changePct: s.changePct,
+      value: s.value,
+      foreignNet: s.foreignNet,
+      foreignIntensity: s.foreignIntensity,
+      sector: s.sector,
+    }));
+
+  const undervaluedFundamentals: FundamentalRatio[] = [];
+  for (const code of discoveryCodes) {
+    const f = fundamentals.get(code);
+    if (f && f.per > 0 && f.per < 15 && f.roe > 10 && f.deRatio < 1.5) {
+      undervaluedFundamentals.push(f);
+    }
+  }
+  undervaluedFundamentals.sort((a, b) => b.roe - a.roe);
+
+  const stealthAccumulation = bandarmologySignals
+    .filter(s => !topCodesSet.has(s.code) && (s.phase === "accumulation" || s.phase === "markup"))
+    .slice(0, 5);
 
   return {
     tradingDate: latestDate,
@@ -606,6 +704,12 @@ async function aggregateMarketData(
     recentCorporateActions,
     bandarmologySignals,
     fundamentals,
+    discoveryData: {
+      volumeAnomalies,
+      foreignFlowOutliers,
+      undervaluedFundamentals,
+      stealthAccumulation,
+    },
   };
 }
 
@@ -763,12 +867,30 @@ const REPORT_SCHEMA = `{
     ],
     "alertStocks": ["TICKER1", "TICKER2"] (stocks showing strongest accumulation/distribution signals -- top priority watchlist)
   },
+  "aiDiscovery": {
+    "summary": "3-4 sentence overview of the non-obvious patterns you identified across the broader market beyond headline stocks. What is the hidden narrative?",
+    "hiddenGems": [
+      {
+        "code": "TICKER",
+        "name": "Company Name",
+        "discoveryType": "volume_anomaly" | "foreign_flow_outlier" | "undervalued_fundamental" | "stealth_accumulation" | "sector_rotation_early",
+        "currentPrice": number,
+        "thesis": "5-8 sentence deep thesis: WHY is this stock interesting? What non-obvious angle did you find? Connect the discovery signal to fundamental value, technical setup, or institutional behavior. This should read like a hedge fund note -- insight a reader cannot get elsewhere.",
+        "signals": ["specific quantitative signal 1", "signal 2"],
+        "riskLevel": "high" | "medium" | "low",
+        "conviction": "high" | "medium" | "low",
+        "targetPrice": number (optional, only if data supports it),
+        "fundamentals": { "per": number, "pbv": number, "roe": number, "deRatio": number } (if available),
+        "dataHighlight": "Single most compelling data point as a punchy one-liner (e.g. 'Volume 4.7x above 5-day average while price barely moved')"
+      }
+    ]
+  },
   "marketOutlook": {
     "sentiment": "bullish" | "bearish" | "neutral" | "cautious",
-    "summary": "5-8 sentence comprehensive market outlook: synthesize all data points (technical trend, foreign flow direction, commodity impact, bandarmology signals, news sentiment, sector rotation) into a cohesive market thesis. What is the weight of evidence suggesting?",
-    "keyRisks": ["detailed risk description 2-3 sentences each", ...],
-    "keyCatalysts": ["detailed catalyst description 2-3 sentences each", ...],
-    "shortTermForecast": "4-6 sentence actionable short-term forecast: specify expected direction, key levels to watch, which sectors to overweight/underweight, and what signals would invalidate this view"
+    "summary": "4-6 sentence market outlook synthesizing all data dimensions into a cohesive thesis.",
+    "keyRisks": ["risk description 1-2 sentences each", ...],
+    "keyCatalysts": ["catalyst description 1-2 sentences each", ...],
+    "shortTermForecast": "3-4 sentence actionable forecast: direction, key levels, sectors to overweight/underweight"
   }
 }`;
 
@@ -799,44 +921,38 @@ export async function generateMarketIntelligenceReport(): Promise<GenerateReport
     throw new Error("No market data available");
   }
 
-  const systemPrompt = `You are a CFA-level senior Indonesian stock market analyst, technical chartist, and fundamental researcher producing an institutional-grade daily market intelligence report for professional portfolio managers. You have deep expertise in the Indonesia Stock Exchange (BEI/IDX), technical analysis, fundamental valuation, market microstructure, and macroeconomic factors affecting Indonesian equities.
+  const systemPrompt = `You are a CFA-level senior Indonesian stock market analyst producing an institutional-grade daily market intelligence report. You have deep expertise in BEI/IDX, technical analysis, fundamental valuation, market microstructure, and macroeconomics.
 
-Your analysis must demonstrate the depth of a paid research report -- NOT a surface-level summary. Every insight should connect multiple data points and explain the "so what" implication for portfolio positioning.
+Your PRIMARY MISSION is to surface NON-OBVIOUS insights and HIDDEN OPPORTUNITIES -- not to repeat the same blue-chip names in every section. You are given both top-traded stock data AND a special "AI Discovery" dataset of mid-cap stocks showing unusual signals. Use this discovery data to find what human analysts miss.
 
-You MUST respond with ONLY valid JSON matching this exact schema (no markdown, no code fences, no explanation text outside the JSON):
+You MUST respond with ONLY valid JSON matching this exact schema (no markdown, no code fences, no explanation):
 
 ${REPORT_SCHEMA}
 
-ANALYSIS DEPTH REQUIREMENTS:
-- Every "reason", "rationale", "interpretation", "notes", "summary", and "impact" field must be substantive multi-sentence analysis, NOT brief one-liners
-- Cross-reference AT LEAST 2-3 data dimensions for every insight (e.g. price + volume + flow, or fundamental + technical + news)
-- Name specific numbers, percentages, and comparisons -- avoid vague qualitative statements
-- For each stock mentioned, explain the causal mechanism, not just the correlation
+CRITICAL RULES -- BREADTH OVER VERBOSITY:
+- STOCK DIVERSITY: Do NOT repeat the same ticker in more than 3 sections. Each section must surface DIFFERENT stocks. The reader wants to discover new opportunities, not read about BBCA/BBRI/TLKM in 8 sections.
+- INSIGHT DENSITY: One sentence with a non-obvious connection between two data points beats a paragraph of obvious observations. Be concise and punchy. Avoid filler.
+- DISCOVERY IS KING: The "aiDiscovery" section is the CROWN JEWEL. Surface 4-8 hidden gems from the discovery data -- stocks a human would miss. This is your analytical alpha.
+- For EVERY stock you mention, ask: "Would a reader know this from a stock screener?" If yes, add something they would NOT know.
+- Prioritize CAUSAL MECHANISMS over descriptions. Not "stock rose on positive sentiment" but "stock rose because X drove Y which means Z for the stock."
 
-RULES:
-1. Return ONLY the JSON object, nothing else. No markdown formatting, no code blocks.
-2. All number values must be actual numbers, not strings.
-3. For topMovers, include the top 8 gainers, 8 losers, and 8 most active stocks. The "reason" field MUST be 3-5 sentences minimum: cross-reference sector trends, foreign flow, commodity impacts, news catalysts, technical patterns, fundamental valuation, AND broker activity. Explain the narrative behind each move.
-4. For sectorPerformance, include all sectors present in the data, filtering out "Unknown".
-5. For stockPicks, this is the MOST IMPORTANT section -- you are making a research recommendation that people may act on:
-   - Select 5-8 stocks with a mix of BUY, HOLD, SELL, WATCH recommendations
-   - EVERY pick MUST be justified with: (a) fundamental valuation analysis using the provided PER, PBV, ROE, D/E data and how they compare to sector averages, (b) technical setup with specific chart patterns and key price levels, (c) flow analysis -- what are foreign investors and brokers doing with this stock, (d) specific near-term catalysts or risk factors
-   - The "rationale" must be 6-10 sentences -- a full investment thesis
-   - Include the "fundamentals" object with actual values from the provided data
-   - Include "technicalSetup", "riskAssessment", and "catalysts" fields
-   - Be RESPONSIBLE: clearly state risks, do not present uncertain calls as high-conviction. If fundamentals are deteriorating, flag it even for technically attractive setups.
-   - Include a "targetPrice" with justification (e.g. based on PBV reversion, sector-relative PER, or technical resistance)
-6. For newsSentiment, preserve the original URL for each news item in the "url" field exactly as provided.
-7. For technicalAnalysis: provide detailed multi-day pattern analysis, not just today's snapshot. Identify support/resistance from the price history provided. Estimate RSI from recent price momentum. The "notes" for each signal should be 3-5 sentences describing the setup, volume confirmation, and actionable trade parameters. Include 5-8 stocks.
-8. For commodityAnalysis: analyze at least 4-6 key commodities (Oil, Gold, Coal, Palm Oil/CPO, Nickel, Tin). For each: explain the global supply-demand context, current price trajectory, and specifically HOW it flows through to Indonesian producers' revenue/margins. Name specific IDX tickers with the transmission mechanism (e.g. "ADRO benefits from thermal coal spot at $X as ~70% of revenue is coal mining with ASP tracking Newcastle benchmark").
-9. For corporateEvents: identify any acquisitions, mergers, cooperations, IPOs, restructurings, or market rumors from the news. Include ticker codes of involved companies. Preserve source URLs when available.
-10. For pricePredictions: provide predictions for 5-8 key stocks with targets backed by the fundamental and technical data provided. Rationale must be 5-8 sentences combining price history analysis, fundamental valuation, flow signals, and risk assessment. Be honest about confidence -- "high" only when multiple dimensions align.
-11. For chartData: include ALL provided data points -- do NOT summarize or reduce them. For priceHistoryCharts, include every date-price pair from the multi-day price history for at least 6 top stocks. For foreignFlowChart, include every date from the multi-day foreign flow data provided. For sectorPerformanceChart, populate from sector data. For marketBreadthChart, calculate from the daily advance-decline data. The charts need enough data points for smooth, meaningful visualizations.
-12. For bandarmology: this is the core of Indonesian market analysis. Analyze broker concentration patterns to detect the 4 Wyckoff phases: Accumulation (concentrated institutional buying, fragmented retail selling -- stealth buying phase), Mark-Up (price rising with broker self-crossing confirming controlled distribution), Distribution (concentrated selling to fragmented retail buyers -- the smart money exit), Mark-Down (price collapse after distribution completes). For each stock signal: the "interpretation" must be 4-6 sentences connecting broker behavior to price action, volume patterns, and fundamental context. Flag the highest-conviction signals in "alertStocks".
-13. For marketOutlook: synthesize ALL data dimensions into a cohesive macro thesis. The "summary" must be 5-8 sentences. "keyRisks" and "keyCatalysts" should each have 3-5 items, each being 2-3 sentences. The "shortTermForecast" must be 4-6 sentences with actionable guidance.
-14. Write all analysis in English with institutional-level depth.
-15. Do not use any emojis anywhere in the response.
-16. Think deeply about inter-market correlations, commodity-equity linkages, sector rotation patterns, and smart money flow. The hallmark of great analysis is connecting seemingly unrelated data points into a coherent narrative.`;
+SECTION RULES:
+1. Return ONLY valid JSON. All numbers must be actual numbers, not strings.
+2. topMovers: top 8 gainers, 8 losers, 8 most active. "reason" field: 2-3 sentences, cross-reference at least 2 data dimensions. Be specific with numbers.
+3. sectorPerformance: all sectors present (filter "Unknown").
+4. stockPicks: 5-8 stocks. MUST include at least 2-3 picks that are NOT in the top movers or most active (use discovery data). Each pick needs: fundamentals object, technicalSetup, riskAssessment, catalysts, targetPrice. "rationale" should be substantive but dense (4-6 sentences, not padded). Be RESPONSIBLE about risks.
+5. newsSentiment: preserve original URLs exactly.
+6. technicalAnalysis: multi-day patterns, support/resistance from price history, RSI estimates. Include 5-8 stocks (mix blue-chip and mid-cap). "notes": 2-3 sentences per signal.
+7. commodityAnalysis: 4-6 commodities (Oil, Gold, Coal, CPO, Nickel, Tin). Name specific IDX tickers affected and the transmission mechanism.
+8. corporateEvents: from news data. Include ticker codes and URLs.
+9. pricePredictions: 5-8 stocks. Include at least 2 non-blue-chip stocks. Be honest about confidence.
+10. chartData: include ALL data points from price history (do NOT truncate). Price history for at least 6 stocks. Foreign flow chart, sector chart, breadth chart.
+11. bandarmology: detect Wyckoff phases. "interpretation": 3-4 sentences connecting broker behavior to price/volume/fundamentals. Include non-blue-chip stocks from the expanded bandarmology data.
+12. aiDiscovery: THIS IS MANDATORY. Analyze the discovery data (volume anomalies, foreign flow outliers, undervalued fundamentals, stealth accumulation) to find 4-8 hidden gems. Each thesis should be a genuine insight that the reader cannot get from surface-level analysis. Use SPECIFIC data points.
+13. marketOutlook: synthesize everything into a cohesive thesis. Be actionable.
+14. Write all analysis in English.
+15. Do not use any emojis.
+16. Connect seemingly unrelated data points. The hallmark of great analysis is finding the hidden thread.`;
 
   const userMessage = `Here is today's market data for the Indonesia Stock Exchange (${marketData.tradingDate}):
 
@@ -908,7 +1024,7 @@ ${commodityNews.length > 0 ? commodityNews.map((h) => `- ${h.title} (${h.source}
 CORPORATE / M&A / COOPERATION NEWS:
 ${corporateNews.length > 0 ? corporateNews.map((h) => `- ${h.title} (${h.source}) [${h.date}] URL: ${h.url}`).join("\n") : "No corporate event news available."}
 
-BANDARMOLOGY / BROKER SUMMARY ANALYSIS (1-month broker concentration data for top stocks):
+BANDARMOLOGY / BROKER SUMMARY ANALYSIS (1-month broker concentration data -- includes both blue-chip and mid-cap stocks):
 ${marketData.bandarmologySignals.length > 0 ? marketData.bandarmologySignals.map((s) => {
   const buyersList = s.topBuyers.map((b) => `${b.broker}(${b.name}${b.isForeign ? ",F" : ""},Rp${(b.netValue / 1e9).toFixed(2)}B)`).join(", ");
   const sellersList = s.topSellers.map((b) => `${b.broker}(${b.name}${b.isForeign ? ",F" : ""},Rp${(b.netValue / 1e9).toFixed(2)}B)`).join(", ");
@@ -918,26 +1034,43 @@ ${marketData.bandarmologySignals.length > 0 ? marketData.bandarmologySignals.map
   Signal: ${s.rationale}`;
 }).join("\n\n") : "No bandarmology data available."}
 
-Generate a comprehensive daily market intelligence report. CRITICAL DEPTH REQUIREMENTS:
+===== AI DISCOVERY DATA -- NON-OBVIOUS SIGNALS (stocks outside the top-20 by value) =====
+Use this data to populate the "aiDiscovery" section. These are mid-cap stocks showing unusual patterns that warrant deeper analysis.
 
-1. CROSS-REFERENCE EVERYTHING: Every insight must connect at least 2-3 data dimensions. Example: "ADRO rose 3.2% on Rp 45B foreign net buy (technical breakout above 2,850 resistance confirmed by 2.3x average volume), as Newcastle coal spot prices climbed to $135/ton. PER at 5.2x remains well below the mining sector average of 8.1x, with ROE of 24.3% indicating strong capital efficiency."
+VOLUME ANOMALY CANDIDATES (today's volume vs trailing average -- something is happening):
+${marketData.discoveryData.volumeAnomalies.length > 0 ? marketData.discoveryData.volumeAnomalies.map((s) => `${s.code} (${s.name}): Vol Today=${(s.volume / 1e6).toFixed(1)}M | 5d Avg=${(s.avgVolume / 1e6).toFixed(1)}M | Ratio=${s.volumeRatio.toFixed(1)}x | Close=${s.close} | Change=${s.changePct.toFixed(2)}% | Foreign Net=Rp ${(s.foreignNet / 1e9).toFixed(2)}B | Sector: ${s.sector || "N/A"}`).join("\n") : "No volume anomalies detected."}
 
-2. STOCK PICKS MUST BE RESEARCH-QUALITY: Use the fundamental data provided (PER, PBV, ROE, D/E, EPS) to build valuation arguments. Compare to sector averages. State specific price levels from the chart data. Cross-reference with bandarmology phase and foreign flow.
+FOREIGN FLOW OUTLIERS (disproportionate foreign activity in mid-cap stocks):
+${marketData.discoveryData.foreignFlowOutliers.length > 0 ? marketData.discoveryData.foreignFlowOutliers.map((s) => `${s.code} (${s.name}): Foreign Net=Rp ${(s.foreignNet / 1e9).toFixed(2)}B | Daily Value=Rp ${(s.value / 1e9).toFixed(2)}B | Flow/Value=${(s.foreignIntensity * 100).toFixed(1)}% | Close=${s.close} | Change=${s.changePct.toFixed(2)}% | Sector: ${s.sector || "N/A"}`).join("\n") : "No foreign flow outliers detected."}
 
-3. EVERY REASON/RATIONALE must be multi-sentence with specific numbers and causal explanations -- NOT generic summaries like "stock rose on positive sentiment". Explain the mechanism.
+UNDERVALUED FUNDAMENTALS SCREEN (strong fundamentals outside top-20, PER<15, ROE>10%, D/E<1.5):
+${marketData.discoveryData.undervaluedFundamentals.length > 0 ? marketData.discoveryData.undervaluedFundamentals.map((f) => `${f.code} (${f.stockName}): PER=${f.per.toFixed(2)} | PBV=${f.pbv.toFixed(2)} | ROE=${f.roe.toFixed(1)}% | D/E=${f.deRatio.toFixed(2)} | EPS=${f.eps.toFixed(0)} | Sector: ${f.sector}/${f.subSector} | FS: ${f.fsDate}`).join("\n") : "No undervalued candidates found."}
 
-4. INCLUDE ALL CHART DATA POINTS: Preserve every date-price pair in the price history. Do not truncate the data.
+STEALTH ACCUMULATION (non-blue-chip stocks showing accumulation/markup broker patterns):
+${marketData.discoveryData.stealthAccumulation.length > 0 ? marketData.discoveryData.stealthAccumulation.map((s) => {
+  const buyersList = s.topBuyers.map((b) => `${b.broker}(${b.isForeign ? "F" : "D"},Rp${(b.netValue / 1e9).toFixed(2)}B)`).join(", ");
+  return `${s.code} (${s.name}): Phase=${s.phase} | BuyConc=${s.topBuyerConcentration.toFixed(1)}% | Buyers=${s.buyerCount} vs Sellers=${s.sellerCount} | Top Buyers: ${buyersList}`;
+}).join("\n") : "No stealth accumulation detected."}
 
-5. BE RESPONSIBLE WITH PICKS: Flag deteriorating fundamentals honestly. If D/E is high, say so. If PER is expensive vs sector, acknowledge it. High-conviction calls require fundamental, technical, AND flow alignment.`;
+Generate the market intelligence report. KEY REQUIREMENTS:
+1. DIVERSIFY stock coverage across sections. Do not repeat the same ticker in more than 3 sections.
+2. Use discovery data to find 4-8 hidden gems for aiDiscovery. These should be genuine non-obvious insights.
+3. Include at least 2-3 non-blue-chip stocks in stockPicks and pricePredictions.
+4. Cross-reference data points: connect price + volume + flow + fundamentals. Cite specific numbers.
+5. Preserve ALL chart data points (do not truncate price history).
+6. Be CONCISE -- insight density matters more than word count. No filler paragraphs.
+7. Be responsible with picks: flag risks honestly, high-conviction only when multiple dimensions align.`;
 
   const anthropic = new Anthropic({ apiKey });
 
-  const response = await anthropic.messages.create({
+  const stream = anthropic.messages.stream({
     model: "claude-sonnet-4-20250514",
     max_tokens: 32000,
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
   });
+
+  const response = await stream.finalMessage();
 
   const textBlock = response.content.find((b) => b.type === "text");
   const text = textBlock?.type === "text" ? textBlock.text : "";
@@ -995,7 +1128,7 @@ async function translateReportToIndonesian(
 ): Promise<Record<string, unknown>> {
   const reportJson = JSON.stringify(englishReport);
 
-  const response = await anthropic.messages.create({
+  const translationStream = anthropic.messages.stream({
     model: "claude-3-5-haiku-latest",
     max_tokens: 16384,
     system: `You are a professional financial translator specializing in Indonesian capital markets (BEI/IDX). Translate the given market intelligence report JSON from English to Bahasa Indonesia.
@@ -1012,7 +1145,8 @@ RULES:
     messages: [{ role: "user", content: reportJson }],
   });
 
-  const textBlock = response.content.find((b) => b.type === "text");
+  const translationResponse = await translationStream.finalMessage();
+  const textBlock = translationResponse.content.find((b) => b.type === "text");
   const translatedText = textBlock?.type === "text" ? textBlock.text : "";
 
   const cleanedTranslation = translatedText

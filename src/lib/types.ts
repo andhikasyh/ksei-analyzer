@@ -531,6 +531,30 @@ export interface BandarmologyData {
   alertStocks: string[];
 }
 
+export interface AIDiscoveryItem {
+  code: string;
+  name: string;
+  discoveryType: "volume_anomaly" | "foreign_flow_outlier" | "undervalued_fundamental" | "stealth_accumulation" | "sector_rotation_early";
+  currentPrice: number;
+  thesis: string;
+  signals: string[];
+  riskLevel: "high" | "medium" | "low";
+  conviction: "high" | "medium" | "low";
+  targetPrice?: number;
+  fundamentals?: {
+    per: number;
+    pbv: number;
+    roe: number;
+    deRatio: number;
+  };
+  dataHighlight: string;
+}
+
+export interface AIDiscovery {
+  summary: string;
+  hiddenGems: AIDiscoveryItem[];
+}
+
 export interface MarketIntelligenceReport {
   title: string;
   marketOverview: MarketOverview;
@@ -549,6 +573,7 @@ export interface MarketIntelligenceReport {
   newsSentiment: NewsItem[];
   stockPicks: StockPick[];
   bandarmology?: BandarmologyData;
+  aiDiscovery?: AIDiscovery;
   marketOutlook: MarketOutlook;
   _indonesian?: MarketIntelligenceReport;
 }
