@@ -32,7 +32,7 @@ interface ProPaywallModalProps {
   reason?: "insight" | "chat";
 }
 
-const MAYAR_EMBED_URL = process.env.NEXT_PUBLIC_MAYAR_EMBED_URL || "https://gunaa.myr.id/pl/testing-73669";
+const MAYAR_EMBED_URL = process.env.NEXT_PUBLIC_MAYAR_EMBED_URL || "https://gunaa.myr.id/pl/lensaham-sub";
 const MAYAR_EMBED_SCRIPT = "https://mayarembed.r2.mayar.id/mayarEmbed.min.js";
 
 const PRO_FEATURES = [

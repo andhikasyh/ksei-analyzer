@@ -7,6 +7,12 @@ export const INDEX_LABELS: Record<string, string> = {
   IDX80: "IDX80",
   IDXV30: "V30",
   IDXQ30: "Q30",
+  JII70: "JII70",
+  SRIKEHATI: "SRI-KEHATI",
+  BISNIS27: "BISNIS-27",
+  IDXESGL: "ESG Leaders",
+  IDXG30: "Growth30",
+  PEFINDO25: "PEFINDO25",
 };
 
 export const INDEX_CONSTITUENTS: Record<string, string[]> = {
@@ -57,5 +63,46 @@ export const INDEX_CONSTITUENTS: Record<string, string[]> = {
     "BRIS", "CPIN", "HMSP", "HRUM", "ICBP", "INCO", "INDF", "ITMG",
     "KLBF", "MIKA", "MYOR", "PGAS", "PTBA", "SIDO", "SMGR", "TBIG",
     "TLKM", "TOWR", "UNTR", "UNVR", "MAPI", "MDKA",
+  ],
+  JII70: [
+    "ACES", "ADRO", "AGII", "AKRA", "AMRT", "ANTM", "ASII", "BRPT",
+    "BRIS", "BSDE", "BUKA", "CLEO", "CPIN", "CTRA", "DMAS", "DSSA",
+    "ELSA", "EMTK", "ERAA", "ESSA", "EXCL", "GGRM", "GOTO", "HEAL",
+    "HMSP", "HRUM", "ICBP", "INCO", "INDF", "INKP", "INTP", "ISAT",
+    "ITMG", "JPFA", "JSMR", "KLBF", "LPPF", "MAPI", "MDKA", "MEDC",
+    "MIKA", "MNCN", "MTDL", "MTEL", "MYOR", "PGAS", "PGEO", "PTBA",
+    "PTPP", "PWON", "SCMA", "SIDO", "SMGR", "SMRA", "SRTG", "SSIA",
+    "TBIG", "TINS", "TKIM", "TLKM", "TOWR", "TPIA", "UNTR", "UNVR",
+    "WIKA", "WMUU", "WSKT", "ADMR", "DSNG", "FILM",
+  ],
+  SRIKEHATI: [
+    "ADRO", "ANTM", "ASII", "BBCA", "BBNI", "BBRI", "BMRI", "BRIS",
+    "CPIN", "HMSP", "INCO", "INDF", "JPFA", "KLBF", "MIKA", "PGAS",
+    "PTBA", "SIDO", "SMGR", "TBIG", "TINS", "TLKM", "TOWR", "UNTR",
+    "UNVR",
+  ],
+  BISNIS27: [
+    "ADRO", "ANTM", "ASII", "BBCA", "BBNI", "BBRI", "BMRI", "BRPT",
+    "CPIN", "EXCL", "GOTO", "HMSP", "HRUM", "ICBP", "INCO", "INDF",
+    "INKP", "KLBF", "MDKA", "MEDC", "PGAS", "SMGR", "TBIG", "TLKM",
+    "TOWR", "UNTR", "UNVR",
+  ],
+  IDXESGL: [
+    "ACES", "ADRO", "AMRT", "ANTM", "ASII", "BBCA", "BBNI", "BBRI",
+    "BMRI", "BRIS", "BSDE", "CPIN", "CTRA", "EXCL", "HMSP", "ICBP",
+    "INCO", "INDF", "JPFA", "KLBF", "MEDC", "MIKA", "PGAS", "SIDO",
+    "SMGR", "TBIG", "TLKM", "TOWR", "UNTR", "UNVR",
+  ],
+  IDXG30: [
+    "ACES", "AMRT", "ARTO", "BRIS", "BUKA", "CLEO", "CPIN", "CTRA",
+    "EMTK", "ERAA", "ESSA", "EXCL", "GOTO", "HEAL", "HRUM", "ISAT",
+    "JPFA", "MAPI", "MDKA", "MEDC", "MIKA", "MTEL", "PGEO", "SMRA",
+    "SSIA", "TBIG", "TKIM", "TOWR", "TPIA", "WMUU",
+  ],
+  PEFINDO25: [
+    "ACES", "BSDE", "BTPS", "CLEO", "CTRA", "DMAS", "DSSA", "ERAA",
+    "HEAL", "JPFA", "LPPF", "MAPI", "MTDL", "MTEL", "MYOR", "PGEO",
+    "PWON", "SCMA", "SIDO", "SMRA", "SRTG", "SSIA", "TKIM", "WMUU",
+    "FILM",
   ],
 };

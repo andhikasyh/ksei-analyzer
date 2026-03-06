@@ -744,7 +744,7 @@ export default function DashboardPage() {
                           py: 0.75,
                           borderRadius: 1.5,
                           cursor: "pointer",
-                          opacity: isUpcoming ? 1 : 0.55,
+                          opacity: isUpcoming ? 1 : 0.7,
                           transition: "all 0.12s ease",
                           "&:hover": {
                             bgcolor: isDark ? "rgba(212,168,67,0.04)" : "rgba(161,124,47,0.03)",
@@ -757,7 +757,7 @@ export default function DashboardPage() {
                             minHeight: 28,
                             borderRadius: 1,
                             bgcolor: typeColor,
-                            opacity: 0.7,
+                            opacity: 0.85,
                             flexShrink: 0,
                             mt: 0.25,
                           }}
@@ -788,7 +788,7 @@ export default function DashboardPage() {
                           </Stack>
                           <Typography
                             sx={{
-                              color: "text.secondary",
+                              color: isDark ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.7)",
                               fontSize: "0.6rem",
                               lineHeight: 1.3,
                               overflow: "hidden",
@@ -803,7 +803,7 @@ export default function DashboardPage() {
                           sx={{
                             fontFamily: '"JetBrains Mono", monospace',
                             fontSize: "0.58rem",
-                            color: "text.secondary",
+                            color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)",
                             whiteSpace: "nowrap",
                             flexShrink: 0,
                             fontWeight: isUpcoming ? 600 : 400,

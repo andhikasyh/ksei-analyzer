@@ -913,94 +913,16 @@ export default function BrokersPage() {
           </Grid>
 
           {brokerAggregates.length >= 5 && (
-            <Paper
-              sx={{
-                px: 2.5,
-                py: 1.5,
-                borderRadius: 2.5,
-                display: "flex",
-                alignItems: "center",
-                gap: 2,
-                flexWrap: "wrap",
+            <ConcentrationTreemap
+              brokerAggregates={brokerAggregates}
+              totalValue={activityStats.totalValue}
+              top5Pct={activityStats.top5Pct}
+              isDark={isDark}
+              onBrokerClick={(code) => {
+                const el = document.getElementById("broker-table");
+                if (el) el.scrollIntoView({ behavior: "smooth" });
               }}
-              className="animate-in animate-in-delay-4"
-            >
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ fontWeight: 600, fontSize: "0.7rem" }}
-              >
-                Market Concentration
-              </Typography>
-              <Box sx={{ flex: 1, minWidth: 200 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    height: 8,
-                    borderRadius: 4,
-                    overflow: "hidden",
-                    bgcolor: isDark
-                      ? "rgba(255,255,255,0.06)"
-                      : "rgba(0,0,0,0.06)",
-                  }}
-                >
-                  {brokerAggregates.slice(0, 5).map((b, i) => {
-                    const pct =
-                      activityStats.totalValue > 0
-                        ? (b.totalValue / activityStats.totalValue) * 100
-                        : 0;
-                    return (
-                      <Tooltip
-                        key={b.code}
-                        title={`${b.code}: ${pct.toFixed(1)}%`}
-                        arrow
-                      >
-                        <Box
-                          sx={{
-                            width: `${pct}%`,
-                            bgcolor: [
-                              "#d4a843",
-                              "#e8c468",
-                              "#f0d68a",
-                              "#3b82f6",
-                              "#8b5cf6",
-                            ][i],
-                            transition: "width 0.5s ease",
-                          }}
-                        />
-                      </Tooltip>
-                    );
-                  })}
-                </Box>
-              </Box>
-              <Stack direction="row" spacing={1.5} flexWrap="wrap">
-                {brokerAggregates.slice(0, 5).map((b, i) => (
-                  <Typography
-                    key={b.code}
-                    variant="caption"
-                    sx={{
-                      fontFamily: '"JetBrains Mono", monospace',
-                      fontSize: "0.6rem",
-                      color: [
-                        "#d4a843",
-                        "#e8c468",
-                        "#f0d68a",
-                        "#3b82f6",
-                        "#8b5cf6",
-                      ][i],
-                      fontWeight: 600,
-                    }}
-                  >
-                    {b.code}{" "}
-                    {(
-                      (b.totalValue / activityStats.totalValue) *
-                      100
-                    ).toFixed(1)}
-                    %
-                  </Typography>
-                ))}
-              </Stack>
-            </Paper>
+            />
           )}
 
           {dailyTotals.length > 1 && (
@@ -2793,5 +2715,453 @@ export default function BrokersPage() {
         </Stack>
       )}
     </Stack>
+  );
+}
+
+interface TreemapRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  code: string;
+  name: string;
+  pct: number;
+  value: number;
+  trend: string;
+  area: number;
+}
+
+function squarifyLayout(
+  items: { code: string; name: string; value: number; pct: number; trend: string }[],
+  W: number,
+  H: number,
+): TreemapRect[] {
+  const totalVal = items.reduce((s, i) => s + i.value, 0);
+  if (totalVal === 0 || items.length === 0) return [];
+  const totalArea = W * H;
+
+  type Node = (typeof items)[0] & { area: number };
+  const nodes: Node[] = items.map((it) => ({
+    ...it,
+    area: (it.value / totalVal) * totalArea,
+  }));
+
+  const rects: TreemapRect[] = [];
+
+  function worst(row: Node[], side: number) {
+    const s = row.reduce((a, n) => a + n.area, 0);
+    const mx = Math.max(...row.map((n) => n.area));
+    const mn = Math.min(...row.map((n) => n.area));
+    return Math.max(
+      (side * side * mx) / (s * s),
+      (s * s) / (side * side * mn),
+    );
+  }
+
+  function layRow(
+    row: Node[],
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    vert: boolean,
+  ) {
+    const ra = row.reduce((a, n) => a + n.area, 0);
+    if (vert) {
+      const rw = ra / h;
+      let cy = y;
+      row.forEach((n) => {
+        const nh = n.area / rw;
+        rects.push({ x, y: cy, w: rw, h: nh, ...n });
+        cy += nh;
+      });
+      return { x: x + rw, y, w: w - rw, h };
+    }
+    const rh = ra / w;
+    let cx = x;
+    row.forEach((n) => {
+      const nw = n.area / rh;
+      rects.push({ x: cx, y, w: nw, h: rh, ...n });
+      cx += nw;
+    });
+    return { x, y: y + rh, w, h: h - rh };
+  }
+
+  function run(
+    rem: Node[],
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+  ) {
+    if (!rem.length) return;
+    if (rem.length === 1) {
+      rects.push({ x, y, w, h, ...rem[0] });
+      return;
+    }
+    const vert = h > w;
+    const side = vert ? h : w;
+    const row: Node[] = [rem[0]];
+    const rest = rem.slice(1);
+    let cw = worst(row, side);
+    while (rest.length) {
+      const candidate = [...row, rest[0]];
+      const nw = worst(candidate, side);
+      if (nw <= cw) {
+        row.push(rest.shift()!);
+        cw = nw;
+      } else break;
+    }
+    const b = layRow(row, x, y, w, h, vert);
+    run(rest, b.x, b.y, b.w, b.h);
+  }
+
+  run(nodes, 0, 0, W, H);
+  return rects;
+}
+
+const TREEMAP_PALETTE = [
+  "#d4a843",
+  "#c49a3a",
+  "#e8c468",
+  "#3b82f6",
+  "#8b5cf6",
+  "#06b6d4",
+  "#14b8a6",
+  "#6366f1",
+  "#ec4899",
+  "#f59e0b",
+  "#22c55e",
+  "#f97316",
+  "#64748b",
+];
+
+function ConcentrationTreemap({
+  brokerAggregates,
+  totalValue,
+  top5Pct,
+  isDark,
+  onBrokerClick,
+}: {
+  brokerAggregates: { code: string; name: string; totalValue: number; trend: keyof typeof TREND_CONFIG }[];
+  totalValue: number;
+  top5Pct: number;
+  isDark: boolean;
+  onBrokerClick: (code: string) => void;
+}) {
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  const top = brokerAggregates.slice(0, 12);
+  const topValue = top.reduce((s, b) => s + b.totalValue, 0);
+  const othersValue = totalValue - topValue;
+  const othersCount = brokerAggregates.length - 12;
+
+  const items = top.map((b) => ({
+    code: b.code,
+    name: b.name,
+    value: b.totalValue,
+    pct: totalValue > 0 ? (b.totalValue / totalValue) * 100 : 0,
+    trend: b.trend as string,
+  }));
+  if (othersValue > 0 && othersCount > 0) {
+    items.push({
+      code: "OTHERS",
+      name: `${othersCount} other brokers`,
+      value: othersValue,
+      pct: totalValue > 0 ? (othersValue / totalValue) * 100 : 0,
+      trend: "steady",
+    });
+  }
+
+  const W = 1000;
+  const H = 380;
+  const rects = squarifyLayout(items, W, H);
+  const gap = 2;
+
+  const hhi = useMemo(() => {
+    if (totalValue <= 0) return 0;
+    return brokerAggregates.reduce((sum, b) => {
+      const share = (b.totalValue / totalValue) * 100;
+      return sum + share * share;
+    }, 0);
+  }, [brokerAggregates, totalValue]);
+  const hhiInfo = hhiIndicator(hhi);
+
+  return (
+    <Paper
+      className="animate-in animate-in-delay-4"
+      sx={{
+        borderRadius: 2.5,
+        overflow: "hidden",
+        position: "relative",
+      }}
+    >
+      <Box
+        sx={{
+          px: 2.5,
+          pt: 2,
+          pb: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 1,
+        }}
+      >
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <Typography
+            sx={{
+              fontFamily: '"Outfit", sans-serif',
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Market Concentration
+          </Typography>
+          <Chip
+            label={`Top 5: ${top5Pct.toFixed(1)}%`}
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: "0.6rem",
+              fontWeight: 700,
+              fontFamily: '"JetBrains Mono", monospace',
+              bgcolor: isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.06)",
+              color: "primary.main",
+            }}
+          />
+        </Stack>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Typography
+            sx={{
+              fontFamily: '"JetBrains Mono", monospace',
+              fontSize: "0.6rem",
+              color: "text.secondary",
+            }}
+          >
+            HHI
+          </Typography>
+          <Chip
+            label={`${hhi.toFixed(0)} ${hhiInfo.label}`}
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: "0.58rem",
+              fontWeight: 700,
+              fontFamily: '"JetBrains Mono", monospace',
+              bgcolor: `${hhiInfo.color}18`,
+              color: hhiInfo.color,
+            }}
+          />
+        </Stack>
+      </Box>
+
+      <Box
+        sx={{
+          px: 1.5,
+          pb: 1.5,
+          position: "relative",
+          width: "100%",
+          aspectRatio: `${W} / ${H}`,
+          maxHeight: 420,
+        }}
+      >
+        <Box sx={{ position: "relative", width: "100%", height: "100%" }}>
+          {rects.map((r, i) => {
+            const color = TREEMAP_PALETTE[i] || TREEMAP_PALETTE[TREEMAP_PALETTE.length - 1];
+            const isOthers = r.code === "OTHERS";
+            const isHovered = hovered === r.code;
+            const tileW = (r.w / W) * 100;
+            const tileH = (r.h / H) * 100;
+            const tileX = (r.x / W) * 100;
+            const tileY = (r.y / H) * 100;
+
+            const isLarge = tileW > 12 && tileH > 20;
+            const isMedium = tileW > 6 && tileH > 12;
+
+            const trendCfg = TREND_CONFIG[r.trend as keyof typeof TREND_CONFIG] || TREND_CONFIG.steady;
+
+            return (
+              <Tooltip
+                key={r.code}
+                title={
+                  <Box sx={{ p: 0.5 }}>
+                    <Typography sx={{ fontWeight: 700, fontSize: "0.75rem", fontFamily: '"JetBrains Mono", monospace' }}>
+                      {r.code}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.7)", mb: 0.5 }}>
+                      {r.name}
+                    </Typography>
+                    <Typography sx={{ fontSize: "0.65rem", fontFamily: '"JetBrains Mono", monospace' }}>
+                      {r.pct.toFixed(2)}% share - {formatValue(r.value)}
+                    </Typography>
+                    {!isOthers && (
+                      <Typography sx={{ fontSize: "0.6rem", color: trendCfg.color, mt: 0.25 }}>
+                        Trend: {trendCfg.label}
+                      </Typography>
+                    )}
+                  </Box>
+                }
+                arrow
+                placement="top"
+              >
+                <Box
+                  onMouseEnter={() => setHovered(r.code)}
+                  onMouseLeave={() => setHovered(null)}
+                  onClick={() => !isOthers && onBrokerClick(r.code)}
+                  sx={{
+                    position: "absolute",
+                    left: `${tileX}%`,
+                    top: `${tileY}%`,
+                    width: `${tileW}%`,
+                    height: `${tileH}%`,
+                    p: `${gap}px`,
+                    cursor: isOthers ? "default" : "pointer",
+                    transition: "transform 0.15s ease, z-index 0s",
+                    transform: isHovered ? "scale(1.02)" : "scale(1)",
+                    zIndex: isHovered ? 10 : 1,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: "100%",
+                      height: "100%",
+                      borderRadius: 1.5,
+                      overflow: "hidden",
+                      position: "relative",
+                      background: isOthers
+                        ? isDark
+                          ? "rgba(100,116,139,0.15)"
+                          : "rgba(100,116,139,0.08)"
+                        : isDark
+                          ? `linear-gradient(135deg, ${color}28 0%, ${color}14 100%)`
+                          : `linear-gradient(135deg, ${color}18 0%, ${color}0a 100%)`,
+                      border: `1px solid ${
+                        isHovered
+                          ? `${color}80`
+                          : isOthers
+                            ? isDark ? "rgba(100,116,139,0.15)" : "rgba(100,116,139,0.1)"
+                            : isDark ? `${color}30` : `${color}20`
+                      }`,
+                      transition: "all 0.2s ease",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: isLarge ? "flex-start" : "center",
+                      justifyContent: "center",
+                      px: isLarge ? 1.5 : 0.5,
+                      py: isLarge ? 1 : 0.5,
+                      "&::before": !isOthers ? {
+                        content: '""',
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: 3,
+                        background: color,
+                        opacity: isHovered ? 1 : 0.7,
+                        transition: "opacity 0.2s ease",
+                      } : undefined,
+                      ...(isHovered && !isOthers && {
+                        boxShadow: `0 4px 20px ${color}30`,
+                      }),
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontFamily: '"JetBrains Mono", monospace',
+                        fontWeight: 800,
+                        fontSize: isLarge ? "0.9rem" : isMedium ? "0.7rem" : "0.6rem",
+                        color: isOthers
+                          ? "text.secondary"
+                          : color,
+                        letterSpacing: "-0.02em",
+                        lineHeight: 1.2,
+                        textAlign: isLarge ? "left" : "center",
+                      }}
+                    >
+                      {r.code}
+                    </Typography>
+                    {(isLarge || isMedium) && (
+                      <Typography
+                        sx={{
+                          fontFamily: '"JetBrains Mono", monospace',
+                          fontWeight: 600,
+                          fontSize: isLarge ? "0.75rem" : "0.6rem",
+                          color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)",
+                          lineHeight: 1.3,
+                          mt: 0.25,
+                        }}
+                      >
+                        {r.pct.toFixed(1)}%
+                      </Typography>
+                    )}
+                    {isLarge && (
+                      <>
+                        <Typography
+                          sx={{
+                            fontSize: "0.55rem",
+                            color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)",
+                            lineHeight: 1.2,
+                            mt: 0.25,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            maxWidth: "100%",
+                          }}
+                        >
+                          {r.name}
+                        </Typography>
+                        <Typography
+                          sx={{
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontSize: "0.6rem",
+                            fontWeight: 600,
+                            color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)",
+                            mt: 0.5,
+                          }}
+                        >
+                          {formatValue(r.value)}
+                        </Typography>
+                        {!isOthers && (
+                          <Box
+                            sx={{
+                              mt: 0.5,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: "50%",
+                                bgcolor: trendCfg.color,
+                              }}
+                            />
+                            <Typography
+                              sx={{
+                                fontSize: "0.5rem",
+                                fontWeight: 600,
+                                color: trendCfg.color,
+                                textTransform: "uppercase",
+                                letterSpacing: "0.05em",
+                              }}
+                            >
+                              {trendCfg.label}
+                            </Typography>
+                          </Box>
+                        )}
+                      </>
+                    )}
+                  </Box>
+                </Box>
+              </Tooltip>
+            );
+          })}
+        </Box>
+      </Box>
+    </Paper>
   );
 }
