@@ -17,7 +17,9 @@ import {
   formatRatio,
 } from "@/lib/types";
 import { INDEX_LABELS } from "@/lib/index-constituents";
+import { SITE_NAME } from "@/lib/site";
 import { GlobalSearch } from "@/components/SearchInput";
+import Link from "next/link";
 import { InvestorTypeBadge, LocalForeignBadge } from "@/components/Badge";
 import { EventCalendar } from "@/components/EventCalendar";
 import Box from "@mui/material/Box";
@@ -427,13 +429,80 @@ export default function DashboardPage() {
 
   return (
     <Stack spacing={1.5}>
-      <Box className="animate-in">
+      <Box
+        className="animate-in"
+        sx={{
+          py: { xs: 1.5, sm: 2 },
+          px: { xs: 1, sm: 1.5 },
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.06)",
+          bgcolor: isDark ? "rgba(13,20,37,0.4)" : "rgba(255,255,255,0.5)",
+        }}
+      >
+        <Typography
+          sx={{
+            fontFamily: '"Outfit", sans-serif',
+            fontWeight: 700,
+            fontSize: { xs: "0.95rem", sm: "1rem" },
+            color: "text.primary",
+            letterSpacing: "-0.02em",
+            mb: 0.75,
+          }}
+        >
+          About {SITE_NAME}
+        </Typography>
+        <Typography
+          sx={{
+            fontFamily: '"Plus Jakarta Sans", sans-serif',
+            fontSize: { xs: "0.8rem", sm: "0.85rem" },
+            color: "text.secondary",
+            lineHeight: 1.6,
+            mb: 1,
+          }}
+        >
+          {SITE_NAME} is an Indonesian stock market data platform. We analyze KSEI beneficial ownership and IDX data so you can screen stocks, track broker activity, view investor holdings, and read daily market insights. Use the screener, brokers, and insights sections to explore the market.
+        </Typography>
+        <Typography
+          sx={{
+            fontFamily: '"Plus Jakarta Sans", sans-serif',
+            fontSize: "0.72rem",
+            color: "text.disabled",
+          }}
+        >
+          By using this site you agree to our{" "}
+          <Link
+            href="/terms"
+            style={{
+              color: "inherit",
+              textDecoration: "underline",
+              fontWeight: 600,
+            }}
+          >
+            Terms of Service
+          </Link>
+          {" "}and{" "}
+          <Link
+            href="/privacy"
+            style={{
+              color: "inherit",
+              textDecoration: "underline",
+              fontWeight: 600,
+            }}
+          >
+            Privacy Policy
+          </Link>
+          .
+        </Typography>
+      </Box>
+
+      <Box className="animate-in animate-in-delay-1">
         <GlobalSearch />
       </Box>
 
       {indexes.length > 0 && (
         <Box
-          className="animate-in animate-in-delay-1"
+          className="animate-in animate-in-delay-2"
           sx={{
             display: "flex",
             gap: 1,
@@ -465,7 +534,7 @@ export default function DashboardPage() {
         <Box sx={{ flex: "7 1 0%", minWidth: 0, mb: { xs: 1.5, lg: 0 }, display: "flex" }}>
             {movers && (
               <Paper
-                className="animate-in animate-in-delay-2"
+                className="animate-in animate-in-delay-3"
                 sx={{
                   borderRadius: 2,
                   overflow: "hidden",

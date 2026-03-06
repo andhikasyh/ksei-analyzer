@@ -6,6 +6,7 @@ import { LayoutShell } from "@/components/LayoutShell";
 import { FloatingChat } from "@/components/FloatingChat";
 import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { BackToTop } from "@/components/BackToTop";
+import { Footer } from "@/components/Footer";
 import { ProProvider } from "@/lib/pro-context";
 import { getBaseUrl, SITE_NAME, SITE_DESCRIPTION, SITE_KEYWORDS } from "@/lib/site";
 import "./globals.css";
@@ -97,6 +98,7 @@ export default function RootLayout({
           <ProProvider>
             <Navbar />
             <LayoutShell>{children}</LayoutShell>
+            <Footer />
             <FloatingChat />
             <FeedbackWidget />
             <BackToTop />
