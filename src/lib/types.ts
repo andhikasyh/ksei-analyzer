@@ -97,6 +97,7 @@ export interface IDXBroker {
   code: string;
   name: string;
   license: string;
+  is_foreign?: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -408,6 +409,16 @@ export interface StockPick {
   currentPrice: number;
   rationale: string;
   targetPrice?: number;
+  fundamentals?: {
+    per: number;
+    pbv: number;
+    roe: number;
+    deRatio: number;
+    eps: number;
+  };
+  technicalSetup?: string;
+  riskAssessment?: string;
+  catalysts?: string[];
 }
 
 export interface MarketOutlook {
@@ -493,6 +504,57 @@ export interface ReportChartData {
   marketBreadthChart: ChartDataPoint[];
 }
 
+export interface BandarmologyBroker {
+  broker: string;
+  name: string;
+  netValue: number;
+  isForeign: boolean;
+}
+
+export interface BandarmologySignalReport {
+  code: string;
+  name: string;
+  phase: "accumulation" | "distribution" | "markup" | "markdown" | "neutral";
+  confidence: "high" | "medium" | "low";
+  topBuyers: BandarmologyBroker[];
+  topSellers: BandarmologyBroker[];
+  buyerConcentration: number;
+  sellerConcentration: number;
+  buyerCount: number;
+  sellerCount: number;
+  interpretation: string;
+}
+
+export interface BandarmologyData {
+  summary: string;
+  signals: BandarmologySignalReport[];
+  alertStocks: string[];
+}
+
+export interface AIDiscoveryItem {
+  code: string;
+  name: string;
+  discoveryType: "volume_anomaly" | "foreign_flow_outlier" | "undervalued_fundamental" | "stealth_accumulation" | "sector_rotation_early";
+  currentPrice: number;
+  thesis: string;
+  signals: string[];
+  riskLevel: "high" | "medium" | "low";
+  conviction: "high" | "medium" | "low";
+  targetPrice?: number;
+  fundamentals?: {
+    per: number;
+    pbv: number;
+    roe: number;
+    deRatio: number;
+  };
+  dataHighlight: string;
+}
+
+export interface AIDiscovery {
+  summary: string;
+  hiddenGems: AIDiscoveryItem[];
+}
+
 export interface MarketIntelligenceReport {
   title: string;
   marketOverview: MarketOverview;
@@ -510,7 +572,10 @@ export interface MarketIntelligenceReport {
   chartData: ReportChartData;
   newsSentiment: NewsItem[];
   stockPicks: StockPick[];
+  bandarmology?: BandarmologyData;
+  aiDiscovery?: AIDiscovery;
   marketOutlook: MarketOutlook;
+  _indonesian?: MarketIntelligenceReport;
 }
 
 export interface MarketIntelligenceRow {
@@ -530,4 +595,38 @@ export interface MarketIntelligenceListItem {
   sentiment: string;
   summary: string;
   created_at: string;
+}
+
+export interface BAStockRanking {
+  symbol: string;
+  period: string;
+  investor_type: string;
+  market_board: string;
+  date: string;
+  broker_code: string;
+  net_value: number;
+  b_val: number;
+  s_val: number;
+  net_volume: number;
+  b_lot: number;
+  s_lot: number;
+  value_share: number;
+  rank: number;
+}
+
+export interface BABrokerRanking {
+  broker_code: string;
+  period: string;
+  investor_type: string;
+  market_board: string;
+  date: string;
+  symbol: string;
+  net_value: number;
+  b_val: number;
+  s_val: number;
+  net_volume: number;
+  b_lot: number;
+  s_lot: number;
+  value_share: number;
+  rank: number;
 }

@@ -10,10 +10,14 @@ import Skeleton from "@mui/material/Skeleton";
 import Stack from "@mui/material/Stack";
 import IconButton from "@mui/material/IconButton";
 import Button from "@mui/material/Button";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import LockIcon from "@mui/icons-material/Lock";
+import TranslateIcon from "@mui/icons-material/Translate";
+import DownloadIcon from "@mui/icons-material/Download";
 import { ReportDashboard, SentimentChip } from "@/components/ReportDashboard";
 import { MarketChat } from "@/components/MarketChat";
 import { ProPaywallModal } from "@/components/ProPaywallModal";
@@ -37,6 +41,7 @@ export default function ReportDetailPage({
   const [error, setError] = useState<string | null>(null);
   const [oldestDate, setOldestDate] = useState<string | null>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
+  const [lang, setLang] = useState<"en" | "id">("en");
 
   const chatLocked = !isPro && (user !== null || chatTries >= 1);
   const handleChatAttempt = useCallback(() => {
@@ -322,9 +327,14 @@ export default function ReportDetailPage({
     );
   }
 
+  const hasIndonesian = Boolean(report._indonesian);
+  const activeReport = lang === "id" && report._indonesian
+    ? (report._indonesian as MarketIntelligenceReport)
+    : report;
+
   const chatContext = {
     reportDate: date,
-    reportSummary: `${report.marketOverview.summary} Outlook: ${report.marketOutlook.summary} Sentiment: ${report.marketOutlook.sentiment}.`,
+    reportSummary: `${activeReport.marketOverview.summary} Outlook: ${activeReport.marketOutlook.summary} Sentiment: ${activeReport.marketOutlook.sentiment}.`,
   };
 
   return (
@@ -455,13 +465,143 @@ export default function ReportDetailPage({
                 textShadow: "0 2px 8px rgba(0,0,0,0.3)",
               }}
             >
-              {title || report.title || `Market Report -- ${dateLabel}`}
+              {(lang === "id" && activeReport.title) || title || report.title || `Market Report -- ${dateLabel}`}
             </Typography>
           </Box>
         </Box>
       </Box>
 
-      <ReportDashboard report={report} compact />
+      <Box
+        className="animate-in animate-in-delay-2"
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          px: 0.5,
+          flexWrap: "wrap",
+          gap: 1,
+        }}
+      >
+        <ToggleButtonGroup
+          value={lang}
+          exclusive
+          onChange={(_, v) => { if (v) { if (v === "id" && !hasIndonesian) return; setLang(v); } }}
+          size="small"
+          sx={{
+            bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)",
+            borderRadius: "10px",
+            border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
+            overflow: "hidden",
+            "& .MuiToggleButton-root": {
+              border: "none",
+              borderRadius: "8px !important",
+              px: 1.5,
+              py: 0.4,
+              fontSize: "0.7rem",
+              fontWeight: 700,
+              fontFamily: '"Outfit", sans-serif',
+              letterSpacing: "0.02em",
+              textTransform: "none",
+              color: "text.secondary",
+              transition: "all 0.2s ease",
+              "&.Mui-selected": {
+                bgcolor: isDark ? "rgba(129,140,248,0.15)" : "rgba(99,102,241,0.1)",
+                color: isDark ? "#a5b4fc" : "#6366f1",
+                "&:hover": {
+                  bgcolor: isDark ? "rgba(129,140,248,0.2)" : "rgba(99,102,241,0.15)",
+                },
+              },
+              "&.Mui-disabled": {
+                opacity: 0.35,
+              },
+            },
+          }}
+        >
+          <ToggleButton value="en" disableRipple>
+            <TranslateIcon sx={{ fontSize: 14, mr: 0.5 }} />
+            English
+          </ToggleButton>
+          <ToggleButton value="id" disableRipple disabled={!hasIndonesian}>
+            <TranslateIcon sx={{ fontSize: 14, mr: 0.5 }} />
+            Bahasa
+          </ToggleButton>
+        </ToggleButtonGroup>
+
+        <Box sx={{ display: "flex", gap: 0.75 }}>
+          <Button
+            size="small"
+            variant="outlined"
+            href={`/api/market-intelligence/pdf?date=${encodeURIComponent(date)}&lang=en`}
+            target="_blank"
+            startIcon={<DownloadIcon sx={{ fontSize: "14px !important" }} />}
+            sx={{
+              fontSize: "0.68rem",
+              fontWeight: 700,
+              fontFamily: '"Outfit", sans-serif',
+              textTransform: "none",
+              borderRadius: "10px",
+              px: 1.5,
+              py: 0.3,
+              borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+              color: "text.secondary",
+              "&:hover": {
+                borderColor: isDark ? "#a5b4fc" : "#6366f1",
+                color: isDark ? "#a5b4fc" : "#6366f1",
+                bgcolor: isDark ? "rgba(129,140,248,0.08)" : "rgba(99,102,241,0.05)",
+              },
+            }}
+          >
+            PDF (EN)
+          </Button>
+          {hasIndonesian ? (
+            <Button
+              size="small"
+              variant="outlined"
+              href={`/api/market-intelligence/pdf?date=${encodeURIComponent(date)}&lang=id`}
+              target="_blank"
+              startIcon={<DownloadIcon sx={{ fontSize: "14px !important" }} />}
+              sx={{
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                fontFamily: '"Outfit", sans-serif',
+                textTransform: "none",
+                borderRadius: "10px",
+                px: 1.5,
+                py: 0.3,
+                borderColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)",
+                color: "text.secondary",
+                "&:hover": {
+                  borderColor: isDark ? "#a5b4fc" : "#6366f1",
+                  color: isDark ? "#a5b4fc" : "#6366f1",
+                  bgcolor: isDark ? "rgba(129,140,248,0.08)" : "rgba(99,102,241,0.05)",
+                },
+              }}
+            >
+              PDF (ID)
+            </Button>
+          ) : (
+            <Button
+              size="small"
+              variant="outlined"
+              disabled
+              startIcon={<DownloadIcon sx={{ fontSize: "14px !important" }} />}
+              sx={{
+                fontSize: "0.68rem",
+                fontWeight: 700,
+                fontFamily: '"Outfit", sans-serif',
+                textTransform: "none",
+                borderRadius: "10px",
+                px: 1.5,
+                py: 0.3,
+              }}
+            >
+              PDF (ID)
+            </Button>
+          )}
+        </Box>
+      </Box>
+
+      <ReportDashboard report={activeReport} compact />
 
       <Box className="animate-in animate-in-delay-8">
         <Box
