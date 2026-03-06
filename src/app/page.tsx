@@ -364,40 +364,116 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
-  if (error) {
-    return (
-      <Box
+  const introBlock = (
+    <Box
+      className="animate-in"
+      sx={{
+        py: { xs: 1.5, sm: 2 },
+        px: { xs: 1, sm: 1.5 },
+        borderRadius: 2,
+        border: "1px solid",
+        borderColor: isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.06)",
+        bgcolor: isDark ? "rgba(13,20,37,0.4)" : "rgba(255,255,255,0.5)",
+      }}
+    >
+      <Typography
         sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "60vh",
+          fontFamily: '"Outfit", sans-serif',
+          fontWeight: 700,
+          fontSize: { xs: "0.95rem", sm: "1rem" },
+          color: "text.primary",
+          letterSpacing: "-0.02em",
+          mb: 0.75,
         }}
       >
-        <Paper
-          sx={{ p: { xs: 2, sm: 4 }, textAlign: "center", maxWidth: 420, mx: 1, borderRadius: 3 }}
+        About {SITE_NAME}
+      </Typography>
+      <Typography
+        sx={{
+          fontFamily: '"Plus Jakarta Sans", sans-serif',
+          fontSize: { xs: "0.8rem", sm: "0.85rem" },
+          color: "text.secondary",
+          lineHeight: 1.6,
+          mb: 1,
+        }}
+      >
+        {SITE_NAME} is an Indonesian stock market data platform. We analyze KSEI beneficial ownership and IDX data so you can screen stocks, track broker activity, view investor holdings, and read daily market insights. Use the screener, brokers, and insights sections to explore the market.
+      </Typography>
+      <Typography
+        sx={{
+          fontFamily: '"Plus Jakarta Sans", sans-serif',
+          fontSize: "0.72rem",
+          color: "text.disabled",
+        }}
+      >
+        By using this site you agree to our{" "}
+        <Link
+          href="/terms"
+          style={{
+            color: "inherit",
+            textDecoration: "underline",
+            fontWeight: 600,
+          }}
         >
-          <Typography
-            variant="subtitle1"
-            sx={{
-              fontFamily: '"Outfit", sans-serif',
-              fontWeight: 700,
-            }}
-            gutterBottom
+          Terms of Service
+        </Link>
+        {" "}and{" "}
+        <Link
+          href="/privacy"
+          style={{
+            color: "inherit",
+            textDecoration: "underline",
+            fontWeight: 600,
+          }}
+        >
+          Privacy Policy
+        </Link>
+        .
+      </Typography>
+    </Box>
+  );
+
+  if (error) {
+    return (
+      <Stack spacing={1.5}>
+        {introBlock}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "40vh",
+          }}
+        >
+          <Paper
+            sx={{ p: { xs: 2, sm: 4 }, textAlign: "center", maxWidth: 420, mx: 1, borderRadius: 3 }}
           >
-            Connection Error
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            {error}
-          </Typography>
-        </Paper>
-      </Box>
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontFamily: '"Outfit", sans-serif',
+                fontWeight: 700,
+              }}
+              gutterBottom
+            >
+              Connection Error
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              {error}
+            </Typography>
+          </Paper>
+        </Box>
+      </Stack>
     );
   }
 
   if (loading) {
     return (
       <Stack spacing={1.5}>
+        {introBlock}
+        <Box className="animate-in animate-in-delay-1">
+          <GlobalSearch />
+        </Box>
         <Skeleton variant="rounded" height={40} sx={{ borderRadius: 2 }} />
         <Skeleton variant="rounded" height={52} sx={{ borderRadius: 2 }} />
         <Grid container spacing={1.5}>
@@ -429,72 +505,7 @@ export default function DashboardPage() {
 
   return (
     <Stack spacing={1.5}>
-      <Box
-        className="animate-in"
-        sx={{
-          py: { xs: 1.5, sm: 2 },
-          px: { xs: 1, sm: 1.5 },
-          borderRadius: 2,
-          border: "1px solid",
-          borderColor: isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.06)",
-          bgcolor: isDark ? "rgba(13,20,37,0.4)" : "rgba(255,255,255,0.5)",
-        }}
-      >
-        <Typography
-          sx={{
-            fontFamily: '"Outfit", sans-serif',
-            fontWeight: 700,
-            fontSize: { xs: "0.95rem", sm: "1rem" },
-            color: "text.primary",
-            letterSpacing: "-0.02em",
-            mb: 0.75,
-          }}
-        >
-          About {SITE_NAME}
-        </Typography>
-        <Typography
-          sx={{
-            fontFamily: '"Plus Jakarta Sans", sans-serif',
-            fontSize: { xs: "0.8rem", sm: "0.85rem" },
-            color: "text.secondary",
-            lineHeight: 1.6,
-            mb: 1,
-          }}
-        >
-          {SITE_NAME} is an Indonesian stock market data platform. We analyze KSEI beneficial ownership and IDX data so you can screen stocks, track broker activity, view investor holdings, and read daily market insights. Use the screener, brokers, and insights sections to explore the market.
-        </Typography>
-        <Typography
-          sx={{
-            fontFamily: '"Plus Jakarta Sans", sans-serif',
-            fontSize: "0.72rem",
-            color: "text.disabled",
-          }}
-        >
-          By using this site you agree to our{" "}
-          <Link
-            href="/terms"
-            style={{
-              color: "inherit",
-              textDecoration: "underline",
-              fontWeight: 600,
-            }}
-          >
-            Terms of Service
-          </Link>
-          {" "}and{" "}
-          <Link
-            href="/privacy"
-            style={{
-              color: "inherit",
-              textDecoration: "underline",
-              fontWeight: 600,
-            }}
-          >
-            Privacy Policy
-          </Link>
-          .
-        </Typography>
-      </Box>
+      {introBlock}
 
       <Box className="animate-in animate-in-delay-1">
         <GlobalSearch />
