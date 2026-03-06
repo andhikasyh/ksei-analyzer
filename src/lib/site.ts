@@ -12,7 +12,7 @@ export function getBaseUrl(): string {
   return "https://bei-analyzer.vercel.app";
 }
 
-export const SITE_NAME = "lensaham";
+export const SITE_NAME = "Gunaa";
 export const SITE_DESCRIPTION =
   "Analyze KSEI beneficial ownership data for the Indonesian stock exchange (IDX). Screen stocks, track brokers, view investor holdings and market insights.";
 export const SITE_KEYWORDS = [

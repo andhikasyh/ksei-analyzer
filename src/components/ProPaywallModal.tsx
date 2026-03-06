@@ -32,7 +32,7 @@ interface ProPaywallModalProps {
   reason?: "insight" | "chat";
 }
 
-const MAYAR_EMBED_URL = process.env.NEXT_PUBLIC_MAYAR_EMBED_URL || "https://gunaa.myr.id/pl/lensaham-sub";
+const MAYAR_EMBED_URL = process.env.NEXT_PUBLIC_MAYAR_EMBED_URL || "https://gunaa.myr.id/pl/Gunaa-sub";
 const MAYAR_EMBED_SCRIPT = "https://mayarembed.r2.mayar.id/mayarEmbed.min.js";
 
 const PRO_FEATURES = [
@@ -515,7 +515,7 @@ export function ProPaywallModal({
                 letterSpacing: "0.1em", color: accent,
                 textTransform: "uppercase", mb: 1,
               }}>
-                Lensaham Pro
+                Gunaa Pro
               </Typography>
               <Typography sx={{
                 fontFamily: '"Outfit", sans-serif',
@@ -577,7 +577,7 @@ export function ProPaywallModal({
                 letterSpacing: "0.1em", color: accent,
                 textTransform: "uppercase", mb: 1,
               }}>
-                Lensaham Pro
+                Gunaa Pro
               </Typography>
 
               <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.75, mb: 0.5 }}>
@@ -682,7 +682,7 @@ export function ProPaywallModal({
                 letterSpacing: "0.1em", color: accent,
                 textTransform: "uppercase",
               }}>
-                Lensaham Pro · 1 bulan
+                Gunaa Pro · 1 bulan
               </Typography>
               <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.5 }}>
                 <Typography sx={{

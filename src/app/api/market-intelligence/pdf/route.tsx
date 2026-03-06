@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     <MarketReportPDF report={report} dateStr={dateStr} lang={lang} />
   );
 
-  const filename = `LensaHam-Market-Report-${reportDate}-${lang.toUpperCase()}.pdf`;
+  const filename = `Gunaa-Market-Report-${reportDate}-${lang.toUpperCase()}.pdf`;
   const uint8 = new Uint8Array(buffer);
 
   return new NextResponse(uint8, {
