@@ -11,6 +11,20 @@ function getSupabase() {
   );
 }
 
+async function notifyGoogleChat(text: string) {
+  const webhookUrl = process.env.GOOGLE_CHAT_WEBHOOK_URL;
+  if (!webhookUrl) return;
+  try {
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+  } catch (e) {
+    console.error("Google Chat notification failed:", e);
+  }
+}
+
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
@@ -29,6 +43,7 @@ export async function GET(request: NextRequest) {
       .limit(2000);
 
     if (!summaryData?.length) {
+      await notifyGoogleChat("[Stock News] Cron FAILED: No stock data found");
       return NextResponse.json({ ok: false, error: "No stock data" }, { status: 404 });
     }
 
@@ -47,6 +62,9 @@ export async function GET(request: NextRequest) {
 
     const result = await scrapeStockNews(latestCodes as string[], companyNames);
 
+    await notifyGoogleChat(
+      `[Stock News] Scrape completed — processed: ${result.processed}, inserted: ${result.inserted}`
+    );
     return NextResponse.json({
       ok: true,
       processed: result.processed,
@@ -55,6 +73,7 @@ export async function GET(request: NextRequest) {
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to scrape stock news";
     console.error("Cron stock-news failed:", message);
+    await notifyGoogleChat(`[Stock News] Cron FAILED: ${message}`);
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
