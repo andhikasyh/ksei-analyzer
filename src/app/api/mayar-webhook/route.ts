@@ -39,15 +39,8 @@ const EXPIRED_EVENTS = new Set([
 ]);
 
 export async function POST(request: NextRequest) {
-  const secret = process.env.MAYAR_WEBHOOK_SECRET;
-  const token =
-    request.headers.get("x-mayar-token") ||
-    request.headers.get("authorization")?.replace("Bearer ", "");
-
-  if (secret && token !== secret) {
-    console.error("Mayar webhook: token mismatch", { got: token?.slice(0, 8) });
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // Mayar does not send auth tokens with webhooks.
+  // Security relies on the obscurity of the webhook URL.
 
   let payload: Record<string, unknown>;
   try {
