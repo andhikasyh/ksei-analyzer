@@ -111,26 +111,20 @@ interface BrokerRankingRow {
   code: string;
   brokerCode: string;
   brokerName: string;
-  netValue: number;
-  bVal: number;
-  sVal: number;
-  netVolume: number;
-  bLot: number;
-  sLot: number;
+  totalValue: number;
+  totalVolume: number;
   valueShare: number;
   rank: number;
+  isForeign: boolean;
 }
 
 interface BandarmologySignal {
   code: string;
   name: string;
-  phase: "accumulation" | "distribution" | "markup" | "markdown" | "neutral";
-  topBuyerConcentration: number;
-  topSellerConcentration: number;
-  topBuyers: { broker: string; name: string; netValue: number; isForeign: boolean }[];
-  topSellers: { broker: string; name: string; netValue: number; isForeign: boolean }[];
-  buyerCount: number;
-  sellerCount: number;
+  concentration: number;
+  activeBrokers: number;
+  hhiScore: number;
+  topBrokers: { broker: string; name: string; totalValue: number; valueShare: number; isForeign: boolean }[];
   rationale: string;
 }
 
@@ -153,7 +147,7 @@ async function fetchBandarmologyData(
       .limit(topCodes.length),
     supabase
       .from("idx_ba_stock_ranking")
-      .select("symbol, date, broker_code, net_value, b_val, s_val, net_volume, b_lot, s_lot, value_share, rank")
+      .select("symbol, date, broker_code, total_value, total_volume, value_share, rank")
       .in("symbol", topCodes)
       .eq("period", "1M")
       .eq("investor_type", "ALL")
@@ -191,89 +185,59 @@ async function fetchBandarmologyData(
     const latestDate = (rows[0] as Record<string, string>).date;
     const latest = rows.filter((r: Record<string, string>) => r.date === latestDate);
 
-    const buyers: BrokerRankingRow[] = [];
-    const sellers: BrokerRankingRow[] = [];
-    let totalAbsValue = 0;
+    const brokers: BrokerRankingRow[] = [];
+    let totalValue = 0;
 
     for (const r of latest) {
-      const netVal = parseFloat(r.net_value as string) || 0;
-      const bVal = parseFloat(r.b_val as string) || 0;
-      const sVal = parseFloat(r.s_val as string) || 0;
-      totalAbsValue += Math.abs(netVal);
+      const val = parseFloat(r.total_value as string) || 0;
+      totalValue += val;
+      const bc = r.broker_code as string;
 
-      const entry: BrokerRankingRow = {
+      brokers.push({
         code: sym,
-        brokerCode: r.broker_code as string,
-        brokerName: brokerMeta.get(r.broker_code as string)?.name || r.broker_code as string,
-        netValue: netVal,
-        bVal,
-        sVal,
-        netVolume: parseFloat(r.net_volume as string) || 0,
-        bLot: parseFloat(r.b_lot as string) || 0,
-        sLot: parseFloat(r.s_lot as string) || 0,
+        brokerCode: bc,
+        brokerName: brokerMeta.get(bc)?.name || bc,
+        totalValue: val,
+        totalVolume: parseFloat(r.total_volume as string) || 0,
         valueShare: parseFloat(r.value_share as string) || 0,
         rank: r.rank as number,
-      };
-
-      if (netVal > 0) buyers.push(entry);
-      else if (netVal < 0) sellers.push(entry);
+        isForeign: brokerMeta.get(bc)?.isForeign || false,
+      });
     }
 
-    buyers.sort((a, b) => b.netValue - a.netValue);
-    sellers.sort((a, b) => a.netValue - b.netValue);
+    brokers.sort((a, b) => b.totalValue - a.totalValue);
 
-    const top3BuyVal = buyers.slice(0, 3).reduce((s, b) => s + b.netValue, 0);
-    const top3SellVal = Math.abs(sellers.slice(0, 3).reduce((s, b) => s + b.netValue, 0));
-    const buyConcentration = totalAbsValue > 0 ? (top3BuyVal / totalAbsValue) * 100 : 0;
-    const sellConcentration = totalAbsValue > 0 ? (top3SellVal / totalAbsValue) * 100 : 0;
+    const top3Share = brokers.slice(0, 3).reduce((s, b) => s + b.valueShare, 0);
+    const hhi = brokers.reduce((s, b) => s + b.valueShare ** 2, 0);
+    const activeBrokers = brokers.length;
 
-    let phase: BandarmologySignal["phase"] = "neutral";
     let rationale = "";
-
-    if (buyConcentration > 40 && buyers.length <= sellers.length * 0.5) {
-      phase = "accumulation";
-      rationale = `Top 3 buyers hold ${buyConcentration.toFixed(1)}% of value with only ${buyers.length} buyers vs ${sellers.length} fragmented sellers -- classic stealth accumulation pattern.`;
-    } else if (sellConcentration > 40 && sellers.length <= buyers.length * 0.5) {
-      phase = "distribution";
-      rationale = `Top 3 sellers hold ${sellConcentration.toFixed(1)}% of value with only ${sellers.length} sellers vs ${buyers.length} fragmented buyers -- institutional distribution detected.`;
-    } else if (buyConcentration > 30 && top3BuyVal > top3SellVal * 1.5) {
-      phase = "markup";
-      rationale = `Strong concentrated buying (${buyConcentration.toFixed(1)}%) with buy-side dominance suggests markup phase.`;
-    } else if (sellConcentration > 30 && top3SellVal > top3BuyVal * 1.5) {
-      phase = "markdown";
-      rationale = `Strong concentrated selling (${sellConcentration.toFixed(1)}%) with sell-side dominance suggests markdown phase.`;
+    if (hhi >= 2500) {
+      rationale = `Highly concentrated (HHI ${hhi.toFixed(0)}). Top 3 brokers hold ${top3Share.toFixed(1)}% of activity across ${activeBrokers} brokers -- strong bandar signal.`;
+    } else if (hhi >= 1500) {
+      rationale = `Moderately concentrated (HHI ${hhi.toFixed(0)}). Top 3 brokers hold ${top3Share.toFixed(1)}% with ${activeBrokers} active brokers.`;
     } else {
-      rationale = `No clear concentration bias detected. Buy concentration: ${buyConcentration.toFixed(1)}%, Sell concentration: ${sellConcentration.toFixed(1)}%.`;
+      rationale = `Competitive market (HHI ${hhi.toFixed(0)}). Activity spread across ${activeBrokers} brokers, top 3 hold ${top3Share.toFixed(1)}%.`;
     }
 
     signals.push({
       code: sym,
       name: nameMap.get(sym) || sym,
-      phase,
-      topBuyerConcentration: buyConcentration,
-      topSellerConcentration: sellConcentration,
-      topBuyers: buyers.slice(0, 5).map((b) => ({
+      concentration: top3Share,
+      activeBrokers,
+      hhiScore: hhi,
+      topBrokers: brokers.slice(0, 5).map((b) => ({
         broker: b.brokerCode,
         name: b.brokerName,
-        netValue: b.netValue,
-        isForeign: brokerMeta.get(b.brokerCode)?.isForeign || false,
+        totalValue: b.totalValue,
+        valueShare: b.valueShare,
+        isForeign: b.isForeign,
       })),
-      topSellers: sellers.slice(0, 5).map((b) => ({
-        broker: b.brokerCode,
-        name: b.brokerName,
-        netValue: Math.abs(b.netValue),
-        isForeign: brokerMeta.get(b.brokerCode)?.isForeign || false,
-      })),
-      buyerCount: buyers.length,
-      sellerCount: sellers.length,
       rationale,
     });
   }
 
-  signals.sort((a, b) => {
-    const phaseOrder = { accumulation: 0, distribution: 1, markup: 2, markdown: 3, neutral: 4 };
-    return phaseOrder[a.phase] - phaseOrder[b.phase];
-  });
+  signals.sort((a, b) => b.hhiScore - a.hhiScore);
 
   return signals;
 }
@@ -661,7 +625,7 @@ async function aggregateMarketData(
   undervaluedFundamentals.sort((a, b) => b.roe - a.roe);
 
   const stealthAccumulation = bandarmologySignals
-    .filter(s => !topCodesSet.has(s.code) && (s.phase === "accumulation" || s.phase === "markup"))
+    .filter(s => !topCodesSet.has(s.code) && s.hhiScore >= 2000)
     .slice(0, 5);
 
   return {
@@ -849,23 +813,21 @@ const REPORT_SCHEMA = `{
     }
   ],
   "bandarmology": {
-    "summary": "4-6 sentence deep overview of smart money flow patterns across the market: identify whether institutions are in accumulation, distribution, or transitional mode. Analyze which brokers dominate the buy/sell side, whether foreign institutions are rotating, and what this means for the next 1-4 weeks.",
+    "summary": "4-6 sentence deep overview of broker concentration patterns across the market: identify which stocks have unusually concentrated broker activity (high HHI), whether foreign brokers dominate certain names, and what this concentration means for near-term price dynamics.",
     "signals": [
       {
         "code": "TICKER",
         "name": "Company Name",
         "phase": "accumulation" | "distribution" | "markup" | "markdown" | "neutral",
         "confidence": "high" | "medium" | "low",
-        "topBuyers": [{ "broker": "XX", "name": "Broker Name", "netValue": number, "isForeign": boolean }],
-        "topSellers": [{ "broker": "XX", "name": "Broker Name", "netValue": number, "isForeign": boolean }],
-        "buyerConcentration": number (% of total value held by top 3 buyers),
-        "sellerConcentration": number (% of total value held by top 3 sellers),
-        "buyerCount": number,
-        "sellerCount": number,
-        "interpretation": "4-6 sentence institutional-quality analysis: describe WHO is buying/selling (institutional vs retail, foreign vs domestic), WHY (cross-reference with price trend, volume pattern, news catalysts, fundamental value), and WHAT it means for the stock's near-term direction. Include specific broker behavior patterns."
+        "topBrokers": [{ "broker": "XX", "name": "Broker Name", "totalValue": number, "valueShare": number, "isForeign": boolean }],
+        "concentration": number (% of total value held by top 3 brokers),
+        "activeBrokers": number,
+        "hhiScore": number (HHI concentration score),
+        "interpretation": "4-6 sentence institutional-quality analysis: describe WHO dominates activity (institutional vs retail, foreign vs domestic), the concentration level (high HHI = few brokers dominating), and WHAT it means for the stock's near-term direction. Cross-reference with price trend, volume, and news catalysts."
       }
     ],
-    "alertStocks": ["TICKER1", "TICKER2"] (stocks showing strongest accumulation/distribution signals -- top priority watchlist)
+    "alertStocks": ["TICKER1", "TICKER2"] (stocks showing highest broker concentration -- top priority watchlist)
   },
   "aiDiscovery": {
     "summary": "3-4 sentence overview of the non-obvious patterns you identified across the broader market beyond headline stocks. What is the hidden narrative?",
@@ -947,7 +909,7 @@ SECTION RULES:
 8. corporateEvents: from news data. Include ticker codes and URLs.
 9. pricePredictions: 5-8 stocks. Include at least 2 non-blue-chip stocks. Be honest about confidence.
 10. chartData: include ALL data points from price history (do NOT truncate). Price history for at least 6 stocks. Foreign flow chart, sector chart, breadth chart.
-11. bandarmology: detect Wyckoff phases. "interpretation": 3-4 sentences connecting broker behavior to price/volume/fundamentals. Include non-blue-chip stocks from the expanded bandarmology data.
+11. bandarmology: analyze broker concentration using HHI scores. "interpretation": 3-4 sentences connecting broker concentration patterns to price/volume/fundamentals. Include non-blue-chip stocks from the expanded bandarmology data.
 12. aiDiscovery: THIS IS MANDATORY. Analyze the discovery data (volume anomalies, foreign flow outliers, undervalued fundamentals, stealth accumulation) to find 4-8 hidden gems. Each thesis should be a genuine insight that the reader cannot get from surface-level analysis. Use SPECIFIC data points.
 13. marketOutlook: synthesize everything into a cohesive thesis. Be actionable.
 14. Write all analysis in English.
@@ -1024,13 +986,11 @@ ${commodityNews.length > 0 ? commodityNews.map((h) => `- ${h.title} (${h.source}
 CORPORATE / M&A / COOPERATION NEWS:
 ${corporateNews.length > 0 ? corporateNews.map((h) => `- ${h.title} (${h.source}) [${h.date}] URL: ${h.url}`).join("\n") : "No corporate event news available."}
 
-BANDARMOLOGY / BROKER SUMMARY ANALYSIS (1-month broker concentration data -- includes both blue-chip and mid-cap stocks):
+BANDARMOLOGY / BROKER CONCENTRATION ANALYSIS (1-month broker activity data -- includes both blue-chip and mid-cap stocks):
 ${marketData.bandarmologySignals.length > 0 ? marketData.bandarmologySignals.map((s) => {
-  const buyersList = s.topBuyers.map((b) => `${b.broker}(${b.name}${b.isForeign ? ",F" : ""},Rp${(b.netValue / 1e9).toFixed(2)}B)`).join(", ");
-  const sellersList = s.topSellers.map((b) => `${b.broker}(${b.name}${b.isForeign ? ",F" : ""},Rp${(b.netValue / 1e9).toFixed(2)}B)`).join(", ");
-  return `${s.code} (${s.name}): Phase=${s.phase} | BuyConc=${s.topBuyerConcentration.toFixed(1)}% | SellConc=${s.topSellerConcentration.toFixed(1)}% | Buyers=${s.buyerCount} | Sellers=${s.sellerCount}
-  Top Buyers: ${buyersList || "none"}
-  Top Sellers: ${sellersList || "none"}
+  const brokersList = s.topBrokers.map((b) => `${b.broker}(${b.name}${b.isForeign ? ",F" : ""},Rp${(b.totalValue / 1e9).toFixed(2)}B,${b.valueShare.toFixed(1)}%)`).join(", ");
+  return `${s.code} (${s.name}): HHI=${s.hhiScore.toFixed(0)} | TopConc=${s.concentration.toFixed(1)}% | ActiveBrokers=${s.activeBrokers}
+  Top Brokers: ${brokersList || "none"}
   Signal: ${s.rationale}`;
 }).join("\n\n") : "No bandarmology data available."}
 
@@ -1046,10 +1006,10 @@ ${marketData.discoveryData.foreignFlowOutliers.length > 0 ? marketData.discovery
 UNDERVALUED FUNDAMENTALS SCREEN (strong fundamentals outside top-20, PER<15, ROE>10%, D/E<1.5):
 ${marketData.discoveryData.undervaluedFundamentals.length > 0 ? marketData.discoveryData.undervaluedFundamentals.map((f) => `${f.code} (${f.stockName}): PER=${f.per.toFixed(2)} | PBV=${f.pbv.toFixed(2)} | ROE=${f.roe.toFixed(1)}% | D/E=${f.deRatio.toFixed(2)} | EPS=${f.eps.toFixed(0)} | Sector: ${f.sector}/${f.subSector} | FS: ${f.fsDate}`).join("\n") : "No undervalued candidates found."}
 
-STEALTH ACCUMULATION (non-blue-chip stocks showing accumulation/markup broker patterns):
+STEALTH ACCUMULATION (non-blue-chip stocks showing high broker concentration):
 ${marketData.discoveryData.stealthAccumulation.length > 0 ? marketData.discoveryData.stealthAccumulation.map((s) => {
-  const buyersList = s.topBuyers.map((b) => `${b.broker}(${b.isForeign ? "F" : "D"},Rp${(b.netValue / 1e9).toFixed(2)}B)`).join(", ");
-  return `${s.code} (${s.name}): Phase=${s.phase} | BuyConc=${s.topBuyerConcentration.toFixed(1)}% | Buyers=${s.buyerCount} vs Sellers=${s.sellerCount} | Top Buyers: ${buyersList}`;
+  const brokersList = s.topBrokers.map((b) => `${b.broker}(${b.isForeign ? "F" : "D"},Rp${(b.totalValue / 1e9).toFixed(2)}B,${b.valueShare.toFixed(1)}%)`).join(", ");
+  return `${s.code} (${s.name}): HHI=${s.hhiScore.toFixed(0)} | TopConc=${s.concentration.toFixed(1)}% | ActiveBrokers=${s.activeBrokers} | Top Brokers: ${brokersList}`;
 }).join("\n") : "No stealth accumulation detected."}
 
 Generate the market intelligence report. KEY REQUIREMENTS:

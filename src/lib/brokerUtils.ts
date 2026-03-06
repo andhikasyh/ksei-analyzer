@@ -74,14 +74,8 @@ export interface BrokerFlowPoint {
 
 export interface BrokerPosition {
   broker_code: string;
-  net_value: number;
-  b_val: number;
-  s_val: number;
-  net_volume: number;
-  b_lot: number;
-  s_lot: number;
-  b_avg: number;
-  s_avg: number;
+  total_value: number;
+  total_volume: number;
   value_share: number;
   rank: number;
 }
@@ -90,10 +84,10 @@ export interface BandarmologyEntry {
   symbol: string;
   hhi_score: number;
   active_brokers: number;
-  total_b_val: number;
-  total_s_val: number;
-  total_abs_value: number;
-  data_date: string;
+  total_value: number;
+  top_broker_value: number;
+  top_rank: number;
+  date: string;
 }
 
 export async function fetchBrokerFlow(
@@ -229,9 +223,7 @@ export async function fetchBrokerRankings(
 ): Promise<BrokerPosition[]> {
   const rankingQuery = await supabase
     .from("idx_ba_stock_ranking")
-    .select(
-      "date, broker_code, net_value, b_val, s_val, net_volume, b_lot, s_lot, value_share, rank"
-    )
+    .select("date, broker_code, total_value, total_volume, value_share, rank")
     .eq("symbol", symbol)
     .eq("period", mapping.period)
     .eq("investor_type", investorType)
@@ -243,43 +235,18 @@ export async function fetchBrokerRankings(
     const latestDate = (rankingQuery.data as any[])[0]?.date;
     const filtered = latestDate
       ? (rankingQuery.data as any[]).filter(
-          (r: any) => !latestDate || r.date === latestDate
+          (r: any) => r.date === latestDate
         )
       : rankingQuery.data;
 
-    const mapped = filtered.map((r: any) => {
-      const bVal = parseFloat(r.b_val) || 0;
-      const sVal = parseFloat(r.s_val) || 0;
-      const bLot = parseFloat(r.b_lot) || 0;
-      const sLot = parseFloat(r.s_lot) || 0;
-      return {
+    if (filtered.length >= 2) {
+      return filtered.map((r: any) => ({
         broker_code: r.broker_code,
-        net_value: parseFloat(r.net_value) || 0,
-        b_val: bVal,
-        s_val: sVal,
-        net_volume: parseFloat(r.net_volume) || 0,
-        b_lot: bLot,
-        s_lot: sLot,
-        b_avg: bLot > 0 ? bVal / bLot : 0,
-        s_avg: sLot > 0 ? sVal / sLot : 0,
+        total_value: parseFloat(r.total_value) || 0,
+        total_volume: parseFloat(r.total_volume) || 0,
         value_share: parseFloat(r.value_share) || 0,
         rank: r.rank,
-      } as BrokerPosition;
-    });
-
-    const hasValues = mapped.some(
-      (r: any) =>
-        parseFloat(r.net_value) !== 0 ||
-        parseFloat(r.b_val) !== 0 ||
-        parseFloat(r.s_val) !== 0
-    );
-    const hasBuySide = mapped.some((r) => r.b_val > 0 || r.b_lot > 0);
-    const hasSellSide = mapped.some((r) => r.s_val > 0 || r.s_lot > 0);
-    const hasEnoughRows = mapped.length >= 2;
-
-    // If ranking snapshot looks one-sided or too sparse, fallback to raw table.
-    if (hasValues && hasBuySide && hasSellSide && hasEnoughRows) {
-      return mapped;
+      }));
     }
   }
 
@@ -350,27 +317,13 @@ async function fetchBrokerRankingsFromRaw(
   );
 
   return Object.entries(values)
-    .map(([code, netVal]) => {
-      const netVol = volumes[code] || 0;
-      const bVal = Math.max(netVal, 0);
-      const sVal = Math.abs(Math.min(netVal, 0));
-      const bLot = Math.max(netVol, 0);
-      const sLot = Math.abs(Math.min(netVol, 0));
-      return {
-        broker_code: code,
-        net_value: netVal,
-        b_val: bVal,
-        s_val: sVal,
-        net_volume: netVol,
-        b_lot: bLot,
-        s_lot: sLot,
-        b_avg: bLot > 0 ? bVal / bLot : 0,
-        s_avg: sLot > 0 ? sVal / sLot : 0,
-        value_share:
-          totalAbs > 0 ? (Math.abs(netVal) / totalAbs) * 100 : 0,
-        rank: 0,
-      };
-    })
-    .sort((a, b) => Math.abs(b.net_value) - Math.abs(a.net_value))
+    .map(([code, val]) => ({
+      broker_code: code,
+      total_value: Math.abs(val),
+      total_volume: Math.abs(volumes[code] || 0),
+      value_share: totalAbs > 0 ? (Math.abs(val) / totalAbs) * 100 : 0,
+      rank: 0,
+    }))
+    .sort((a, b) => b.total_value - a.total_value)
     .map((r, i) => ({ ...r, rank: i + 1 }));
 }

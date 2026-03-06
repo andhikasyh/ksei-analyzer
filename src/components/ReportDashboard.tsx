@@ -955,6 +955,7 @@ function BandarmologySection({ report }: { report: MarketIntelligenceReport }) {
         {band.signals.map((sig: BandarmologySignalReport) => {
           const pc = phaseConfig[sig.phase] || phaseConfig.neutral;
           const cc = confColor[sig.confidence] || confColor.medium;
+          const hhiColor = (sig.hhiScore ?? 0) >= 2500 ? "#f87171" : (sig.hhiScore ?? 0) >= 1500 ? "#fbbf24" : "#34d399";
           return (
             <Grid size={{ xs: 12, sm: 6 }} key={sig.code}>
               <Box
@@ -988,35 +989,26 @@ function BandarmologySection({ report }: { report: MarketIntelligenceReport }) {
                 <Typography sx={{ color: mutedColor(isDark), fontSize: "0.78rem", fontWeight: 500, mb: 1.25, display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sig.name}</Typography>
 
                 <Box sx={{ display: "flex", gap: 1, mb: 1.5 }}>
-                  <Box sx={{ flex: 1, textAlign: "center", py: 0.75, px: 0.5, borderRadius: 1.5, bgcolor: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.1)" }}>
-                    <Typography sx={{ fontSize: "0.58rem", color: "#34d399", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Buy Conc.</Typography>
-                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "0.95rem", color: "#34d399" }}>{sig.buyerConcentration?.toFixed(1)}%</Typography>
-                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", color: mutedColor(isDark) }}>{sig.buyerCount} brokers</Typography>
+                  <Box sx={{ flex: 1, textAlign: "center", py: 0.75, px: 0.5, borderRadius: 1.5, bgcolor: `${hhiColor}08`, border: `1px solid ${hhiColor}18` }}>
+                    <Typography sx={{ fontSize: "0.58rem", color: hhiColor, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>HHI Score</Typography>
+                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "0.95rem", color: hhiColor }}>{(sig.hhiScore ?? 0).toFixed(0)}</Typography>
                   </Box>
-                  <Box sx={{ flex: 1, textAlign: "center", py: 0.75, px: 0.5, borderRadius: 1.5, bgcolor: "rgba(248,113,113,0.06)", border: "1px solid rgba(248,113,113,0.1)" }}>
-                    <Typography sx={{ fontSize: "0.58rem", color: "#f87171", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Sell Conc.</Typography>
-                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "0.95rem", color: "#f87171" }}>{sig.sellerConcentration?.toFixed(1)}%</Typography>
-                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", color: mutedColor(isDark) }}>{sig.sellerCount} brokers</Typography>
+                  <Box sx={{ flex: 1, textAlign: "center", py: 0.75, px: 0.5, borderRadius: 1.5, bgcolor: "rgba(129,140,248,0.06)", border: "1px solid rgba(129,140,248,0.1)" }}>
+                    <Typography sx={{ fontSize: "0.58rem", color: "#818cf8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Top 3 Conc.</Typography>
+                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "0.95rem", color: "#818cf8" }}>{(sig.concentration ?? 0).toFixed(1)}%</Typography>
+                  </Box>
+                  <Box sx={{ flex: 1, textAlign: "center", py: 0.75, px: 0.5, borderRadius: 1.5, bgcolor: "rgba(148,163,184,0.06)", border: "1px solid rgba(148,163,184,0.1)" }}>
+                    <Typography sx={{ fontSize: "0.58rem", color: "#94a3b8", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>Brokers</Typography>
+                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "0.95rem" }}>{sig.activeBrokers ?? 0}</Typography>
                   </Box>
                 </Box>
 
-                {sig.topBuyers?.length > 0 && (
-                  <Box sx={{ mb: 0.75 }}>
-                    <Typography sx={{ fontSize: "0.62rem", color: "#34d399", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.25 }}>Top Buyers</Typography>
-                    <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                      {sig.topBuyers.slice(0, 3).map((b) => (
-                        <Chip key={b.broker} label={`${b.broker} ${b.isForeign ? "(F)" : ""}`} size="small" sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.6rem", height: 20, fontWeight: 600, bgcolor: b.isForeign ? "rgba(129,140,248,0.1)" : "rgba(52,211,153,0.08)", color: b.isForeign ? "#818cf8" : mutedColor(isDark) }} />
-                      ))}
-                    </Box>
-                  </Box>
-                )}
-
-                {sig.topSellers?.length > 0 && (
+                {sig.topBrokers?.length > 0 && (
                   <Box sx={{ mb: 1 }}>
-                    <Typography sx={{ fontSize: "0.62rem", color: "#f87171", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.25 }}>Top Sellers</Typography>
+                    <Typography sx={{ fontSize: "0.62rem", color: "primary.main", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", mb: 0.25 }}>Top Brokers</Typography>
                     <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap" }}>
-                      {sig.topSellers.slice(0, 3).map((b) => (
-                        <Chip key={b.broker} label={`${b.broker} ${b.isForeign ? "(F)" : ""}`} size="small" sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.6rem", height: 20, fontWeight: 600, bgcolor: b.isForeign ? "rgba(129,140,248,0.1)" : "rgba(248,113,113,0.08)", color: b.isForeign ? "#818cf8" : mutedColor(isDark) }} />
+                      {sig.topBrokers.slice(0, 5).map((b) => (
+                        <Chip key={b.broker} label={`${b.broker} ${b.valueShare?.toFixed(1)}%${b.isForeign ? " (F)" : ""}`} size="small" sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.6rem", height: 20, fontWeight: 600, bgcolor: b.isForeign ? "rgba(129,140,248,0.1)" : isDark ? "rgba(212,168,67,0.08)" : "rgba(161,124,47,0.06)", color: b.isForeign ? "#818cf8" : mutedColor(isDark) }} />
                       ))}
                     </Box>
                   </Box>

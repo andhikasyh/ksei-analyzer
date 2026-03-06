@@ -392,10 +392,9 @@ interface Labels {
   headline: string;
   companies: string;
   phase: string;
-  buyConc: string;
-  sellConc: string;
-  buyers: string;
-  sellers: string;
+  hhi: string;
+  concentration: string;
+  brokers: string;
   current: string;
   shortTarget: string;
   midTarget: string;
@@ -465,10 +464,9 @@ const EN: Labels = {
   headline: "Headline",
   companies: "Companies",
   phase: "Phase",
-  buyConc: "Buy Conc.",
-  sellConc: "Sell Conc.",
-  buyers: "Buyers",
-  sellers: "Sellers",
+  hhi: "HHI",
+  concentration: "Top 3 %",
+  brokers: "Brokers",
   current: "Current",
   shortTarget: "Short-term Target",
   midTarget: "Mid-term Target",
@@ -538,10 +536,9 @@ const ID: Labels = {
   headline: "Judul",
   companies: "Perusahaan",
   phase: "Fase",
-  buyConc: "Konsentrasi Beli",
-  sellConc: "Konsentrasi Jual",
-  buyers: "Pembeli",
-  sellers: "Penjual",
+  hhi: "HHI",
+  concentration: "Top 3 %",
+  brokers: "Broker",
   current: "Saat ini",
   shortTarget: "Target Jk. Pendek",
   midTarget: "Target Jk. Menengah",
@@ -1115,8 +1112,8 @@ export function MarketReportPDF({
               <Text style={[s.tableHeaderCell, { width: "13%" }]}>{l.name}</Text>
               <Text style={[s.tableHeaderCell, { width: "10%" }]}>{l.phase}</Text>
               <Text style={[s.tableHeaderCell, { width: "7%" }]}>{l.confidence}</Text>
-              <Text style={[s.tableHeaderCell, { width: "8%", textAlign: "right" }]}>{l.buyConc}</Text>
-              <Text style={[s.tableHeaderCell, { width: "8%", textAlign: "right" }]}>{l.sellConc}</Text>
+              <Text style={[s.tableHeaderCell, { width: "8%", textAlign: "right" }]}>{l.hhi}</Text>
+              <Text style={[s.tableHeaderCell, { width: "8%", textAlign: "right" }]}>{l.concentration}</Text>
               <Text style={[s.tableHeaderCell, { width: "47%" }]}>Interpretation</Text>
             </View>
             {report.bandarmology.signals.map((sig: BandarmologySignalReport, i: number) => {
@@ -1129,8 +1126,8 @@ export function MarketReportPDF({
                   <Text style={[s.tableCell, { width: "13%" }]}>{sig.name}</Text>
                   <Text style={[s.tableCell, { width: "10%", fontWeight: 600 }, phaseColor]}>{sig.phase}</Text>
                   <Text style={[s.tableCell, { width: "7%" }]}>{sig.confidence}</Text>
-                  <Text style={[s.tableCell, { width: "8%", textAlign: "right" }]}>{sig.buyerConcentration?.toFixed(1)}%</Text>
-                  <Text style={[s.tableCell, { width: "8%", textAlign: "right" }]}>{sig.sellerConcentration?.toFixed(1)}%</Text>
+                  <Text style={[s.tableCell, { width: "8%", textAlign: "right" }]}>{(sig.hhiScore ?? 0).toFixed(0)}</Text>
+                  <Text style={[s.tableCell, { width: "8%", textAlign: "right" }]}>{(sig.concentration ?? 0).toFixed(1)}%</Text>
                   <Text style={[s.tableCell, { width: "47%", fontSize: 7, lineHeight: 1.4 }]}>{sig.interpretation}</Text>
                 </View>
               );

@@ -441,17 +441,16 @@ export default function BrokersPage() {
       setLoadingBA(true);
       setBrokerLookupStocks([]);
       setBrokerLookupCode("");
-      const { data, error } = await supabase.rpc("get_bandarmology", {
-        p_period: baPeriod,
-        p_investor_type: "ALL",
-      });
+      const { data, error } = await supabase
+        .from("v_ba_leaderboard")
+        .select("symbol, hhi_score, active_brokers, total_value, top_broker_value, top_rank, date")
+        .eq("period", baPeriod)
+        .eq("investor_type", "ALL")
+        .order("hhi_score", { ascending: false })
+        .limit(200);
       if (cancelled) return;
       if (!error && data) {
-        setBaLeaderboard(
-          (data as BandarmologyEntry[]).sort(
-            (a, b) => b.hhi_score - a.hhi_score
-          )
-        );
+        setBaLeaderboard(data as BandarmologyEntry[]);
       } else {
         setBaLeaderboard([]);
       }
@@ -468,7 +467,7 @@ export default function BrokersPage() {
     setBrokerLookupCode(code);
     const { data } = await supabase
       .from("idx_ba_broker_ranking")
-      .select("*")
+      .select("broker_code, symbol, total_value, total_volume, value_share, rank, date")
       .eq("broker_code", code)
       .eq("period", baPeriod)
       .eq("investor_type", "ALL")
@@ -477,18 +476,12 @@ export default function BrokersPage() {
       .limit(500);
     if (data && data.length > 0) {
       const latest = (data as any[])[0].date;
-      const filtered = (data as any[]).filter((r) => r.date === latest);
+      const filtered = (data as any[]).filter((r: any) => r.date === latest);
       setBrokerLookupStocks(
         filtered.map((r: any) => ({
           broker_code: r.broker_code,
-          net_value: parseFloat(r.net_value) || 0,
-          b_val: parseFloat(r.b_val) || 0,
-          s_val: parseFloat(r.s_val) || 0,
-          net_volume: parseFloat(r.net_volume) || 0,
-          b_lot: parseFloat(r.b_lot) || 0,
-          s_lot: parseFloat(r.s_lot) || 0,
-          b_avg: 0,
-          s_avg: 0,
+          total_value: parseFloat(r.total_value) || 0,
+          total_volume: parseFloat(r.total_volume) || 0,
           value_share: parseFloat(r.value_share) || 0,
           rank: r.rank,
           symbol: r.symbol,
@@ -504,7 +497,7 @@ export default function BrokersPage() {
     if (baLeaderboard.length === 0) return null;
     const avgHHI =
       baLeaderboard.reduce((s, l) => s + l.hhi_score, 0) / baLeaderboard.length;
-    const totalVal = baLeaderboard.reduce((s, l) => s + l.total_abs_value, 0);
+    const totalVal = baLeaderboard.reduce((s, l) => s + l.total_value, 0);
     const top = baLeaderboard[0];
     return { avgHHI, totalVal, topSymbol: top.symbol, topHHI: top.hhi_score, stockCount: baLeaderboard.length };
   }, [baLeaderboard]);
@@ -2282,7 +2275,7 @@ export default function BrokersPage() {
                                   fontFamily: '"JetBrains Mono", monospace',
                                 }}
                               >
-                                {formatValue(entry.total_abs_value)}
+                                {formatValue(entry.total_value)}
                               </Typography>
                             </TableCell>
                             <TableCell align="center">
@@ -2438,14 +2431,14 @@ export default function BrokersPage() {
                         <TableRow>
                           <TableCell sx={{ width: 32 }}>#</TableCell>
                           <TableCell>Symbol</TableCell>
-                          <TableCell align="right">Net Value</TableCell>
+                          <TableCell align="right">Total Value</TableCell>
                           <TableCell
                             align="right"
                             sx={{
                               display: { xs: "none", sm: "table-cell" },
                             }}
                           >
-                            Volume
+                            Total Volume
                           </TableCell>
                           <TableCell sx={{ minWidth: 100 }}>Share</TableCell>
                         </TableRow>
@@ -2453,9 +2446,9 @@ export default function BrokersPage() {
                       <TableBody>
                         {brokerLookupStocks.map((bs: any) => {
                           const barW =
-                            brokerLookupStocks[0]?.net_value
-                              ? (Math.abs(bs.net_value) /
-                                  Math.abs((brokerLookupStocks[0] as any).net_value)) *
+                            brokerLookupStocks[0]?.total_value
+                              ? (bs.total_value /
+                                  (brokerLookupStocks[0] as any).total_value) *
                                 100
                               : 0;
                           return (
@@ -2503,15 +2496,10 @@ export default function BrokersPage() {
                                     fontFamily:
                                       '"JetBrains Mono", monospace',
                                     fontWeight: 600,
-                                    color:
-                                      bs.net_value > 0
-                                        ? "#22c55e"
-                                        : bs.net_value < 0
-                                          ? "#ef4444"
-                                          : "text.primary",
+                                    color: "text.primary",
                                   }}
                                 >
-                                  {formatValue(bs.net_value)}
+                                  {formatValue(bs.total_value)}
                                 </Typography>
                               </TableCell>
                               <TableCell
@@ -2530,7 +2518,7 @@ export default function BrokersPage() {
                                       '"JetBrains Mono", monospace',
                                   }}
                                 >
-                                  {formatShares(bs.net_volume)}
+                                  {formatShares(bs.total_volume)}
                                 </Typography>
                               </TableCell>
                               <TableCell>

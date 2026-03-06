@@ -507,7 +507,8 @@ export interface ReportChartData {
 export interface BandarmologyBroker {
   broker: string;
   name: string;
-  netValue: number;
+  totalValue: number;
+  valueShare: number;
   isForeign: boolean;
 }
 
@@ -516,12 +517,10 @@ export interface BandarmologySignalReport {
   name: string;
   phase: "accumulation" | "distribution" | "markup" | "markdown" | "neutral";
   confidence: "high" | "medium" | "low";
-  topBuyers: BandarmologyBroker[];
-  topSellers: BandarmologyBroker[];
-  buyerConcentration: number;
-  sellerConcentration: number;
-  buyerCount: number;
-  sellerCount: number;
+  topBrokers: BandarmologyBroker[];
+  concentration: number;
+  activeBrokers: number;
+  hhiScore: number;
   interpretation: string;
 }
 
@@ -604,12 +603,8 @@ export interface BAStockRanking {
   market_board: string;
   date: string;
   broker_code: string;
-  net_value: number;
-  b_val: number;
-  s_val: number;
-  net_volume: number;
-  b_lot: number;
-  s_lot: number;
+  total_value: number;
+  total_volume: number;
   value_share: number;
   rank: number;
 }
@@ -621,12 +616,8 @@ export interface BABrokerRanking {
   market_board: string;
   date: string;
   symbol: string;
-  net_value: number;
-  b_val: number;
-  s_val: number;
-  net_volume: number;
-  b_lot: number;
-  s_lot: number;
+  total_value: number;
+  total_volume: number;
   value_share: number;
   rank: number;
 }
