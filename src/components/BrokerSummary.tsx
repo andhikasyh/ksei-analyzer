@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useRouter } from "next/navigation";
 import { formatValue, formatShares } from "@/lib/types";
@@ -10,10 +10,12 @@ import {
   BROKER_COLORS,
   BrokerFlowPoint,
   BrokerPosition,
+  BrokerDistEntry,
   fetchBrokerFlow,
   fetchClosingPrices,
   fetchTopBrokers,
   fetchBrokerRankings,
+  fetchBrokerDistribution,
 } from "@/lib/brokerUtils";
 import {
   ComposedChart,
@@ -69,6 +71,8 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
   const router = useRouter();
 
   const [dateRange, setDateRange] = useState<DateRange>("1M");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
   const [subTab, setSubTab] = useState(0);
 
   const [flowAutoMode, setFlowAutoMode] = useState(true);
@@ -89,9 +93,12 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
   const [loadingRankings, setLoadingRankings] = useState(true);
   const [rankingMetric, setRankingMetric] = useState<"value" | "volume">("value");
 
+  const [distData, setDistData] = useState<BrokerDistEntry[]>([]);
+  const [loadingDist, setLoadingDist] = useState(true);
+
   const mapping = useMemo(
-    () => mapDateRange(dateRange),
-    [dateRange]
+    () => mapDateRange(dateRange, customFrom, customTo),
+    [dateRange, customFrom, customTo]
   );
 
   const addBroker = useCallback(
@@ -189,6 +196,21 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
     };
   }, [stockCode, mapping, investorType, subTab]);
 
+  useEffect(() => {
+    if (subTab !== 2) return;
+    let cancelled = false;
+    async function load() {
+      setLoadingDist(true);
+      const data = await fetchBrokerDistribution(stockCode, mapping, investorType);
+      if (!cancelled) {
+        setDistData(data);
+        setLoadingDist(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [stockCode, mapping, investorType, subTab]);
+
   const sortedRankings = useMemo(
     () => [...rankings].sort((a, b) => a.rank - b.rank),
     [rankings]
@@ -251,6 +273,75 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
             }}
           />
         ))}
+        <Chip
+          label="Custom"
+          size="small"
+          onClick={() => {
+            setDateRange("custom");
+            if (!customFrom) {
+              const d = new Date();
+              d.setMonth(d.getMonth() - 1);
+              setCustomFrom(d.toISOString().split("T")[0]);
+            }
+            if (!customTo) setCustomTo(new Date().toISOString().split("T")[0]);
+          }}
+          sx={{
+            fontFamily: '"JetBrains Mono", monospace',
+            fontWeight: 600,
+            fontSize: "0.7rem",
+            height: 26,
+            cursor: "pointer",
+            bgcolor:
+              dateRange === "custom"
+                ? isDark
+                  ? "rgba(212,168,67,0.15)"
+                  : "rgba(161,124,47,0.1)"
+                : "transparent",
+            color: dateRange === "custom" ? "primary.main" : "text.secondary",
+            border: "1px solid",
+            borderColor: dateRange === "custom" ? "primary.main" : "transparent",
+            "&:hover": {
+              bgcolor: isDark
+                ? "rgba(212,168,67,0.1)"
+                : "rgba(161,124,47,0.06)",
+            },
+          }}
+        />
+        {dateRange === "custom" && (
+          <>
+            <TextField
+              type="date"
+              size="small"
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+              sx={{
+                width: 140,
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2, height: 28, fontSize: "0.72rem",
+                },
+                "& input": {
+                  fontFamily: '"JetBrains Mono", monospace', py: 0, px: 1,
+                },
+              }}
+            />
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>to</Typography>
+            <TextField
+              type="date"
+              size="small"
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+              sx={{
+                width: 140,
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2, height: 28, fontSize: "0.72rem",
+                },
+                "& input": {
+                  fontFamily: '"JetBrains Mono", monospace', py: 0, px: 1,
+                },
+              }}
+            />
+          </>
+        )}
       </Stack>
 
       <Paper sx={{ borderRadius: 2.5, overflow: "hidden" }}>
@@ -328,10 +419,8 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
       {subTab === 2 && (
         <BrokerDistributionSection
           isDark={isDark}
-          rankings={sortedRankings}
-          loadingRankings={loadingRankings}
-          rankingMetric={rankingMetric}
-          setRankingMetric={setRankingMetric}
+          distData={distData}
+          loading={loadingDist}
         />
       )}
     </Stack>
@@ -669,8 +758,6 @@ function BrokerSummarySection({
   setInvestorType,
   rankings,
   loadingRankings,
-  rankingMetric,
-  setRankingMetric,
 }: {
   isDark: boolean;
   investorType: string;
@@ -680,10 +767,6 @@ function BrokerSummarySection({
   rankingMetric: "value" | "volume";
   setRankingMetric: (v: "value" | "volume") => void;
 }) {
-  const formatter = rankingMetric === "value" ? formatValue : formatShares;
-  const getMetricVal = (r: BrokerPosition) =>
-    rankingMetric === "value" ? r.total_value : r.total_volume;
-
   return (
     <Stack spacing={2}>
       <Stack
@@ -718,47 +801,6 @@ function BrokerSummarySection({
             }}
           />
         ))}
-        <Box sx={{ width: "1px", height: 20, bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)" }} />
-        <Chip
-          label="Value"
-          size="small"
-          onClick={() => setRankingMetric("value")}
-          sx={{
-            fontWeight: 600,
-            fontSize: "0.65rem",
-            height: 24,
-            cursor: "pointer",
-            bgcolor:
-              rankingMetric === "value"
-                ? isDark
-                  ? "rgba(59,130,246,0.12)"
-                  : "rgba(59,130,246,0.08)"
-                : "transparent",
-            color: rankingMetric === "value" ? "#3b82f6" : "text.secondary",
-            border: "1px solid",
-            borderColor: rankingMetric === "value" ? "#3b82f6" : "transparent",
-          }}
-        />
-        <Chip
-          label="Volume"
-          size="small"
-          onClick={() => setRankingMetric("volume")}
-          sx={{
-            fontWeight: 600,
-            fontSize: "0.65rem",
-            height: 24,
-            cursor: "pointer",
-            bgcolor:
-              rankingMetric === "volume"
-                ? isDark
-                  ? "rgba(34,197,94,0.12)"
-                  : "rgba(34,197,94,0.08)"
-                : "transparent",
-            color: rankingMetric === "volume" ? "#22c55e" : "text.secondary",
-            border: "1px solid",
-            borderColor: rankingMetric === "volume" ? "#22c55e" : "transparent",
-          }}
-        />
       </Stack>
 
       <Paper sx={{ borderRadius: 3 }}>
@@ -793,9 +835,8 @@ function BrokerSummarySection({
                   <TableRow>
                     <TableCell sx={{ fontSize: "0.65rem", py: 0.5, width: 36 }}>#</TableCell>
                     <TableCell sx={{ fontSize: "0.65rem", py: 0.5 }}>Broker</TableCell>
-                    <TableCell align="right" sx={{ fontSize: "0.65rem", py: 0.5 }}>
-                      {rankingMetric === "value" ? "Total Value" : "Total Volume"}
-                    </TableCell>
+                    <TableCell align="right" sx={{ fontSize: "0.65rem", py: 0.5 }}>Value</TableCell>
+                    <TableCell align="right" sx={{ fontSize: "0.65rem", py: 0.5, display: { xs: "none", sm: "table-cell" } }}>Volume</TableCell>
                     <TableCell sx={{ fontSize: "0.65rem", py: 0.5, minWidth: 80 }}>Share %</TableCell>
                   </TableRow>
                 </TableHead>
@@ -835,7 +876,19 @@ function BrokerSummarySection({
                             fontWeight: 600,
                           }}
                         >
-                          {formatter(getMetricVal(r))}
+                          {r.total_value > 0 ? formatValue(r.total_value) : "-"}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right" sx={{ py: 0.5, display: { xs: "none", sm: "table-cell" } }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontFamily: '"JetBrains Mono", monospace',
+                            fontWeight: 600,
+                            color: "text.secondary",
+                          }}
+                        >
+                          {r.total_volume > 0 ? formatShares(r.total_volume) : "-"}
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ py: 0.5 }}>
@@ -885,142 +938,325 @@ function BrokerSummarySection({
 
 function BrokerDistributionSection({
   isDark,
-  rankings,
-  loadingRankings,
-  rankingMetric,
-  setRankingMetric,
+  distData,
+  loading,
 }: {
   isDark: boolean;
-  rankings: BrokerPosition[];
-  loadingRankings: boolean;
-  rankingMetric: "value" | "volume";
-  setRankingMetric: (v: "value" | "volume") => void;
+  distData: BrokerDistEntry[];
+  loading: boolean;
 }) {
-  const formatter = rankingMetric === "value" ? formatValue : formatShares;
-  const getVal = (r: BrokerPosition) =>
-    rankingMetric === "value" ? r.total_value : r.total_volume;
+  const [flowMetric, setFlowMetric] = useState<"value" | "volume">("value");
+  const tooltipHostRef = useRef<HTMLDivElement | null>(null);
+  const [hovered, setHovered] = useState<{
+    key: string;
+    x: number;
+    y: number;
+    title: string;
+    lines: string[];
+    mode: "flow" | "node";
+    brokerCode?: string;
+    side?: "left" | "right";
+  } | null>(null);
 
-  const top = rankings.slice(0, 15);
-  const totalVal = top.reduce((s, r) => s + getVal(r), 0);
-  const maxVal = top.length > 0 ? getVal(top[0]) : 1;
+  const formatter = flowMetric === "value" ? formatValue : formatShares;
+  const getGross = (d: BrokerDistEntry, side: "buy" | "sell") =>
+    side === "buy"
+      ? flowMetric === "value" ? d.b_val : d.b_lot
+      : flowMetric === "value" ? d.s_val : d.s_lot;
+  const getNet = (d: BrokerDistEntry) =>
+    flowMetric === "value" ? d.net_value : d.net_volume;
+  const fmtSigned = (v: number) => `${v >= 0 ? "+" : "-"}${formatter(Math.abs(v))}`;
 
-  const hhi = top.reduce((s, r) => s + r.value_share ** 2, 0);
-  const hhiLabel = hhi >= 2500 ? "Highly Concentrated" : hhi >= 1500 ? "Moderately Concentrated" : "Competitive";
-  const hhiColor = hhi >= 2500 ? "#f87171" : hhi >= 1500 ? "#fbbf24" : "#34d399";
+  const topBuyers = distData
+    .filter((r) => getGross(r, "buy") > 0)
+    .sort((a, b) => getGross(b, "buy") - getGross(a, "buy"))
+    .slice(0, 10);
+  const topSellers = distData
+    .filter((r) => getGross(r, "sell") > 0)
+    .sort((a, b) => getGross(b, "sell") - getGross(a, "sell"))
+    .slice(0, 10);
 
-  const svgW = 680;
-  const barH = 22;
-  const gap = 6;
-  const labelW = 50;
-  const valueW = 80;
-  const chartLeft = labelW + 8;
-  const chartRight = svgW - valueW - 8;
-  const barAreaW = chartRight - chartLeft;
-  const svgH = Math.max(180, top.length * (barH + gap) + 40);
+  const totalBuy = topBuyers.reduce((s, b) => s + getGross(b, "buy"), 0);
+  const totalSell = topSellers.reduce((s, b) => s + getGross(b, "sell"), 0);
+
+  const svgW = 760;
+  const rows = Math.max(topBuyers.length, topSellers.length, 1);
+  const svgH = Math.max(300, rows * 58 + 32);
+  const barW = 10;
+  const labelW = 170;
+  const gapX = svgW - 2 * labelW - 2 * barW;
+  const leftBarX = labelW;
+  const rightBarX = svgW - labelW - barW;
+  const chartTop = 20;
+  const chartBottom = 18;
+  const rowGap = 10;
+
+  const buildBars = (items: BrokerDistEntry[], side: "buy" | "sell") => {
+    if (items.length === 0) return [];
+    const usableH = svgH - chartTop - chartBottom;
+    const slotH = Math.max(16, (usableH - rowGap * (items.length - 1)) / items.length);
+    const maxVal = Math.max(...items.map((it) => getGross(it, side)), 1);
+    return items.map((item, idx) => {
+      const val = getGross(item, side);
+      const rel = Math.sqrt(val / maxVal);
+      const h = Math.max(14, Math.min(slotH, slotH * (0.45 + rel * 0.55)));
+      const ySlot = chartTop + idx * (slotH + rowGap);
+      return { item, y: ySlot + (slotH - h) / 2, h, val };
+    });
+  };
+
+  const leftBars = buildBars(topBuyers, "buy");
+  const rightBars = buildBars(topSellers, "sell");
+
+  const flowCandidates: { li: number; ri: number; score: number; bias: number }[] = [];
+  const maxFlows = 48;
+  leftBars.forEach((lb, li) => {
+    rightBars.forEach((rb, ri) => {
+      if (lb.item.broker_code === rb.item.broker_code) return;
+      const sellerShare = totalSell > 0 ? lb.val / totalSell : 0;
+      const buyerShare = totalBuy > 0 ? rb.val / totalBuy : 0;
+      const sellerNet = getNet(lb.item);
+      const buyerNet = getNet(rb.item);
+      const sellerDistrib = Math.min(Math.abs(Math.min(sellerNet, 0)) / Math.max(lb.val, 1), 1);
+      const buyerAbsorb = Math.min(Math.max(buyerNet, 0) / Math.max(rb.val, 1), 1);
+      const bias = 0.25 + 0.75 * ((sellerDistrib + buyerAbsorb) / 2);
+      const score = sellerShare * buyerShare * bias;
+      if (score > 0) flowCandidates.push({ li, ri, score, bias });
+    });
+  });
+
+  flowCandidates.sort((a, b) => b.score - a.score);
+  const selectedFlowMap = new Map<string, (typeof flowCandidates)[number]>();
+  const leftBest = new Map<number, (typeof flowCandidates)[number]>();
+  const rightBest = new Map<number, (typeof flowCandidates)[number]>();
+  flowCandidates.forEach((c) => {
+    if (!leftBest.has(c.li)) leftBest.set(c.li, c);
+    if (!rightBest.has(c.ri)) rightBest.set(c.ri, c);
+  });
+  leftBest.forEach((c) => selectedFlowMap.set(`flow-${c.li}-${c.ri}`, c));
+  rightBest.forEach((c) => selectedFlowMap.set(`flow-${c.li}-${c.ri}`, c));
+  flowCandidates.forEach((c) => {
+    if (selectedFlowMap.size < maxFlows) selectedFlowMap.set(`flow-${c.li}-${c.ri}`, c);
+  });
+  const selectedFlows = Array.from(selectedFlowMap.values()).sort((a, b) => b.score - a.score).slice(0, maxFlows);
+  const totalFlowScore = selectedFlows.reduce((sum, f) => sum + f.score, 0);
+
+  const flows = selectedFlows.map((f) => ({
+    ...f,
+    from: leftBars[f.li].item.broker_code,
+    to: rightBars[f.ri].item.broker_code,
+    est: totalFlowScore > 0 ? (f.score / totalFlowScore) * Math.min(totalBuy, totalSell) : 0,
+  }));
+
+  const outByLeft = new Map<number, number>();
+  const inByRight = new Map<number, number>();
+  flows.forEach((f) => {
+    outByLeft.set(f.li, (outByLeft.get(f.li) || 0) + f.est);
+    inByRight.set(f.ri, (inByRight.get(f.ri) || 0) + f.est);
+  });
+
+  const leftGrouped = new Map<number, typeof flows>();
+  const rightGrouped = new Map<number, typeof flows>();
+  flows.forEach((f) => {
+    if (!leftGrouped.has(f.li)) leftGrouped.set(f.li, []);
+    if (!rightGrouped.has(f.ri)) rightGrouped.set(f.ri, []);
+    leftGrouped.get(f.li)!.push(f);
+    rightGrouped.get(f.ri)!.push(f);
+  });
+  leftGrouped.forEach((arr) => arr.sort((a, b) => a.ri - b.ri));
+  rightGrouped.forEach((arr) => arr.sort((a, b) => a.li - b.li));
+
+  const leftSeg = new Map<string, { y1: number; y2: number }>();
+  const rightSeg = new Map<string, { y1: number; y2: number }>();
+
+  const allocSegs = (
+    group: typeof flows,
+    totalEst: number,
+    startY: number,
+    totalHeight: number,
+    target: Map<string, { y1: number; y2: number }>
+  ) => {
+    if (group.length === 0 || totalEst <= 0 || totalHeight <= 0) return;
+    let cursor = startY;
+    group.forEach((f, idx) => {
+      const isLast = idx === group.length - 1;
+      const ratio = totalEst > 0 ? f.est / totalEst : 0;
+      const h = isLast ? startY + totalHeight - cursor : ratio * totalHeight;
+      target.set(`flow-${f.li}-${f.ri}`, { y1: cursor, y2: cursor + Math.max(0, h) });
+      cursor += Math.max(0, h);
+    });
+  };
+
+  leftBars.forEach((lb, li) => {
+    allocSegs(leftGrouped.get(li) || [], outByLeft.get(li) || 0, lb.y, lb.h, leftSeg);
+  });
+  rightBars.forEach((rb, ri) => {
+    allocSegs(rightGrouped.get(ri) || [], inByRight.get(ri) || 0, rb.y, rb.h, rightSeg);
+  });
+
+  const paths: { key: string; d: string; color: string; opacity: number; from: string; to: string; est: number; bias: number }[] = [];
+  flows.forEach((f) => {
+    const flowKey = `flow-${f.li}-${f.ri}`;
+    const ls = leftSeg.get(flowKey);
+    const rs = rightSeg.get(flowKey);
+    if (!ls || !rs) return;
+    const x1 = leftBarX + barW;
+    const x2 = rightBarX;
+    const cx1 = x1 + gapX * 0.35;
+    const cx2 = x2 - gapX * 0.35;
+    paths.push({
+      key: flowKey,
+      d: `M${x1},${ls.y1} C${cx1},${ls.y1} ${cx2},${rs.y1} ${x2},${rs.y1} L${x2},${rs.y2} C${cx2},${rs.y2} ${cx1},${ls.y2} ${x1},${ls.y2} Z`,
+      color: BROKER_COLORS[f.li % BROKER_COLORS.length],
+      opacity: 0.12 + f.bias * 0.2,
+      from: f.from, to: f.to, est: f.est, bias: f.bias,
+    });
+  });
+
+  const setTooltip = (
+    event: React.MouseEvent,
+    payload: { key: string; title: string; lines: string[]; mode: "flow" | "node"; brokerCode?: string; side?: "left" | "right" }
+  ) => {
+    const host = tooltipHostRef.current;
+    if (!host) return;
+    const rect = host.getBoundingClientRect();
+    setHovered({ ...payload, x: event.clientX - rect.left, y: event.clientY - rect.top });
+  };
 
   return (
     <Stack spacing={2}>
-      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+      <Stack direction="row" spacing={1} alignItems="center">
         <Chip
-          label="Value"
-          size="small"
-          onClick={() => setRankingMetric("value")}
+          label="Value" size="small" onClick={() => setFlowMetric("value")}
           sx={{
             fontWeight: 600, fontSize: "0.65rem", height: 24, cursor: "pointer",
-            bgcolor: rankingMetric === "value" ? isDark ? "rgba(59,130,246,0.12)" : "rgba(59,130,246,0.08)" : "transparent",
-            color: rankingMetric === "value" ? "#3b82f6" : "text.secondary",
-            border: "1px solid", borderColor: rankingMetric === "value" ? "#3b82f6" : "transparent",
+            bgcolor: flowMetric === "value" ? isDark ? "rgba(59,130,246,0.12)" : "rgba(59,130,246,0.08)" : "transparent",
+            color: flowMetric === "value" ? "#3b82f6" : "text.secondary",
+            border: "1px solid", borderColor: flowMetric === "value" ? "#3b82f6" : "transparent",
           }}
         />
         <Chip
-          label="Volume"
-          size="small"
-          onClick={() => setRankingMetric("volume")}
+          label="Volume" size="small" onClick={() => setFlowMetric("volume")}
           sx={{
             fontWeight: 600, fontSize: "0.65rem", height: 24, cursor: "pointer",
-            bgcolor: rankingMetric === "volume" ? isDark ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.08)" : "transparent",
-            color: rankingMetric === "volume" ? "#22c55e" : "text.secondary",
-            border: "1px solid", borderColor: rankingMetric === "volume" ? "#22c55e" : "transparent",
+            bgcolor: flowMetric === "volume" ? isDark ? "rgba(34,197,94,0.12)" : "rgba(34,197,94,0.08)" : "transparent",
+            color: flowMetric === "volume" ? "#22c55e" : "text.secondary",
+            border: "1px solid", borderColor: flowMetric === "volume" ? "#22c55e" : "transparent",
           }}
         />
-        {top.length > 0 && (
-          <>
-            <Box sx={{ width: "1px", height: 20, bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)" }} />
-            <Chip
-              label={`HHI ${hhi.toFixed(0)} - ${hhiLabel}`}
-              size="small"
-              sx={{
-                fontFamily: '"JetBrains Mono", monospace', fontWeight: 700,
-                fontSize: "0.62rem", height: 24, bgcolor: `${hhiColor}15`, color: hhiColor,
-              }}
-            />
-          </>
-        )}
       </Stack>
 
       <Paper sx={{ p: 2.5, borderRadius: 3, overflow: "hidden" }}>
-        {loadingRankings ? (
+        {loading ? (
           <Skeleton variant="rounded" height={300} sx={{ borderRadius: 2 }} />
-        ) : top.length === 0 ? (
+        ) : topBuyers.length === 0 && topSellers.length === 0 ? (
           <Box sx={{ py: 5, textAlign: "center" }}>
             <Typography color="text.secondary">No distribution data available</Typography>
           </Box>
         ) : (
-          <Box sx={{ overflowX: "auto" }}>
-            <svg
-              width={svgW}
-              height={svgH}
-              viewBox={`0 0 ${svgW} ${svgH}`}
-              style={{ width: "100%", height: "auto" }}
-            >
-              {top.map((r, i) => {
-                const y = 12 + i * (barH + gap);
-                const w = maxVal > 0 ? (getVal(r) / maxVal) * barAreaW : 0;
-                const color = BROKER_COLORS[i % BROKER_COLORS.length];
-                return (
-                  <g key={`dist-${r.broker_code}-${i}`}>
-                    <text
-                      x={labelW}
-                      y={y + barH / 2}
-                      textAnchor="end"
-                      dominantBaseline="central"
-                      fill={color}
-                      fontSize={11}
-                      fontFamily="JetBrains Mono, monospace"
-                      fontWeight={700}
-                    >
-                      {r.broker_code}
-                    </text>
-                    <rect
-                      x={chartLeft}
-                      y={y}
-                      width={Math.max(w, 2)}
-                      height={barH}
-                      rx={3}
-                      fill={color}
-                      opacity={0.7}
-                    />
-                    <text
-                      x={chartLeft + Math.max(w, 2) + 6}
-                      y={y + barH / 2}
-                      textAnchor="start"
-                      dominantBaseline="central"
-                      fill={isDark ? "#94a3b8" : "#64748b"}
-                      fontSize={9}
-                      fontFamily="JetBrains Mono, monospace"
-                    >
-                      {formatter(getVal(r))} ({r.value_share.toFixed(1)}%)
-                    </text>
-                  </g>
-                );
-              })}
+          <Box ref={tooltipHostRef} sx={{ overflowX: "auto", position: "relative" }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1, px: 1 }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: "#22c55e", fontSize: "0.7rem" }}>Buyer</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: "#ef4444", fontSize: "0.7rem" }}>Seller</Typography>
+            </Box>
+            <svg width={svgW} height={svgH} viewBox={`0 0 ${svgW} ${svgH}`} style={{ width: "100%", height: "auto" }}>
+              {paths.map((p) => (
+                <path
+                  key={p.key} d={p.d} fill={p.color}
+                  opacity={(() => {
+                    if (!hovered) return p.opacity;
+                    if (hovered.mode === "flow") return hovered.key === p.key ? Math.min(0.72, p.opacity + 0.34) : Math.max(0.04, p.opacity * 0.22);
+                    const code = hovered.brokerCode || "";
+                    const linked = hovered.side === "left" ? p.from === code : hovered.side === "right" ? p.to === code : p.from === code || p.to === code;
+                    return linked ? Math.min(0.78, p.opacity + 0.38) : Math.max(0.04, p.opacity * 0.2);
+                  })()}
+                  style={{ cursor: "pointer", transition: "opacity 160ms ease" }}
+                  onMouseMove={(e) => setTooltip(e, {
+                    key: p.key, title: `${p.from} -> ${p.to}`,
+                    lines: [`Estimated flow: ${formatter(p.est)}`, `Signal confidence: ${(p.bias * 100).toFixed(0)}%`],
+                    mode: "flow",
+                  })}
+                  onMouseLeave={() => setHovered(null)}
+                />
+              ))}
+              {leftBars.map((b, i) => (
+                <g key={`buy-${b.item.broker_code}-${i}`}>
+                  <rect x={leftBarX} y={b.y} width={barW} height={b.h} rx={3}
+                    fill={BROKER_COLORS[i % BROKER_COLORS.length]} style={{ cursor: "pointer" }}
+                    onMouseMove={(e) => setTooltip(e, {
+                      key: `left-${i}`, title: `Buyer ${b.item.broker_code}`,
+                      lines: [`Gross buy: ${formatter(b.val)}`, `Net: ${fmtSigned(getNet(b.item))}`],
+                      mode: "node", brokerCode: b.item.broker_code, side: "left",
+                    })}
+                    onMouseLeave={() => setHovered(null)}
+                  />
+                  <text x={leftBarX - 6} y={b.y + b.h / 2} textAnchor="end" dominantBaseline="central"
+                    fill={BROKER_COLORS[i % BROKER_COLORS.length]} fontSize={11} fontFamily="JetBrains Mono, monospace" fontWeight={700}>
+                    {b.item.broker_code}
+                  </text>
+                  <text x={leftBarX + barW + 8} y={b.y + b.h / 2} textAnchor="start" dominantBaseline="central"
+                    fill={isDark ? "#94a3b8" : "#64748b"} fontSize={9} fontFamily="JetBrains Mono, monospace">
+                    {formatter(b.val)}
+                  </text>
+                  <text x={leftBarX + barW + 8} y={b.y + b.h / 2 + 10} textAnchor="start" dominantBaseline="central"
+                    fill={getNet(b.item) >= 0 ? "#22c55e" : "#ef4444"} fontSize={8} fontFamily="JetBrains Mono, monospace">
+                    net {fmtSigned(getNet(b.item))}
+                  </text>
+                </g>
+              ))}
+              {rightBars.map((b, i) => (
+                <g key={`sell-${b.item.broker_code}-${i}`}>
+                  <rect x={rightBarX} y={b.y} width={barW} height={b.h} rx={3}
+                    fill={BROKER_COLORS[(i + 5) % BROKER_COLORS.length]} style={{ cursor: "pointer" }}
+                    onMouseMove={(e) => setTooltip(e, {
+                      key: `right-${i}`, title: `Seller ${b.item.broker_code}`,
+                      lines: [`Gross sell: ${formatter(b.val)}`, `Net: ${fmtSigned(getNet(b.item))}`],
+                      mode: "node", brokerCode: b.item.broker_code, side: "right",
+                    })}
+                    onMouseLeave={() => setHovered(null)}
+                  />
+                  <text x={rightBarX + barW + 6} y={b.y + b.h / 2} textAnchor="start" dominantBaseline="central"
+                    fill={BROKER_COLORS[(i + 5) % BROKER_COLORS.length]} fontSize={11} fontFamily="JetBrains Mono, monospace" fontWeight={700}>
+                    {b.item.broker_code}
+                  </text>
+                  <text x={rightBarX - 8} y={b.y + b.h / 2} textAnchor="end" dominantBaseline="central"
+                    fill={isDark ? "#94a3b8" : "#64748b"} fontSize={9} fontFamily="JetBrains Mono, monospace">
+                    {formatter(b.val)}
+                  </text>
+                  <text x={rightBarX - 8} y={b.y + b.h / 2 + 10} textAnchor="end" dominantBaseline="central"
+                    fill={getNet(b.item) >= 0 ? "#22c55e" : "#ef4444"} fontSize={8} fontFamily="JetBrains Mono, monospace">
+                    net {fmtSigned(getNet(b.item))}
+                  </text>
+                </g>
+              ))}
             </svg>
-            <Typography
-              variant="caption"
-              sx={{ mt: 1, display: "block", color: "text.secondary" }}
-            >
-              Top {top.length} brokers by total {rankingMetric}. HHI mengukur konsentrasi pasar -- semakin tinggi, semakin sedikit broker yang mendominasi.
+            <Typography variant="caption" sx={{ mt: 1, display: "block", color: "text.secondary" }}>
+              Flow memakai kombinasi gross buy/sell + sinyal running net untuk mengestimasi perpindahan dari broker distribusi ke broker akumulasi.
             </Typography>
+            {hovered && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: Math.min(Math.max(hovered.x + 10, 8), svgW - 260),
+                  top: Math.max(hovered.y - 10, 8),
+                  transform: "translateY(-100%)",
+                  minWidth: 200, maxWidth: 260, px: 1.1, py: 0.8, borderRadius: 1.2,
+                  pointerEvents: "none", zIndex: 5,
+                  bgcolor: isDark ? "rgba(8,15,32,0.96)" : "rgba(255,255,255,0.96)",
+                  border: "1px solid", borderColor: isDark ? "rgba(107,127,163,0.35)" : "#d1d5db",
+                  boxShadow: isDark ? "0 10px 30px rgba(2,6,23,0.45)" : "0 8px 24px rgba(15,23,42,0.15)",
+                }}
+              >
+                <Typography sx={{ fontSize: "0.68rem", fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: isDark ? "#e2e8f0" : "#0f172a" }}>
+                  {hovered.title}
+                </Typography>
+                {hovered.lines.map((line, idx) => (
+                  <Typography key={`${hovered.key}-line-${idx}`} sx={{ mt: idx === 0 ? 0.4 : 0.2, fontSize: "0.63rem", lineHeight: 1.25, fontFamily: "JetBrains Mono, monospace", color: isDark ? "#94a3b8" : "#475569" }}>
+                    {line}
+                  </Typography>
+                ))}
+              </Box>
+            )}
           </Box>
         )}
       </Paper>

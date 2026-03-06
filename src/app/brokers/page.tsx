@@ -181,6 +181,8 @@ export default function BrokersPage() {
   const [expandedBroker, setExpandedBroker] = useState<string | null>(null);
 
   const [actDateRange, setActDateRange] = useState<DateRange>("1M");
+  const [actCustomFrom, setActCustomFrom] = useState("");
+  const [actCustomTo, setActCustomTo] = useState("");
   const [actSelectedBroker, setActSelectedBroker] = useState("BK");
   const [actBrokerInput, setActBrokerInput] = useState("");
   const [actMetric, setActMetric] = useState<"value" | "volume">("value");
@@ -194,6 +196,7 @@ export default function BrokersPage() {
   const [loadingAct, setLoadingAct] = useState(false);
 
   const [baPeriod, setBaPeriod] = useState("1D");
+  const [baDate, setBaDate] = useState("");
   const [baView, setBaView] = useState<"leaderboard" | "lookup">("leaderboard");
   const [baLeaderboard, setBaLeaderboard] = useState<BandarmologyEntry[]>([]);
   const [loadingBA, setLoadingBA] = useState(false);
@@ -235,7 +238,7 @@ export default function BrokersPage() {
     fetchActivity();
   }, [period]);
 
-  const actMapping = useMemo(() => mapDateRange(actDateRange), [actDateRange]);
+  const actMapping = useMemo(() => mapDateRange(actDateRange, actCustomFrom, actCustomTo), [actDateRange, actCustomFrom, actCustomTo]);
   const brokerOptions = useMemo(
     () => [...brokers].sort((a, b) => a.code.localeCompare(b.code)),
     [brokers]
@@ -441,13 +444,17 @@ export default function BrokersPage() {
       setLoadingBA(true);
       setBrokerLookupStocks([]);
       setBrokerLookupCode("");
-      const { data, error } = await supabase
+      let query = supabase
         .from("v_ba_leaderboard")
         .select("symbol, hhi_score, active_brokers, total_value, top_broker_value, top_rank, date")
         .eq("period", baPeriod)
         .eq("investor_type", "ALL")
-        .order("hhi_score", { ascending: false })
-        .limit(200);
+        .order("hhi_score", { ascending: false });
+      if (baDate) {
+        query = query.eq("date", baDate);
+      }
+      query = query.limit(200);
+      const { data, error } = await query;
       if (cancelled) return;
       if (!error && data) {
         setBaLeaderboard(data as BandarmologyEntry[]);
@@ -458,22 +465,24 @@ export default function BrokersPage() {
     }
     fetchBA();
     return () => { cancelled = true; };
-  }, [tab, baPeriod]);
+  }, [tab, baPeriod, baDate]);
 
   async function handleBrokerLookup() {
     const code = brokerLookup.trim().toUpperCase();
     if (!code) return;
     setLoadingBrokerLookup(true);
     setBrokerLookupCode(code);
-    const { data } = await supabase
+    let lookupQuery = supabase
       .from("idx_ba_broker_ranking")
       .select("broker_code, symbol, total_value, total_volume, value_share, rank, date")
       .eq("broker_code", code)
       .eq("period", baPeriod)
-      .eq("investor_type", "ALL")
-      .order("date", { ascending: false })
-      .order("rank")
-      .limit(500);
+      .eq("investor_type", "ALL");
+    if (baDate) {
+      lookupQuery = lookupQuery.eq("date", baDate);
+    }
+    lookupQuery = lookupQuery.order("date", { ascending: false }).order("rank").limit(500);
+    const { data } = await lookupQuery;
     if (data && data.length > 0) {
       const latest = (data as any[])[0].date;
       const filtered = (data as any[]).filter((r: any) => r.date === latest);
@@ -1769,6 +1778,53 @@ export default function BrokersPage() {
                   }}
                 />
               ))}
+              <Chip
+                label="Custom"
+                size="small"
+                onClick={() => {
+                  setActDateRange("custom");
+                  if (!actCustomFrom) {
+                    const d = new Date();
+                    d.setMonth(d.getMonth() - 1);
+                    setActCustomFrom(d.toISOString().split("T")[0]);
+                  }
+                  if (!actCustomTo) setActCustomTo(new Date().toISOString().split("T")[0]);
+                }}
+                sx={{
+                  fontFamily: '"JetBrains Mono", monospace',
+                  fontWeight: 700, fontSize: "0.69rem", height: 28, px: 0.2, cursor: "pointer",
+                  bgcolor: actDateRange === "custom" ? (isDark ? "rgba(212,168,67,0.18)" : "rgba(161,124,47,0.11)") : "transparent",
+                  color: actDateRange === "custom" ? "primary.main" : "text.secondary",
+                  border: "1px solid", borderColor: actDateRange === "custom" ? "primary.main" : "transparent",
+                }}
+              />
+              {actDateRange === "custom" && (
+                <>
+                  <TextField
+                    type="date"
+                    size="small"
+                    value={actCustomFrom}
+                    onChange={(e) => setActCustomFrom(e.target.value)}
+                    sx={{
+                      width: 140,
+                      "& .MuiOutlinedInput-root": { borderRadius: 2, height: 28, fontSize: "0.72rem" },
+                      "& input": { fontFamily: '"JetBrains Mono", monospace', py: 0, px: 1 },
+                    }}
+                  />
+                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>to</Typography>
+                  <TextField
+                    type="date"
+                    size="small"
+                    value={actCustomTo}
+                    onChange={(e) => setActCustomTo(e.target.value)}
+                    sx={{
+                      width: 140,
+                      "& .MuiOutlinedInput-root": { borderRadius: 2, height: 28, fontSize: "0.72rem" },
+                      "& input": { fontFamily: '"JetBrains Mono", monospace', py: 0, px: 1 },
+                    }}
+                  />
+                </>
+              )}
               <Box sx={{ mx: 0.35, height: 16, width: 1, bgcolor: "divider" }} />
               <Chip
                 label="Value"
@@ -2088,6 +2144,36 @@ export default function BrokersPage() {
                   border: "1px solid", borderColor: baPeriod === opt.value ? "primary.main" : "transparent",
                 }} />
             ))}
+            <Box sx={{ width: "1px", height: 20, bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)" }} />
+            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>Date</Typography>
+            <TextField
+              type="date"
+              size="small"
+              value={baDate}
+              onChange={(e) => setBaDate(e.target.value)}
+              sx={{
+                width: 150,
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2, height: 28, fontSize: "0.72rem",
+                  bgcolor: isDark ? "rgba(13,20,37,0.8)" : "background.paper",
+                },
+                "& input": {
+                  fontFamily: '"JetBrains Mono", monospace', py: 0, px: 1,
+                },
+              }}
+            />
+            {baDate && (
+              <Chip
+                label="Clear"
+                size="small"
+                onClick={() => setBaDate("")}
+                sx={{
+                  fontWeight: 600, fontSize: "0.62rem", height: 22, cursor: "pointer",
+                  color: "text.secondary",
+                  "&:hover": { bgcolor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)" },
+                }}
+              />
+            )}
             {loadingBA && <Chip label="Loading..." size="small" sx={{ fontSize: "0.65rem", height: 22, opacity: 0.5 }} />}
           </Stack>
 

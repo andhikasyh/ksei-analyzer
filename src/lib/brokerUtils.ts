@@ -327,3 +327,89 @@ async function fetchBrokerRankingsFromRaw(
     .sort((a, b) => b.total_value - a.total_value)
     .map((r, i) => ({ ...r, rank: i + 1 }));
 }
+
+export interface BrokerDistEntry {
+  broker_code: string;
+  net_value: number;
+  net_volume: number;
+  b_val: number;
+  s_val: number;
+  b_lot: number;
+  s_lot: number;
+  value_share: number;
+}
+
+export async function fetchBrokerDistribution(
+  symbol: string,
+  mapping: PeriodMapping,
+  investorType: string = "ALL"
+): Promise<BrokerDistEntry[]> {
+  const { data: dateCheck } = await supabase
+    .from("idx_broker_activity")
+    .select("date")
+    .eq("symbol", symbol)
+    .eq("period", mapping.period)
+    .eq("investor_type", investorType)
+    .eq("market_board", "REGULAR")
+    .eq("chart_type", "TYPE_CHART_VALUE")
+    .order("date", { ascending: false })
+    .limit(1);
+
+  if (!dateCheck || dateCheck.length === 0) return [];
+  const latestDate = dateCheck[0].date;
+
+  const [valRes, volRes] = await Promise.all([
+    supabase
+      .from("idx_broker_activity")
+      .select("broker_code, value_raw, time")
+      .eq("symbol", symbol)
+      .eq("period", mapping.period)
+      .eq("investor_type", investorType)
+      .eq("market_board", "REGULAR")
+      .eq("chart_type", "TYPE_CHART_VALUE")
+      .eq("date", latestDate)
+      .limit(5000),
+    supabase
+      .from("idx_broker_activity")
+      .select("broker_code, value_raw, time")
+      .eq("symbol", symbol)
+      .eq("period", mapping.period)
+      .eq("investor_type", investorType)
+      .eq("market_board", "REGULAR")
+      .eq("chart_type", "TYPE_CHART_VOLUME")
+      .eq("date", latestDate)
+      .limit(5000),
+  ]);
+
+  const getLatest = (rows: any[]): Record<string, number> => {
+    const map: Record<string, { v: number; t: string }> = {};
+    rows.forEach((r: any) => {
+      const k = r.broker_code as string;
+      const t = r.time as string;
+      if (!map[k] || t > map[k].t) map[k] = { v: parseFloat(r.value_raw) || 0, t };
+    });
+    const out: Record<string, number> = {};
+    Object.entries(map).forEach(([k, v]) => { out[k] = v.v; });
+    return out;
+  };
+
+  const values = getLatest(valRes.data || []);
+  const volumes = getLatest(volRes.data || []);
+  const totalAbs = Object.values(values).reduce((s, v) => s + Math.abs(v), 0);
+
+  return Object.entries(values)
+    .map(([code, netVal]) => {
+      const netVol = volumes[code] || 0;
+      return {
+        broker_code: code,
+        net_value: netVal,
+        net_volume: netVol,
+        b_val: Math.max(netVal, 0),
+        s_val: Math.abs(Math.min(netVal, 0)),
+        b_lot: Math.max(netVol, 0),
+        s_lot: Math.abs(Math.min(netVol, 0)),
+        value_share: totalAbs > 0 ? (Math.abs(netVal) / totalAbs) * 100 : 0,
+      };
+    })
+    .sort((a, b) => Math.abs(b.net_value) - Math.abs(a.net_value));
+}

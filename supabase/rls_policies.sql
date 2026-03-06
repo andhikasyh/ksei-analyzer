@@ -181,4 +181,44 @@ CREATE POLICY "Allow public read"
   TO anon
   USING (true);
 
+-- idx_broker_activity
+ALTER TABLE public.idx_broker_activity ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read" ON public.idx_broker_activity;
+CREATE POLICY "Allow public read"
+  ON public.idx_broker_activity
+  FOR SELECT
+  TO anon
+  USING (true);
+
+-- idx_ba_daily_summary
+ALTER TABLE public.idx_ba_daily_summary ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read" ON public.idx_ba_daily_summary;
+CREATE POLICY "Allow public read"
+  ON public.idx_ba_daily_summary
+  FOR SELECT
+  TO anon
+  USING (true);
+
+-- idx_ba_stock_ranking
+ALTER TABLE public.idx_ba_stock_ranking ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read" ON public.idx_ba_stock_ranking;
+CREATE POLICY "Allow public read"
+  ON public.idx_ba_stock_ranking
+  FOR SELECT
+  TO anon
+  USING (true);
+
+-- idx_ba_broker_ranking
+ALTER TABLE public.idx_ba_broker_ranking ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow public read" ON public.idx_ba_broker_ranking;
+CREATE POLICY "Allow public read"
+  ON public.idx_ba_broker_ranking
+  FOR SELECT
+  TO anon
+  USING (true);
+
+-- Views: grant SELECT to anon so they work through the API
+GRANT SELECT ON public.v_ba_foreign_flow TO anon;
+GRANT SELECT ON public.v_ba_leaderboard TO anon;
+
 COMMIT;
