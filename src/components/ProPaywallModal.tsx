@@ -297,8 +297,15 @@ function EmailAuthForm({
   );
 }
 
-function MayarEmbed() {
+function MayarEmbed({ email }: { email?: string }) {
   useMayarEmbed();
+
+  let embedSrc = MAYAR_EMBED_URL;
+  if (email) {
+    const sep = MAYAR_EMBED_URL.includes("?") ? "&" : "?";
+    embedSrc = `${MAYAR_EMBED_URL}${sep}email=${encodeURIComponent(email)}`;
+  }
+
   return (
     <Box sx={{ width: "100%", "& iframe": { display: "block" } }}>
       <iframe
@@ -309,7 +316,7 @@ function MayarEmbed() {
         frameBorder="0"
         width="100%"
         height="600"
-        src={MAYAR_EMBED_URL}
+        src={embedSrc}
         data-hide-merchant-logo="true"
         data-hide-product-images="true"
         data-hide-header="true"
@@ -691,7 +698,7 @@ export function ProPaywallModal({
               </Box>
             </Box>
 
-            <MayarEmbed />
+            <MayarEmbed email={user?.email} />
 
             <Typography sx={{
               fontSize: "0.6rem", color: "text.secondary",
