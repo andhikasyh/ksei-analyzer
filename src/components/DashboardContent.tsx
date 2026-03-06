@@ -143,9 +143,9 @@ export function DashboardContent() {
           supabase
             .from("idx_index_summary")
             .select("*")
-            .in("index_code", ["COMPOSITE", "LQ45", "IDX30", "IDXHIDIV20", "IDXBUMN20", "IDX80", "IDXV30", "IDXQ30"])
+            .in("index_code", ["COMPOSITE", "LQ45", "IDX30", "IDXHIDIV20", "IDXBUMN20", "IDX80", "IDXV30", "IDXQ30", "JII70", "SRIKEHATI", "BISNIS27", "IDXESGL", "IDXG30", "PEFINDO25"])
             .order("date", { ascending: false })
-            .limit(500),
+            .limit(800),
         ]);
 
         if (stockRes.data) {
@@ -194,7 +194,7 @@ export function DashboardContent() {
             arr.push(r);
             byCode.set(r.index_code, arr);
           });
-          const priority = ["COMPOSITE", "LQ45", "IDX30", "IDXHIDIV20", "IDXBUMN20", "IDX80", "IDXV30", "IDXQ30"];
+          const priority = ["COMPOSITE", "LQ45", "IDX30", "IDXHIDIV20", "IDXBUMN20", "IDX80", "IDXV30", "IDXQ30", "JII70", "SRIKEHATI", "BISNIS27", "IDXESGL", "IDXG30", "PEFINDO25"];
           const parsed = priority
             .filter((c) => byCode.has(c))
             .map((code) => {

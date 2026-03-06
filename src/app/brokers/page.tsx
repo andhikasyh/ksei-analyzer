@@ -1613,7 +1613,32 @@ export default function BrokersPage() {
                 isOptionEqualToValue={(a, b) => a.code === b.code}
                 sx={{
                   width: { xs: "100%", sm: 380 },
-                  "& .MuiOutlinedInput-root": { borderRadius: 2, minHeight: 38 },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    minHeight: 38,
+                    bgcolor: isDark ? "rgba(13,20,37,0.8)" : "background.paper",
+                    fontSize: "0.82rem",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      bgcolor: isDark ? "rgba(17,27,48,0.9)" : "background.paper",
+                    },
+                    "&.Mui-focused": {
+                      bgcolor: isDark ? "rgba(17,27,48,1)" : "background.paper",
+                      boxShadow: isDark
+                        ? "0 0 0 2px rgba(212,168,67,0.15)"
+                        : "0 0 0 2px rgba(161,124,47,0.1)",
+                    },
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: isDark ? "rgba(212,168,67,0.25)" : "rgba(161,124,47,0.2)",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "primary.main",
+                      borderWidth: 1,
+                    },
+                  },
                 }}
                 renderOption={(props, option) => {
                   const { key, ...optionProps } = props;
@@ -1898,7 +1923,32 @@ export default function BrokersPage() {
                       }}
                       sx={{
                         width: { xs: "100%", sm: 260 },
-                        "& .MuiOutlinedInput-root": { borderRadius: 2, minHeight: 34 },
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: 2,
+                          minHeight: 34,
+                          bgcolor: isDark ? "rgba(13,20,37,0.8)" : "background.paper",
+                          fontSize: "0.82rem",
+                          transition: "all 0.2s ease",
+                          "&:hover": {
+                            bgcolor: isDark ? "rgba(17,27,48,0.9)" : "background.paper",
+                          },
+                          "&.Mui-focused": {
+                            bgcolor: isDark ? "rgba(17,27,48,1)" : "background.paper",
+                            boxShadow: isDark
+                              ? "0 0 0 2px rgba(212,168,67,0.15)"
+                              : "0 0 0 2px rgba(161,124,47,0.1)",
+                          },
+                          "& .MuiOutlinedInput-notchedOutline": {
+                            borderColor: isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)",
+                          },
+                          "&:hover .MuiOutlinedInput-notchedOutline": {
+                            borderColor: isDark ? "rgba(212,168,67,0.25)" : "rgba(161,124,47,0.2)",
+                          },
+                          "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                            borderColor: "primary.main",
+                            borderWidth: 1,
+                          },
+                        },
                       }}
                       renderInput={(params) => (
                         <TextField {...params} placeholder="Search ticker to add..." />
@@ -2296,7 +2346,31 @@ export default function BrokersPage() {
                 }}
                 sx={{
                   minWidth: 220,
-                  "& .MuiOutlinedInput-root": { borderRadius: 2 },
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    bgcolor: isDark ? "rgba(13,20,37,0.8)" : "background.paper",
+                    fontSize: "0.82rem",
+                    transition: "all 0.2s ease",
+                    "&:hover": {
+                      bgcolor: isDark ? "rgba(17,27,48,0.9)" : "background.paper",
+                    },
+                    "&.Mui-focused": {
+                      bgcolor: isDark ? "rgba(17,27,48,1)" : "background.paper",
+                      boxShadow: isDark
+                        ? "0 0 0 2px rgba(212,168,67,0.15)"
+                        : "0 0 0 2px rgba(161,124,47,0.1)",
+                    },
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)",
+                    },
+                    "&:hover .MuiOutlinedInput-notchedOutline": {
+                      borderColor: isDark ? "rgba(212,168,67,0.25)" : "rgba(161,124,47,0.2)",
+                    },
+                    "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "primary.main",
+                      borderWidth: 1,
+                    },
+                  },
                   "& input": {
                     fontFamily: '"JetBrains Mono", monospace',
                     textTransform: "uppercase",
@@ -2563,7 +2637,31 @@ export default function BrokersPage() {
               }}
               sx={{
                 minWidth: 260,
-                "& .MuiOutlinedInput-root": { borderRadius: 2 },
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  bgcolor: isDark ? "rgba(13,20,37,0.8)" : "background.paper",
+                  fontSize: "0.82rem",
+                  transition: "all 0.2s ease",
+                  "&:hover": {
+                    bgcolor: isDark ? "rgba(17,27,48,0.9)" : "background.paper",
+                  },
+                  "&.Mui-focused": {
+                    bgcolor: isDark ? "rgba(17,27,48,1)" : "background.paper",
+                    boxShadow: isDark
+                      ? "0 0 0 2px rgba(212,168,67,0.15)"
+                      : "0 0 0 2px rgba(161,124,47,0.1)",
+                  },
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)",
+                  },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: isDark ? "rgba(212,168,67,0.25)" : "rgba(161,124,47,0.2)",
+                  },
+                  "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "primary.main",
+                    borderWidth: 1,
+                  },
+                },
               }}
             />
             <Stack direction="row" spacing={1} alignItems="center">
@@ -3047,10 +3145,10 @@ function ConcentrationTreemap({
                       transition: "all 0.2s ease",
                       display: "flex",
                       flexDirection: "column",
-                      alignItems: isLarge ? "flex-start" : "center",
+                      alignItems: (isLarge || isMedium) ? "flex-start" : "center",
                       justifyContent: "center",
-                      px: isLarge ? 1.5 : 0.5,
-                      py: isLarge ? 1 : 0.5,
+                      px: isLarge ? 1.5 : isMedium ? 1 : 0.5,
+                      py: isLarge ? 0.75 : 0.5,
                       "&::before": !isOthers ? {
                         content: '""',
                         position: "absolute",
@@ -3077,7 +3175,8 @@ function ConcentrationTreemap({
                           : color,
                         letterSpacing: "-0.02em",
                         lineHeight: 1.2,
-                        textAlign: isLarge ? "left" : "center",
+                        textAlign: (isLarge || isMedium) ? "left" : "center",
+                        flexShrink: 0,
                       }}
                     >
                       {r.code}
@@ -3089,36 +3188,40 @@ function ConcentrationTreemap({
                           fontWeight: 600,
                           fontSize: isLarge ? "0.75rem" : "0.6rem",
                           color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.45)",
-                          lineHeight: 1.3,
-                          mt: 0.25,
+                          lineHeight: 1.2,
+                          flexShrink: 0,
                         }}
                       >
                         {r.pct.toFixed(1)}%
+                      </Typography>
+                    )}
+                    {(isLarge || isMedium) && (
+                      <Typography
+                        sx={{
+                          fontSize: isLarge ? "0.55rem" : "0.5rem",
+                          color: isDark ? "rgba(255,255,255,0.45)" : "rgba(0,0,0,0.38)",
+                          lineHeight: 1.2,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          maxWidth: "100%",
+                          flexShrink: 1,
+                          minHeight: 0,
+                        }}
+                      >
+                        {r.name}
                       </Typography>
                     )}
                     {isLarge && (
                       <>
                         <Typography
                           sx={{
-                            fontSize: "0.55rem",
-                            color: isDark ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.3)",
-                            lineHeight: 1.2,
-                            mt: 0.25,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                            maxWidth: "100%",
-                          }}
-                        >
-                          {r.name}
-                        </Typography>
-                        <Typography
-                          sx={{
                             fontFamily: '"JetBrains Mono", monospace',
                             fontSize: "0.6rem",
                             fontWeight: 600,
                             color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.35)",
-                            mt: 0.5,
+                            mt: 0.25,
+                            flexShrink: 0,
                           }}
                         >
                           {formatValue(r.value)}
@@ -3126,10 +3229,11 @@ function ConcentrationTreemap({
                         {!isOthers && (
                           <Box
                             sx={{
-                              mt: 0.5,
+                              mt: 0.25,
                               display: "flex",
                               alignItems: "center",
                               gap: 0.5,
+                              flexShrink: 0,
                             }}
                           >
                             <Box

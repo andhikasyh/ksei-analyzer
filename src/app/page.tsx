@@ -1,7 +1,5 @@
-import { SITE_NAME, SITE_DESCRIPTION, getBaseUrl } from "@/lib/site";
+import { SITE_NAME, SITE_DESCRIPTION } from "@/lib/site";
 import { DashboardContent } from "@/components/DashboardContent";
-
-const baseUrl = getBaseUrl();
 
 export default function DashboardPage() {
   return (
@@ -52,36 +50,6 @@ export default function DashboardPage() {
           activity, and stay informed with AI-powered market intelligence
           reports.
         </p>
-        <nav
-          style={{
-            display: "flex",
-            gap: "16px",
-            flexWrap: "wrap",
-            fontSize: "0.8rem",
-            fontFamily: '"Plus Jakarta Sans", sans-serif',
-          }}
-        >
-          <a
-            href={`${baseUrl}/privacy`}
-            style={{
-              color: "#1a73e8",
-              textDecoration: "underline",
-              fontWeight: 600,
-            }}
-          >
-            Privacy Policy
-          </a>
-          <a
-            href={`${baseUrl}/terms`}
-            style={{
-              color: "#1a73e8",
-              textDecoration: "underline",
-              fontWeight: 600,
-            }}
-          >
-            Terms of Service
-          </a>
-        </nav>
       </section>
 
       <DashboardContent />

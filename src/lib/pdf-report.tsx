@@ -1066,7 +1066,7 @@ export function MarketReportPDF({
                   <Text style={{ fontSize: 7.5, lineHeight: 1.5, color: "#333", marginBottom: 3 }}>{sp.rationale}</Text>
 
                   {sp.technicalSetup && (
-                    <Text style={{ fontSize: 7, lineHeight: 1.4, color: ACCENT, fontStyle: "italic", marginBottom: 2 }}>{sp.technicalSetup}</Text>
+                    <Text style={{ fontSize: 7, lineHeight: 1.4, color: ACCENT, marginBottom: 2 }}>{sp.technicalSetup}</Text>
                   )}
 
                   {sp.riskAssessment && (
