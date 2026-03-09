@@ -1,15 +1,30 @@
 import type { Metadata } from "next";
-import { SITE_NAME } from "@/lib/site";
+import { getBaseUrl, SITE_NAME } from "@/lib/site";
+
+const baseUrl = getBaseUrl();
 
 export const metadata: Metadata = {
-  title: "Stock Screener",
+  title: "Screener Saham – Filter Saham Indonesia by Fundamental & Sektor",
   description:
-    "Screen IDX stocks by index, financials, and fundamentals. Filter by sector, liquidity, and ownership. Indonesian equity screener powered by KSEI data.",
+    "Screener saham Indonesia terlengkap. Filter saham BEI berdasarkan indeks (LQ45, IDX30, IHSG), fundamental, sektor, likuiditas, dan data kepemilikan KSEI. Temukan saham terbaik dengan mudah.",
+  keywords: [
+    "screener saham Indonesia",
+    "filter saham BEI",
+    "stock screener IDX",
+    "saham LQ45",
+    "saham IDX30",
+    "fundamental saham",
+    "screener saham KSEI",
+    "saham murah Indonesia",
+    "valuasi saham BEI",
+  ],
   openGraph: {
-    title: `Stock Screener | ${SITE_NAME}`,
+    title: `Screener Saham Indonesia | ${SITE_NAME}`,
     description:
-      "Screen IDX stocks by index, financials, and fundamentals. Indonesian equity screener powered by KSEI data.",
+      "Filter saham BEI berdasarkan indeks, fundamental, sektor, dan data kepemilikan KSEI.",
+    url: `${baseUrl}/screener`,
   },
+  alternates: { canonical: `${baseUrl}/screener` },
 };
 
 export default function ScreenerLayout({

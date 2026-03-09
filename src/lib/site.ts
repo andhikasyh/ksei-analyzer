@@ -13,18 +13,41 @@ export function getBaseUrl(): string {
 }
 
 export const SITE_NAME = "Gunaa";
+
 export const SITE_DESCRIPTION =
-  "Analyze KSEI beneficial ownership data for the Indonesian stock exchange (IDX). Screen stocks, track brokers, view investor holdings and market insights.";
+  "Platform analisis kepemilikan saham KSEI dan data pasar untuk Bursa Efek Indonesia (BEI/IDX). Screener saham, aktivitas broker, kepemilikan investor, foreign flow, dan laporan market intelligence harian.";
+
+export const SITE_DESCRIPTION_EN =
+  "KSEI beneficial ownership analytics and market data for the Indonesian stock exchange (IDX/BEI). Stock screener, broker activity, investor holdings, foreign flow tracking, and daily market intelligence reports.";
+
 export const SITE_KEYWORDS = [
+  "saham Indonesia",
+  "KSEI",
+  "kepemilikan saham",
   "BEI",
   "IDX",
-  "Indonesian stock exchange",
-  "KSEI",
+  "Bursa Efek Indonesia",
+  "screener saham",
+  "data saham",
+  "analisis saham",
+  "broker saham",
+  "aktivitas broker",
+  "foreign flow",
+  "arus dana asing",
+  "market intelligence",
+  "laporan pasar saham",
+  "investor saham",
+  "pemegang saham",
   "beneficial ownership",
-  "stock ownership",
+  "stock screener Indonesia",
+  "Indonesian stock exchange",
+  "stock ownership data",
   "shareholder data",
   "Indonesia equity",
-  "stock screener",
-  "broker activity",
-  "market intelligence",
+  "broker activity IDX",
+  "dividen saham",
+  "sektor saham",
+  "IHSG",
+  "LQ45",
+  "IDX30",
 ];

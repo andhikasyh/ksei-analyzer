@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { SITE_NAME } from "@/lib/site";
+import { getBaseUrl, SITE_NAME } from "@/lib/site";
+
+const baseUrl = getBaseUrl();
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -7,12 +9,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { code } = await params;
   const upper = (code || "").toUpperCase();
   return {
-    title: `${upper} – Stock Ownership & Shareholders`,
-    description: `Beneficial ownership and shareholder data for ${upper} on the Indonesian stock exchange. Top holders, ownership structure, and KSEI data.`,
+    title: `${upper} – Kepemilikan Saham & Data Pemegang Saham`,
+    description: `Data kepemilikan saham dan pemegang saham ${upper} di Bursa Efek Indonesia. Top holders, struktur kepemilikan KSEI, fundamental, dan analisis saham ${upper}.`,
     openGraph: {
-      title: `${upper} – Stock Ownership | ${SITE_NAME}`,
-      description: `Shareholder and ownership data for ${upper} (IDX).`,
+      title: `Saham ${upper} – Kepemilikan & Analisis | ${SITE_NAME}`,
+      description: `Data pemegang saham dan kepemilikan KSEI untuk saham ${upper} di BEI.`,
+      url: `${baseUrl}/stock/${upper}`,
     },
+    alternates: { canonical: `${baseUrl}/stock/${upper}` },
   };
 }
 

@@ -1,15 +1,29 @@
 import type { Metadata } from "next";
-import { SITE_NAME } from "@/lib/site";
+import { getBaseUrl, SITE_NAME } from "@/lib/site";
+
+const baseUrl = getBaseUrl();
 
 export const metadata: Metadata = {
-  title: "Broker Activity",
+  title: "Aktivitas Broker – Ranking & Market Share Broker BEI",
   description:
-    "Trading activity and market share of brokers on the Indonesian stock exchange. Underwriter and broker-dealer rankings, volume and value analytics.",
+    "Pantau aktivitas dan ranking broker saham di Bursa Efek Indonesia. Data market share, volume transaksi, top broker buyer/seller, dan analisis aktivitas broker-dealer BEI.",
+  keywords: [
+    "broker saham Indonesia",
+    "aktivitas broker BEI",
+    "ranking broker IDX",
+    "market share broker",
+    "top broker BEI",
+    "broker activity Indonesia",
+    "broker dealer BEI",
+    "volume transaksi broker",
+  ],
   openGraph: {
-    title: `Broker Activity | ${SITE_NAME}`,
+    title: `Aktivitas Broker Saham Indonesia | ${SITE_NAME}`,
     description:
-      "Trading activity and market share of brokers on the Indonesian stock exchange. Broker rankings and analytics.",
+      "Ranking dan aktivitas broker di BEI. Market share, volume transaksi, dan analisis broker-dealer.",
+    url: `${baseUrl}/brokers`,
   },
+  alternates: { canonical: `${baseUrl}/brokers` },
 };
 
 export default function BrokersLayout({

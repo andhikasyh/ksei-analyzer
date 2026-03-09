@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { SITE_NAME } from "@/lib/site";
+import { getBaseUrl, SITE_NAME } from "@/lib/site";
+
+const baseUrl = getBaseUrl();
 
 type Props = { params: Promise<{ name: string }> };
 
@@ -7,12 +9,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { name } = await params;
   const decoded = decodeURIComponent(name || "");
   return {
-    title: `${decoded} – Portfolio & Holdings`,
-    description: `Stock portfolio and holdings for ${decoded} on the Indonesian stock exchange. KSEI beneficial ownership data.`,
+    title: `${decoded} – Portofolio & Kepemilikan Saham`,
+    description: `Portofolio dan data kepemilikan saham ${decoded} di Bursa Efek Indonesia. Data beneficial ownership KSEI dan daftar saham yang dimiliki.`,
     openGraph: {
-      title: `${decoded} – Investor Holdings | ${SITE_NAME}`,
-      description: `Portfolio and holdings for ${decoded} (IDX).`,
+      title: `${decoded} – Portofolio Investor | ${SITE_NAME}`,
+      description: `Portofolio dan kepemilikan saham ${decoded} di BEI.`,
+      url: `${baseUrl}/investor/${encodeURIComponent(decoded)}`,
     },
+    alternates: { canonical: `${baseUrl}/investor/${encodeURIComponent(decoded)}` },
   };
 }
 
