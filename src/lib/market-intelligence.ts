@@ -751,7 +751,7 @@ function generateCoverImageUrl(date: string, sentiment: string): string {
 }
 
 const REPORT_SCHEMA = `{
-  "title": "A compelling article title summarizing the day (e.g. Markets Rally on Banking Sector Strength)",
+  "title": "A compelling article title summarizing the day",
   "marketOverview": {
     "tradingDate": "YYYY-MM-DD",
     "totalVolume": number,
@@ -771,7 +771,7 @@ const REPORT_SCHEMA = `{
     }
   ],
   "topMovers": {
-    "gainers": [{ "code": "TICKER", "name": "Company Name", "close": number, "change": number, "changePct": number, "volume": number,     "reason": "3-5 sentence in-depth analysis: explain the WHY behind this move by cross-referencing sector rotation, foreign flow direction, commodity prices, technical breakout/breakdown patterns, broker activity, recent news catalysts, and fundamental valuation. Connect the dots." }],
+    "gainers": [{ "code": "TICKER", "name": "Company Name", "close": number, "change": number, "changePct": number, "volume": number, "reason": "1-2 sentence analysis: WHY this moved, cross-reference flow/sector/news." }],
     "losers": [same shape],
     "mostActive": [same shape]
   },
@@ -779,38 +779,38 @@ const REPORT_SCHEMA = `{
     "netFlow": number,
     "netFlowLabel": "human-readable net flow like Rp 1.2T",
     "sentiment": "inflow" | "outflow" | "neutral",
-    "summary": "3-5 sentence analysis explaining foreign flow patterns, what sectors/stocks are being targeted, and what this flow direction signals about institutional sentiment",
+    "summary": "2-3 sentence analysis of foreign flow patterns and institutional sentiment",
     "topBought": [{ "code": "TICKER", "name": "Company Name", "netBuy": number }],
     "topSold": [{ "code": "TICKER", "name": "Company Name", "netSell": number }]
   },
   "technicalAnalysis": {
     "marketTrend": "uptrend" | "downtrend" | "sideways",
-    "marketTrendNotes": "4-6 sentence deep analysis of overall market trend based on multi-day price action patterns, volume dynamics, market breadth (advance-decline), and inter-day momentum shifts",
+    "marketTrendNotes": "2-3 sentence analysis of overall market trend based on multi-day price action, volume, and breadth",
     "keyLevels": [
-      { "label": "level description (e.g. IHSG Support 1)", "value": "price level as string", "significance": "why this level matters" }
+      { "label": "level description", "value": "price level as string", "significance": "why this level matters" }
     ],
     "signals": [
       {
         "code": "TICKER",
         "name": "Company Name",
         "signal": "bullish" | "bearish" | "neutral",
-        "pattern": "pattern name (e.g. Golden Cross, Breakout, Oversold Bounce)",
-        "support": number (nearest support price),
-        "resistance": number (nearest resistance price),
-        "rsi": number (estimated RSI 0-100 based on recent price action),
-        "notes": "3-5 sentence technical observation: describe the chart pattern setup, what price action tells us, volume confirmation, and actionable trade setup with entry/exit zones"
+        "pattern": "pattern name",
+        "support": number,
+        "resistance": number,
+        "rsi": number (estimated 0-100),
+        "notes": "1-2 sentence technical observation with actionable setup"
       }
     ],
-    "volumeAnalysis": "3-4 sentence analysis of overall volume trends, unusual volume spikes, volume-price divergences, and what these indicate about conviction behind the current trend"
+    "volumeAnalysis": "2-3 sentence volume trend analysis"
   },
   "commodityAnalysis": {
-    "summary": "4-6 sentence overview analyzing how global commodity price movements are affecting IDX stocks, export-oriented sectors, and Indonesia's trade balance. Include macro context like USD/IDR, global demand outlook, and supply chain dynamics",
+    "summary": "2-3 sentence overview of commodity impacts on IDX",
     "commodities": [
       {
-        "commodity": "Crude Oil" | "Gold" | "Coal" | "Palm Oil (CPO)" | "Nickel" | "Tin" | "Copper" | "Natural Gas",
+        "commodity": "Crude Oil" | "Gold" | "Coal" | "Palm Oil (CPO)" | "Nickel" | "Tin",
         "sentiment": "bullish" | "bearish" | "neutral",
         "priceDirection": "up" | "down" | "flat",
-        "impact": "3-5 sentence explanation of how this commodity price movement impacts Indonesian producers, export revenues, government royalties, and which specific IDX stocks benefit or suffer. Include global supply-demand context.",
+        "impact": "1-2 sentence impact on Indonesian producers and specific IDX stocks",
         "affectedStocks": [{ "code": "TICKER", "name": "Company Name", "correlation": "positive" | "negative" }]
       }
     ]
@@ -820,7 +820,7 @@ const REPORT_SCHEMA = `{
       "type": "acquisition" | "cooperation" | "merger" | "divestment" | "rumor" | "ipo" | "restructuring" | "other",
       "headline": "brief headline",
       "companies": ["TICKER1", "TICKER2"],
-      "impact": "1-2 sentence market impact",
+      "impact": "1 sentence market impact",
       "sentiment": "bullish" | "bearish" | "neutral",
       "source": "source name if from news",
       "url": "URL if available"
@@ -831,26 +831,14 @@ const REPORT_SCHEMA = `{
       "code": "TICKER",
       "name": "Company Name",
       "currentPrice": number,
-      "targetShortTerm": number (1-2 week target),
-      "targetMidTerm": number (1-3 month target),
-      "stopLoss": number (recommended stop loss),
+      "targetShortTerm": number,
+      "targetMidTerm": number,
+      "stopLoss": number,
       "confidence": "high" | "medium" | "low",
       "timeframe": "e.g. 1-2 weeks",
-      "rationale": "5-8 sentence deep rationale: combine technical setup (pattern, support/resistance, RSI), fundamental valuation (PER vs sector avg, PBV, ROE quality, earnings trajectory), foreign flow direction, bandarmology phase, and risk factors. Justify why this specific price target makes sense."
+      "rationale": "2-3 sentence rationale combining technical, fundamental, and flow analysis."
     }
   ],
-  "chartData": {
-    "sectorPerformanceChart": [{ "sector": "name", "change": number }],
-    "foreignFlowChart": [{ "date": "YYYY-MM-DD", "value": number (net foreign flow) }],
-    "priceHistoryCharts": [
-      {
-        "code": "TICKER",
-        "name": "Company Name",
-        "data": [{ "date": "YYYY-MM-DD", "value": number (close price) }]
-      }
-    ],
-    "marketBreadthChart": [{ "date": "YYYY-MM-DD", "value": number (advance-decline ratio as percentage of advances) }]
-  },
   "newsSentiment": [
     {
       "headline": "headline text",
@@ -866,22 +854,22 @@ const REPORT_SCHEMA = `{
       "name": "Company Name",
       "action": "BUY" | "HOLD" | "SELL" | "WATCH",
       "currentPrice": number,
-      "rationale": "6-10 sentence comprehensive rationale: MUST cover (1) fundamental thesis -- valuation metrics vs sector/historical averages, earnings quality, balance sheet health, (2) technical setup -- chart pattern, trend, support/resistance, volume, (3) flow analysis -- foreign flow direction, bandarmology phase, broker concentration, (4) catalysts -- upcoming events, sector tailwinds, macro factors. This is an investment thesis, not a summary.",
+      "rationale": "3-4 sentence thesis covering fundamentals, technicals, flow, and catalysts.",
       "targetPrice": number (optional),
       "fundamentals": {
-        "per": number (Price-to-Earnings ratio),
-        "pbv": number (Price-to-Book Value),
-        "roe": number (Return on Equity %),
-        "deRatio": number (Debt-to-Equity ratio),
-        "eps": number (Earnings Per Share)
+        "per": number,
+        "pbv": number,
+        "roe": number,
+        "deRatio": number,
+        "eps": number
       },
-      "technicalSetup": "2-3 sentence technical chart setup description",
-      "riskAssessment": "2-3 sentence risk factors specific to this stock",
-      "catalysts": ["catalyst1", "catalyst2", ...]
+      "technicalSetup": "1-2 sentence chart setup",
+      "riskAssessment": "1-2 sentence risk factors",
+      "catalysts": ["catalyst1", "catalyst2"]
     }
   ],
   "bandarmology": {
-    "summary": "4-6 sentence deep overview of broker concentration patterns across the market: identify which stocks have unusually concentrated broker activity (high HHI), whether foreign brokers dominate certain names, and what this concentration means for near-term price dynamics.",
+    "summary": "2-3 sentence overview of broker concentration patterns.",
     "signals": [
       {
         "code": "TICKER",
@@ -889,76 +877,94 @@ const REPORT_SCHEMA = `{
         "phase": "accumulation" | "distribution" | "markup" | "markdown" | "neutral",
         "confidence": "high" | "medium" | "low",
         "topBrokers": [{ "broker": "XX", "name": "Broker Name", "totalValue": number, "valueShare": number, "isForeign": boolean }],
-        "concentration": number (% of total value held by top 3 brokers),
+        "concentration": number,
         "activeBrokers": number,
-        "hhiScore": number (HHI concentration score),
-        "interpretation": "4-6 sentence institutional-quality analysis: describe WHO dominates activity (institutional vs retail, foreign vs domestic), the concentration level (high HHI = few brokers dominating), and WHAT it means for the stock's near-term direction. Cross-reference with price trend, volume, and news catalysts."
+        "hhiScore": number,
+        "interpretation": "2-3 sentence analysis of WHO dominates and WHAT it means."
       }
     ],
-    "alertStocks": ["TICKER1", "TICKER2"] (stocks showing highest broker concentration -- top priority watchlist)
+    "alertStocks": ["TICKER1", "TICKER2"]
   },
   "brokerNetworkAnalysis": {
-    "summary": "3-5 sentence analysis of broker network clusters detected through correlation analysis. Which broker groups appear to be acting as a single entity? What does this mean for market manipulation risk or institutional coordination?",
+    "summary": "2-3 sentence analysis of broker network clusters and coordination.",
     "clusters": [
       {
         "label": "Cluster X",
         "members": ["broker codes"],
         "avgCorrelation": number,
-        "interpretation": "2-3 sentence interpretation of what this cluster likely represents and which stocks they are targeting"
+        "interpretation": "1-2 sentence interpretation"
       }
     ],
-    "implications": "2-3 sentence analysis of how broker clustering affects market dynamics and what investors should watch for"
+    "implications": "1-2 sentence analysis of market dynamics impact"
   },
   "regimeAnalysis": {
-    "summary": "3-5 sentence overview of the market regime distribution. What percentage of stocks are in accumulation vs distribution vs markup vs markdown? What does this tell us about the overall market cycle?",
+    "summary": "2-3 sentence overview of market regime distribution and cycle phase.",
     "regimeBreakdown": { "accumulation": number, "markup": number, "distribution": number, "markdown": number, "neutral": number },
     "notableTransitions": [
       {
         "code": "TICKER",
         "regime": "accumulation" | "markup" | "distribution" | "markdown",
         "confidence": number,
-        "interpretation": "1-2 sentence explanation of why this stock's regime classification is significant"
+        "interpretation": "1 sentence significance"
       }
     ]
   },
   "aiDiscovery": {
-    "summary": "3-4 sentence overview of the non-obvious patterns you identified across the broader market beyond headline stocks. What is the hidden narrative?",
+    "summary": "2-3 sentence overview of non-obvious patterns beyond headline stocks.",
     "hiddenGems": [
       {
         "code": "TICKER",
         "name": "Company Name",
         "discoveryType": "volume_anomaly" | "foreign_flow_outlier" | "undervalued_fundamental" | "stealth_accumulation" | "sector_rotation_early",
         "currentPrice": number,
-        "thesis": "5-8 sentence deep thesis: WHY is this stock interesting? What non-obvious angle did you find? Connect the discovery signal to fundamental value, technical setup, or institutional behavior. This should read like a hedge fund note -- insight a reader cannot get elsewhere.",
+        "thesis": "2-3 sentence non-obvious insight connecting discovery signal to value/setup/behavior.",
         "signals": ["specific quantitative signal 1", "signal 2"],
         "riskLevel": "high" | "medium" | "low",
         "conviction": "high" | "medium" | "low",
-        "targetPrice": number (optional, only if data supports it),
+        "targetPrice": number (optional),
         "fundamentals": { "per": number, "pbv": number, "roe": number, "deRatio": number } (if available),
-        "dataHighlight": "Single most compelling data point as a punchy one-liner (e.g. 'Volume 4.7x above 5-day average while price barely moved')"
+        "dataHighlight": "Single most compelling data point as a punchy one-liner"
       }
     ]
   },
   "marketOutlook": {
     "sentiment": "bullish" | "bearish" | "neutral" | "cautious",
-    "summary": "4-6 sentence market outlook synthesizing all data dimensions into a cohesive thesis.",
-    "keyRisks": ["risk description 1-2 sentences each", ...],
-    "keyCatalysts": ["catalyst description 1-2 sentences each", ...],
-    "shortTermForecast": "3-4 sentence actionable forecast: direction, key levels, sectors to overweight/underweight"
+    "summary": "2-3 sentence market outlook synthesizing all data dimensions.",
+    "keyRisks": ["1 sentence risk each"],
+    "keyCatalysts": ["1 sentence catalyst each"],
+    "shortTermForecast": "2-3 sentence actionable forecast: direction, key levels, sectors"
   }
 }`;
 
 function repairTruncatedJson(json: string): string {
   let repaired = json.trimEnd();
-  if (repaired.endsWith(",")) {
-    repaired = repaired.slice(0, -1);
-  }
 
   let braces = 0;
   let brackets = 0;
   let inString = false;
   let escaped = false;
+  let lastSafePos = 0;
 
+  for (let i = 0; i < repaired.length; i++) {
+    const ch = repaired[i];
+    if (escaped) { escaped = false; continue; }
+    if (ch === "\\") { escaped = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{") braces++;
+    if (ch === "[") brackets++;
+    if (ch === "}") { braces--; lastSafePos = i + 1; }
+    if (ch === "]") { brackets--; lastSafePos = i + 1; }
+    if (ch === ",") lastSafePos = i;
+  }
+
+  if (inString || escaped) {
+    repaired = lastSafePos > 0 ? repaired.slice(0, lastSafePos) : repaired;
+  }
+
+  repaired = repaired.replace(/[,:\s]+$/, "");
+
+  braces = 0; brackets = 0; inString = false; escaped = false;
   for (const ch of repaired) {
     if (escaped) { escaped = false; continue; }
     if (ch === "\\") { escaped = true; continue; }
@@ -970,17 +976,56 @@ function repairTruncatedJson(json: string): string {
     if (ch === "]") brackets--;
   }
 
-  if (inString) repaired += '"';
-
-  const lastChar = repaired.trimEnd().slice(-1);
-  if (lastChar === "," || lastChar === ":") {
-    repaired = repaired.trimEnd().slice(0, -1);
-  }
-
   while (brackets > 0) { repaired += "]"; brackets--; }
   while (braces > 0) { repaired += "}"; braces--; }
 
   return repaired;
+}
+
+function buildChartData(marketData: AggregatedMarketData): Record<string, unknown> {
+  const sectorPerformanceChart = Object.entries(marketData.sectorBreakdown)
+    .filter(([k]) => k !== "Unknown")
+    .map(([sector, data]) => ({
+      sector,
+      change: data.stocks > 0 ? data.totalChange / data.stocks : 0,
+    }));
+
+  const dailyFlow = new Map<string, number>();
+  for (const [, rows] of marketData.priceHistory.entries()) {
+    for (const r of rows) {
+      dailyFlow.set(r.date, (dailyFlow.get(r.date) || 0) + (r.foreignBuy - r.foreignSell));
+    }
+  }
+  const foreignFlowChart = [...dailyFlow.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, value]) => ({ date, value }));
+
+  const priceHistoryCharts = Array.from(marketData.priceHistory.entries()).map(
+    ([code, rows]) => ({
+      code,
+      name: rows[0]?.name || code,
+      data: rows.map((r) => ({ date: r.date, value: r.close })),
+    })
+  );
+
+  const breadthByDate = new Map<string, { adv: number; total: number }>();
+  for (const [, rows] of marketData.priceHistory.entries()) {
+    for (let i = 1; i < rows.length; i++) {
+      const d = rows[i].date;
+      if (!breadthByDate.has(d)) breadthByDate.set(d, { adv: 0, total: 0 });
+      const entry = breadthByDate.get(d)!;
+      entry.total++;
+      if (rows[i].close > rows[i - 1].close) entry.adv++;
+    }
+  }
+  const marketBreadthChart = [...breadthByDate.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, { adv, total }]) => ({
+      date,
+      value: total > 0 ? (adv / total) * 100 : 50,
+    }));
+
+  return { sectorPerformanceChart, foreignFlowChart, priceHistoryCharts, marketBreadthChart };
 }
 
 export interface GenerateReportResult {
@@ -1028,24 +1073,22 @@ CRITICAL RULES -- BREADTH OVER VERBOSITY:
 - Prioritize CAUSAL MECHANISMS over descriptions. Not "stock rose on positive sentiment" but "stock rose because X drove Y which means Z for the stock."
 
 SECTION RULES:
-1. Return ONLY valid JSON. All numbers must be actual numbers, not strings.
-2. topMovers: top 8 gainers, 8 losers, 8 most active. "reason" field: 2-3 sentences, cross-reference at least 2 data dimensions. Be specific with numbers.
+1. Return ONLY valid JSON. All numbers must be actual numbers, not strings. Do NOT include chartData -- it is built separately.
+2. topMovers: 5 gainers, 5 losers, 5 most active. Keep "reason" to 1-2 sentences max.
 3. sectorPerformance: all sectors present (filter "Unknown").
-4. stockPicks: 5-8 stocks. MUST include at least 2-3 picks that are NOT in the top movers or most active (use discovery data). Each pick needs: fundamentals object, technicalSetup, riskAssessment, catalysts, targetPrice. "rationale" should be substantive but dense (4-6 sentences, not padded). Be RESPONSIBLE about risks.
+4. stockPicks: 4-5 stocks. Include at least 2 non-blue-chip picks from discovery data.
 5. newsSentiment: preserve original URLs exactly.
-6. technicalAnalysis: multi-day patterns, support/resistance from price history, RSI estimates. Include 5-8 stocks (mix blue-chip and mid-cap). "notes": 2-3 sentences per signal.
-7. commodityAnalysis: 4-6 commodities (Oil, Gold, Coal, CPO, Nickel, Tin). Name specific IDX tickers affected and the transmission mechanism.
+6. technicalAnalysis: 4-5 stocks (mix blue-chip and mid-cap).
+7. commodityAnalysis: 4-5 commodities. Name specific IDX tickers affected.
 8. corporateEvents: from news data. Include ticker codes and URLs.
-9. pricePredictions: 5-8 stocks. Include at least 2 non-blue-chip stocks. Be honest about confidence.
-10. chartData: include ALL data points from price history (do NOT truncate). Price history for at least 6 stocks. Foreign flow chart, sector chart, breadth chart.
-11. bandarmology: analyze broker concentration using HHI scores. "interpretation": 3-4 sentences connecting broker concentration patterns to price/volume/fundamentals. Include non-blue-chip stocks from the expanded bandarmology data.
-12. brokerNetworkAnalysis: use the broker cluster data to identify coordinated trading entities. Explain what each cluster likely represents (same institution, same client group) and which stocks they are targeting. This is NEW intelligence not available from simple HHI analysis.
-13. regimeAnalysis: provide the regime breakdown numbers and highlight 3-5 notable stocks whose regime classification is significant (e.g., a blue-chip entering accumulation, or a liquid stock shifting to distribution). Connect regime to price action and broker activity.
-14. aiDiscovery: THIS IS MANDATORY. Analyze the discovery data (volume anomalies, foreign flow outliers, undervalued fundamentals, stealth accumulation) to find 4-8 hidden gems. Each thesis should be a genuine insight that the reader cannot get from surface-level analysis. Use SPECIFIC data points.
-15. marketOutlook: synthesize everything including regime distribution and broker network patterns into a cohesive thesis. Be actionable.
-16. Write all analysis in English.
-15. Do not use any emojis.
-16. Connect seemingly unrelated data points. The hallmark of great analysis is finding the hidden thread.`;
+9. pricePredictions: 4-5 stocks. Include at least 2 non-blue-chip stocks.
+10. bandarmology: analyze broker concentration using HHI scores.
+11. brokerNetworkAnalysis: use broker cluster data to identify coordinated trading entities.
+12. regimeAnalysis: regime breakdown numbers + 3-4 notable stocks.
+13. aiDiscovery: MANDATORY. 4-5 hidden gems from discovery data with specific data points.
+14. marketOutlook: synthesize everything into an actionable thesis.
+15. Write all analysis in English. Do not use any emojis.
+16. BE CONCISE. Insight density > word count. Every sentence must add unique value.`;
 
   const userMessage = `Here is today's market data for the Indonesia Stock Exchange (${marketData.tradingDate}):
 
@@ -1174,19 +1217,19 @@ ${marketData.discoveryData.stealthAccumulation.length > 0 ? marketData.discovery
 }).join("\n") : "No stealth accumulation detected."}
 
 Generate the market intelligence report. KEY REQUIREMENTS:
-1. DIVERSIFY stock coverage across sections. Do not repeat the same ticker in more than 3 sections.
-2. Use discovery data to find 4-8 hidden gems for aiDiscovery. These should be genuine non-obvious insights.
-3. Include at least 2-3 non-blue-chip stocks in stockPicks and pricePredictions.
-4. Cross-reference data points: connect price + volume + flow + fundamentals. Cite specific numbers.
-5. Preserve ALL chart data points (do not truncate price history).
-6. Be CONCISE -- insight density matters more than word count. No filler paragraphs.
-7. Be responsible with picks: flag risks honestly, high-conviction only when multiple dimensions align.`;
+1. DIVERSIFY stock coverage. Do not repeat the same ticker in more than 3 sections.
+2. Use discovery data for 4-5 hidden gems in aiDiscovery.
+3. Include at least 2 non-blue-chip stocks in stockPicks and pricePredictions.
+4. Cross-reference data: cite specific numbers connecting price + volume + flow + fundamentals.
+5. Do NOT include chartData in your response -- it is built separately.
+6. Be CONCISE -- every sentence must add unique insight. No filler.
+7. Flag risks honestly. This is critical: output must be valid, parseable JSON.`;
 
   const anthropic = new Anthropic({ apiKey });
 
   const stream = anthropic.messages.stream({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 16000,
+    max_tokens: 16384,
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
   });
@@ -1221,6 +1264,8 @@ Generate the market intelligence report. KEY REQUIREMENTS:
       throw new Error(`JSON parse failed (stop_reason: ${response.stop_reason}). Preview: ${preview}`);
     }
   }
+
+  report.chartData = buildChartData(marketData);
 
   const outlook = report.marketOutlook as Record<string, unknown> | undefined;
   const sentiment = (outlook?.sentiment as string) || "neutral";

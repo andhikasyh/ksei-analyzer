@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
+import { useLocale } from "@/lib/locale-context";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
@@ -108,8 +109,10 @@ function useMdStyles(isDark: boolean, accent: string) {
   } as const;
 }
 
-export function MarketChat({ context, placeholder, compact, sharp, locked, onLockedAttempt }: MarketChatProps) {
+export function MarketChat({ context, placeholder: placeholderProp, compact, sharp, locked, onLockedAttempt }: MarketChatProps) {
   const theme = useTheme();
+  const { t } = useLocale();
+  const placeholder = placeholderProp ?? t("chat.placeholderMarket");
   const isDark = theme.palette.mode === "dark";
   const [state, setState] = useState<StreamState>("idle");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -612,7 +615,7 @@ export function MarketChat({ context, placeholder, compact, sharp, locked, onLoc
         <TextField
           fullWidth
           size="small"
-          placeholder={placeholder || "Ask about the Indonesian market..."}
+          placeholder={placeholder}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}

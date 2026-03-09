@@ -21,6 +21,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import type { User } from "@supabase/supabase-js";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useProContext } from "@/lib/pro-context";
+import { useLocale } from "@/lib/locale-context";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
@@ -36,12 +37,7 @@ interface ProPaywallModalProps {
 const MAYAR_EMBED_URL = process.env.NEXT_PUBLIC_MAYAR_EMBED_URL || "https://gunaa.myr.id/pl/Gunaa-sub";
 const MAYAR_EMBED_SCRIPT = "https://mayarembed.r2.mayar.id/mayarEmbed.min.js";
 
-const PRO_FEATURES = [
-  "Laporan Market Intelligence harian setiap hari bursa",
-  "AI Chat tanpa batas tentang saham IDX",
-  "Newsletter harian dikirim ke email kamu",
-  "Analisis sektor, foreign flow, dan prediksi harga",
-];
+const PRO_FEATURE_KEYS = ["auth.proFeature1", "auth.proFeature2", "auth.proFeature3", "auth.proFeature4"];
 
 function useMayarEmbed() {
   useEffect(() => {
@@ -54,7 +50,18 @@ function useMayarEmbed() {
   }, []);
 }
 
-function passwordStrength(pw: string): { score: number; label: string; color: string } {
+function passwordStrengthLabels(): Record<number, string> {
+  return {
+    0: "",
+    1: "auth.passwordStrengthVeryWeak",
+    2: "auth.passwordStrengthWeak",
+    3: "auth.passwordStrengthFair",
+    4: "auth.passwordStrengthStrong",
+    5: "auth.passwordStrengthVeryStrong",
+  };
+}
+
+function passwordStrength(pw: string, t: (k: string) => string): { score: number; label: string; color: string } {
   if (!pw) return { score: 0, label: "", color: "transparent" };
   let score = 0;
   if (pw.length >= 8) score++;
@@ -62,11 +69,12 @@ function passwordStrength(pw: string): { score: number; label: string; color: st
   if (/[A-Z]/.test(pw)) score++;
   if (/[0-9]/.test(pw)) score++;
   if (/[^A-Za-z0-9]/.test(pw)) score++;
-  if (score <= 1) return { score, label: "Terlalu lemah", color: "#ef4444" };
-  if (score === 2) return { score, label: "Lemah", color: "#f97316" };
-  if (score === 3) return { score, label: "Cukup", color: "#eab308" };
-  if (score === 4) return { score, label: "Kuat", color: "#22c55e" };
-  return { score, label: "Sangat kuat", color: "#10b981" };
+  const labels = passwordStrengthLabels();
+  if (score <= 1) return { score, label: t(labels[1] ?? ""), color: "#ef4444" };
+  if (score === 2) return { score, label: t(labels[2] ?? ""), color: "#f97316" };
+  if (score === 3) return { score, label: t(labels[3] ?? ""), color: "#eab308" };
+  if (score === 4) return { score, label: t(labels[4] ?? ""), color: "#22c55e" };
+  return { score, label: t(labels[5] ?? ""), color: "#10b981" };
 }
 
 function EmailAuthForm({
@@ -79,6 +87,7 @@ function EmailAuthForm({
   onSuccess: () => void;
 }) {
   const theme = useTheme();
+  const { t } = useLocale();
   const isDark = theme.palette.mode === "dark";
   const { signInWithEmail, signUpWithEmail } = useProContext();
   const [email, setEmail] = useState("");
@@ -101,7 +110,7 @@ function EmailAuthForm({
     turnstileRef.current?.reset();
   }, [mode]);
 
-  const strength = passwordStrength(password);
+  const strength = passwordStrength(password, t);
   const isSignup = mode === "signup";
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const passwordOk = password.length >= 8;
@@ -109,9 +118,9 @@ function EmailAuthForm({
   const hasCaptcha = !TURNSTILE_SITE_KEY || !!captchaToken;
   const canSubmit = emailValid && passwordOk && confirmMatch && hasCaptcha && !loading;
 
-  const emailError = touched.email && !emailValid ? "Format email tidak valid" : "";
-  const passwordError = touched.password && !passwordOk ? "Minimal 8 karakter" : "";
-  const confirmError = touched.confirm && isSignup && !confirmMatch ? "Password tidak cocok" : "";
+  const emailError = touched.email && !emailValid ? t("auth.emailInvalid") : "";
+  const passwordError = touched.password && !passwordOk ? t("auth.passwordMin") : "";
+  const confirmError = touched.confirm && isSignup && !confirmMatch ? t("auth.passwordMismatch") : "";
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return;
@@ -122,16 +131,16 @@ function EmailAuthForm({
     const { error } = await fn(email.trim(), password, captchaToken || undefined);
     if (error) {
       const msg: Record<string, string> = {
-        "Invalid login credentials": "Email atau password salah.",
-        "Email not confirmed": "Cek inbox kamu dulu untuk konfirmasi email.",
-        "User already registered": "Email ini sudah terdaftar. Coba masuk.",
+        "Invalid login credentials": t("auth.errorInvalidCredentials"),
+        "Email not confirmed": t("auth.errorEmailNotConfirmed"),
+        "User already registered": t("auth.errorAlreadyRegistered"),
       };
       setError(msg[error] ?? error);
       turnstileRef.current?.reset();
       setCaptchaToken("");
       setLoading(false);
     } else if (isSignup) {
-      setSuccess("Hampir selesai! Cek email kamu untuk konfirmasi akun.");
+      setSuccess(t("auth.successConfirmEmail"));
       setLoading(false);
     } else {
       onSuccess();
@@ -163,7 +172,7 @@ function EmailAuthForm({
     <Stack spacing={1.5}>
       {/* email */}
       <TextField
-        fullWidth size="small" label="Email" type="email"
+        fullWidth size="small" label={t("auth.email")} type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         onBlur={() => setTouched((p) => ({ ...p, email: true }))}
@@ -179,14 +188,14 @@ function EmailAuthForm({
       {/* password */}
       <Box>
         <TextField
-          fullWidth size="small" label="Password"
+          fullWidth size="small" label={t("auth.password")}
           type={showPw ? "text" : "password"}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           onBlur={() => setTouched((p) => ({ ...p, password: true }))}
           onKeyDown={(e) => e.key === "Enter" && !isSignup && handleSubmit()}
           error={!!passwordError}
-          helperText={passwordError || (isSignup ? "Minimal 8 karakter" : undefined)}
+          helperText={passwordError || (isSignup ? t("auth.passwordMin") : undefined)}
           sx={fieldSx(!!passwordError)}
           slotProps={{
             input: {
@@ -225,7 +234,7 @@ function EmailAuthForm({
       {/* confirm password — signup only */}
       {isSignup && (
         <TextField
-          fullWidth size="small" label="Konfirmasi password"
+          fullWidth size="small" label={t("auth.confirmPassword")}
           type={showConfirm ? "text" : "password"}
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
@@ -305,14 +314,14 @@ function EmailAuthForm({
       >
         {loading
           ? <CircularProgress size={16} sx={{ color: "#050505" }} />
-          : mode === "login" ? "Masuk" : "Buat akun"}
+          : mode === "login" ? t("auth.login") : t("auth.signup")}
       </Button>
 
       <Typography sx={{ fontSize: "0.7rem", color: "text.secondary", textAlign: "center", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
-        {mode === "login" ? "Belum punya akun?" : "Sudah punya akun?"}{" "}
+        {mode === "login" ? t("auth.noAccount") : t("auth.hasAccount")}{" "}
         <Box component="span" onClick={onSwitch}
           sx={{ color: accent, cursor: "pointer", fontWeight: 600, "&:hover": { textDecoration: "underline" } }}>
-          {mode === "login" ? "Daftar gratis" : "Masuk"}
+          {mode === "login" ? t("auth.registerFree") : t("auth.login")}
         </Box>
       </Typography>
     </Stack>
@@ -360,6 +369,7 @@ interface ReferralCodeInputProps {
 }
 
 function ReferralCodeInput({ user, redeemReferral, accent, isDark, onSuccess }: ReferralCodeInputProps) {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -369,7 +379,7 @@ function ReferralCodeInput({ user, redeemReferral, accent, isDark, onSuccess }: 
   const handleRedeem = useCallback(async () => {
     if (!code.trim()) return;
     if (!user) {
-      setError("Kamu harus login terlebih dahulu.");
+      setError(t("auth.mustLoginToRedeem"));
       return;
     }
     setLoading(true);
@@ -378,12 +388,21 @@ function ReferralCodeInput({ user, redeemReferral, accent, isDark, onSuccess }: 
     const result = await redeemReferral(code.trim());
     setLoading(false);
     if (result.ok) {
-      setSuccess(`Pro aktif — ${result.free_months ?? 1} bulan gratis.`);
+      setSuccess(t("auth.referralProActive").replace("{months}", String(result.free_months ?? 1)));
       setTimeout(() => onSuccess(), 2000);
     } else {
-      setError(result.error ?? "Kode tidak valid.");
+      const err = result.error;
+      const translated =
+        err === "Kamu harus login terlebih dahulu."
+          ? t("auth.mustLoginToRedeem")
+          : err === "Gagal menggunakan kode referral."
+            ? t("auth.referralFailed")
+            : err === "Terjadi kesalahan. Coba lagi."
+              ? t("auth.referralError")
+              : err ?? t("auth.referralInvalidCode");
+      setError(translated);
     }
-  }, [code, user, redeemReferral, onSuccess]);
+  }, [code, user, redeemReferral, onSuccess, t]);
 
   if (!open) {
     return (
@@ -399,7 +418,7 @@ function ReferralCodeInput({ user, redeemReferral, accent, isDark, onSuccess }: 
           transition: "color 0.15s ease",
         }}
       >
-        Punya kode referral?
+        {t("auth.haveReferralCode")}
       </Typography>
     );
   }
@@ -407,12 +426,12 @@ function ReferralCodeInput({ user, redeemReferral, accent, isDark, onSuccess }: 
   return (
     <Stack spacing={0.75}>
       <Typography sx={{ fontSize: "0.68rem", color: "text.secondary", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
-        Kode referral
+        {t("auth.referralCodeLabel")}
       </Typography>
       <Box sx={{ display: "flex", gap: 0.75 }}>
         <Box
           component="input"
-          placeholder="KODE-REFERRAL"
+          placeholder={t("auth.referralPlaceholderCode")}
           value={code}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCode(e.target.value.toUpperCase())}
           onKeyDown={(e: React.KeyboardEvent) => e.key === "Enter" && handleRedeem()}
@@ -440,7 +459,7 @@ function ReferralCodeInput({ user, redeemReferral, accent, isDark, onSuccess }: 
             "&:disabled": { opacity: 0.4 },
           }}
         >
-          {loading ? <CircularProgress size={13} /> : "Pakai"}
+          {loading ? <CircularProgress size={13} /> : t("auth.referralUse")}
         </Button>
       </Box>
       {error && <Typography sx={{ fontSize: "0.68rem", color: isDark ? "#fb7185" : "#e11d48", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>{error}</Typography>}
@@ -456,8 +475,9 @@ export function ProPaywallModal({
   reason = "insight",
 }: ProPaywallModalProps) {
   const theme = useTheme();
+  const { t } = useLocale();
   const isDark = theme.palette.mode === "dark";
-  const isMobile = useMediaQuery((t) => t.breakpoints.down("sm"));
+  const isMobile = useMediaQuery((mq) => mq.breakpoints.down("sm"));
   const { user, isPro, redeemReferral } = useProContext();
   const [mode, setMode] = useState<PaywallMode>(initialMode);
 
@@ -529,7 +549,7 @@ export function ProPaywallModal({
                 fontWeight: 700, fontSize: "1.05rem",
                 letterSpacing: "-0.02em",
               }}>
-                {mode === "login" ? "Masuk" : "Buat akun"}
+                {mode === "login" ? t("auth.login") : t("auth.signup")}
               </Typography>
             </Box>
 
@@ -551,7 +571,7 @@ export function ProPaywallModal({
                 letterSpacing: "0.1em", color: accent,
                 textTransform: "uppercase", mb: 1,
               }}>
-                Gunaa Pro
+                {t("auth.gunaaPro")}
               </Typography>
 
               <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.75, mb: 0.5 }}>
@@ -563,7 +583,7 @@ export function ProPaywallModal({
                   Rp99.000
                 </Typography>
                 <Typography sx={{ fontSize: "0.72rem", color: "text.secondary", fontFamily: '"Plus Jakarta Sans", sans-serif' }}>
-                  / bulan
+                  {t("auth.perMonth")}
                 </Typography>
                 <Typography sx={{
                   fontSize: "0.65rem", color: "text.secondary",
@@ -578,12 +598,12 @@ export function ProPaywallModal({
                 fontSize: "0.72rem", color: "text.secondary",
                 fontFamily: '"Plus Jakarta Sans", sans-serif',
               }}>
-                Harga early adopter — hemat 82%
+                {t("auth.earlyAdopterPrice")}
               </Typography>
             </Box>
 
             <Stack spacing={0.85}>
-              {PRO_FEATURES.map((text, i) => (
+              {PRO_FEATURE_KEYS.map((key, i) => (
                 <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 1.25 }}>
                   <Box sx={{
                     width: 4, height: 4, borderRadius: "50%",
@@ -595,7 +615,7 @@ export function ProPaywallModal({
                     fontFamily: '"Plus Jakarta Sans", sans-serif',
                     lineHeight: 1.5,
                   }}>
-                    {text}
+                    {t(key)}
                   </Typography>
                 </Box>
               ))}
@@ -611,7 +631,7 @@ export function ProPaywallModal({
                 "&:hover": { bgcolor: isDark ? "#e0b83d" : "#e0b83d", boxShadow: "none" },
               }}
             >
-              Berlangganan sekarang
+              {t("auth.subscribeNow")}
             </Button>
 
             <Typography sx={{
@@ -619,7 +639,7 @@ export function ProPaywallModal({
               textAlign: "center",
               fontFamily: '"Plus Jakarta Sans", sans-serif', lineHeight: 1.6,
             }}>
-              Transfer bank · QRIS · e-wallet · via Mayar.id
+              {t("auth.paymentMethods")}
             </Typography>
 
             <ReferralCodeInput
@@ -636,10 +656,10 @@ export function ProPaywallModal({
                 textAlign: "center",
                 fontFamily: '"Plus Jakarta Sans", sans-serif',
               }}>
-                Sudah punya akun?{" "}
+                {t("auth.haveAccountLogin")}{" "}
                 <Box component="span" onClick={() => setMode("login")}
                   sx={{ color: accent, cursor: "pointer", fontWeight: 600 }}>
-                  Masuk
+                  {t("auth.login")}
                 </Box>
               </Typography>
             )}
@@ -656,7 +676,7 @@ export function ProPaywallModal({
                 letterSpacing: "0.1em", color: accent,
                 textTransform: "uppercase",
               }}>
-                Gunaa Pro · 1 bulan
+                {t("auth.proOneMonth")}
               </Typography>
               <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.5 }}>
                 <Typography sx={{
@@ -679,7 +699,7 @@ export function ProPaywallModal({
               textAlign: "center",
               fontFamily: '"Plus Jakarta Sans", sans-serif', lineHeight: 1.6,
             }}>
-              Akun diaktifkan dalam 1×24 jam setelah pembayaran dikonfirmasi.
+              {t("auth.accountActivatedNote")}
             </Typography>
           </Stack>
         )}

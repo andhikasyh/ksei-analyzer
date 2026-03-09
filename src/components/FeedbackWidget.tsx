@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import { usePathname } from "next/navigation";
+import { useLocale } from "@/lib/locale-context";
 import Box from "@mui/material/Box";
 import Fab from "@mui/material/Fab";
 import Slide from "@mui/material/Slide";
@@ -17,14 +18,15 @@ import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import CheckIcon from "@mui/icons-material/Check";
 
 const TYPES = [
-  { value: "general", label: "Masukan Umum" },
-  { value: "bug", label: "Laporan Bug" },
-  { value: "suggestion", label: "Saran Fitur" },
-  { value: "data", label: "Masalah Data" },
+  { value: "general", labelKey: "feedback.title" },
+  { value: "bug", labelKey: "feedback.bugReport" },
+  { value: "suggestion", labelKey: "feedback.featureSuggestion" },
+  { value: "data", labelKey: "feedback.dataFeedback" },
 ];
 
 export function FeedbackWidget() {
   const theme = useTheme();
+  const { t } = useLocale();
   const isDark = theme.palette.mode === "dark";
   const pathname = usePathname();
 
@@ -73,16 +75,16 @@ export function FeedbackWidget() {
       });
       if (!res.ok) {
         if (res.status === 429) {
-          setError("Terlalu banyak permintaan. Tunggu beberapa menit.");
+          setError(t("feedback.tooManyRequests"));
         } else {
-          setError("Gagal mengirim. Coba lagi.");
+          setError(t("feedback.sendFailed"));
         }
         return;
       }
       setDone(true);
       setTimeout(handleClose, 2000);
     } catch {
-      setError("Gagal mengirim. Coba lagi.");
+      setError(t("feedback.sendFailed"));
     } finally {
       setLoading(false);
     }
@@ -137,7 +139,7 @@ export function FeedbackWidget() {
                 color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)",
               }}
             >
-              Kirim Masukan
+              {t("feedback.sendFeedback")}
             </Typography>
             <IconButton size="small" onClick={handleClose} sx={{ color: "text.secondary" }}>
               <CloseIcon sx={{ fontSize: 15 }} />
@@ -176,13 +178,13 @@ export function FeedbackWidget() {
                     color: "#22c55e",
                   }}
                 >
-                  Terima kasih!
+                  {t("feedback.thankYou")}
                 </Typography>
                 <Typography
                   variant="caption"
                   sx={{ color: "text.secondary", textAlign: "center", fontSize: "0.72rem" }}
                 >
-                  Masukan kamu sudah kami terima.
+                  {t("feedback.feedbackReceived")}
                 </Typography>
               </Box>
             ) : (
@@ -195,9 +197,9 @@ export function FeedbackWidget() {
                   fullWidth
                   sx={fieldSx(isDark)}
                 >
-                  {TYPES.map((t) => (
-                    <MenuItem key={t.value} value={t.value} sx={{ fontSize: "0.82rem" }}>
-                      {t.label}
+                  {TYPES.map((item) => (
+                    <MenuItem key={item.value} value={item.value} sx={{ fontSize: "0.82rem" }}>
+                      {t(item.labelKey)}
                     </MenuItem>
                   ))}
                 </TextField>
@@ -206,7 +208,7 @@ export function FeedbackWidget() {
                   multiline
                   rows={4}
                   size="small"
-                  placeholder="Tulis masukan kamu..."
+                  placeholder={t("feedback.placeholder")}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   fullWidth
@@ -216,7 +218,7 @@ export function FeedbackWidget() {
 
                 <TextField
                   size="small"
-                  placeholder="Email (opsional)"
+                  placeholder={t("feedback.emailOptional")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   fullWidth
@@ -260,7 +262,7 @@ export function FeedbackWidget() {
                   {loading ? (
                     <CircularProgress size={14} sx={{ color: "inherit" }} />
                   ) : (
-                    "Kirim"
+                    t("feedback.submit")
                   )}
                 </Button>
               </>

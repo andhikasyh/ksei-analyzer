@@ -3,6 +3,7 @@
 import { createContext, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@mui/material/styles";
+import { useLocale } from "@/lib/locale-context";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -86,21 +87,30 @@ function fmtVol(n: number): string {
 }
 
 export function SentimentChip({ sentiment, size = "small" }: { sentiment: string; size?: "small" | "medium" }) {
-  const config: Record<string, { bg: string; color: string; label: string }> = {
-    bullish: { bg: "rgba(52,211,153,0.12)", color: "#34d399", label: "Bullish" },
-    bearish: { bg: "rgba(248,113,113,0.12)", color: "#f87171", label: "Bearish" },
-    neutral: { bg: "rgba(251,191,36,0.12)", color: "#fbbf24", label: "Neutral" },
-    cautious: { bg: "rgba(251,146,60,0.12)", color: "#fb923c", label: "Cautious" },
-    inflow: { bg: "rgba(52,211,153,0.12)", color: "#34d399", label: "Net Inflow" },
-    outflow: { bg: "rgba(248,113,113,0.12)", color: "#f87171", label: "Net Outflow" },
+  const { t } = useLocale();
+  const config: Record<string, { bg: string; color: string; labelKey: string }> = {
+    bullish: { bg: "rgba(52,211,153,0.12)", color: "#34d399", labelKey: "report.bullish" },
+    bearish: { bg: "rgba(248,113,113,0.12)", color: "#f87171", labelKey: "report.bearish" },
+    neutral: { bg: "rgba(251,191,36,0.12)", color: "#fbbf24", labelKey: "report.neutral" },
+    cautious: { bg: "rgba(251,146,60,0.12)", color: "#fb923c", labelKey: "report.cautious" },
+    inflow: { bg: "rgba(52,211,153,0.12)", color: "#34d399", labelKey: "report.netInflow" },
+    outflow: { bg: "rgba(248,113,113,0.12)", color: "#f87171", labelKey: "report.netOutflow" },
   };
   const c = config[sentiment] || config.neutral;
   return (
-    <Chip label={c.label} size={size} sx={{ bgcolor: c.bg, color: c.color, fontWeight: 700, fontSize: size === "small" ? "0.72rem" : "0.82rem", height: size === "small" ? 24 : 30, fontFamily: '"Plus Jakarta Sans", sans-serif' }} />
+    <Chip label={t(c.labelKey)} size={size} sx={{ bgcolor: c.bg, color: c.color, fontWeight: 700, fontSize: size === "small" ? "0.72rem" : "0.82rem", height: size === "small" ? 24 : 30, fontFamily: '"Plus Jakarta Sans", sans-serif' }} />
   );
 }
 
+const ACTION_LABEL_KEYS: Record<string, string> = {
+  BUY: "report.buy",
+  HOLD: "report.hold",
+  SELL: "report.sell",
+  WATCH: "report.watch",
+};
+
 function ActionChip({ action }: { action: string }) {
+  const { t } = useLocale();
   const config: Record<string, { bg: string; color: string }> = {
     BUY: { bg: "rgba(52,211,153,0.15)", color: "#34d399" },
     HOLD: { bg: "rgba(251,191,36,0.15)", color: "#fbbf24" },
@@ -108,8 +118,9 @@ function ActionChip({ action }: { action: string }) {
     WATCH: { bg: "rgba(129,140,248,0.15)", color: "#818cf8" },
   };
   const c = config[action] || config.HOLD;
+  const labelKey = ACTION_LABEL_KEYS[action] ?? "report.hold";
   return (
-    <Chip label={action} size="small" sx={{ bgcolor: c.bg, color: c.color, fontWeight: 800, fontSize: "0.7rem", height: 24, fontFamily: '"JetBrains Mono", monospace', letterSpacing: "0.05em" }} />
+    <Chip label={t(labelKey)} size="small" sx={{ bgcolor: c.bg, color: c.color, fontWeight: 800, fontSize: "0.7rem", height: 24, fontFamily: '"JetBrains Mono", monospace', letterSpacing: "0.05em" }} />
   );
 }
 
@@ -149,6 +160,7 @@ function GlassCard({ children, className, sx }: { children: React.ReactNode; cla
 
 function MarketOverviewSection({ report }: { report: MarketIntelligenceReport }) {
   const theme = useTheme();
+  const { t } = useLocale();
   const isDark = theme.palette.mode === "dark";
   const compact = useContext(ReportCompactContext);
   const { marketOverview: o } = report;
@@ -157,19 +169,21 @@ function MarketOverviewSection({ report }: { report: MarketIntelligenceReport })
   const decPct = totalStocks > 0 ? (o.decliningCount / totalStocks) * 100 : 0;
   const neutPct = totalStocks > 0 ? (o.unchangedCount / totalStocks) * 100 : 0;
 
+  const rows = [
+    { labelKey: "report.totalVolume", value: fmtVol(o.totalVolume) },
+    { labelKey: "report.totalValue", value: fmtValue(o.totalValue) },
+    { labelKey: "report.advancing", value: String(o.advancingCount), color: "#34d399" },
+    { labelKey: "report.declining", value: String(o.decliningCount), color: "#f87171" },
+    { labelKey: "report.unchanged", value: String(o.unchangedCount), color: "#94a3b8" },
+  ] as const;
+
   return (
     <GlassCard className="animate-in animate-in-delay-1">
-      <SectionHeader title="Market Overview" subtitle={`Trading day: ${o.tradingDate}`} />
+      <SectionHeader title={t("dashboard.marketOverview")} subtitle={`${t("dashboard.tradingDay")} ${o.tradingDate}`} />
       <Grid container spacing={compact ? 2 : 3}>
-        {([
-          { label: "Total Volume", value: fmtVol(o.totalVolume) },
-          { label: "Total Value", value: fmtValue(o.totalValue) },
-          { label: "Advancing", value: String(o.advancingCount), color: "#34d399" },
-          { label: "Declining", value: String(o.decliningCount), color: "#f87171" },
-          { label: "Unchanged", value: String(o.unchangedCount), color: "#94a3b8" },
-        ] as const).map((item) => (
-          <Grid size={{ xs: 6, sm: 3 }} key={item.label}>
-            <Typography variant="caption" sx={{ color: mutedColor(isDark), fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", fontSize: "0.72rem" }}>{item.label}</Typography>
+        {rows.map((item) => (
+          <Grid size={{ xs: 6, sm: 3 }} key={item.labelKey}>
+            <Typography variant="caption" sx={{ color: mutedColor(isDark), fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", fontSize: "0.72rem" }}>{t(item.labelKey)}</Typography>
             <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: "1.35rem", ...("color" in item ? { color: item.color } : {}) }}>{item.value}</Typography>
           </Grid>
         ))}

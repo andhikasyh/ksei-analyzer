@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@mui/material/styles";
+import { useLocale } from "@/lib/locale-context";
 import { supabase, TABLE_NAME } from "@/lib/supabase";
 import {
   KSEIRecord,
@@ -117,6 +118,7 @@ interface MarketMover {
 
 export function DashboardContent() {
   const theme = useTheme();
+  const { t } = useLocale();
   const isDark = theme.palette.mode === "dark";
   const [data, setData] = useState<DashboardData | null>(null);
   const [movers, setMovers] = useState<{
@@ -288,7 +290,7 @@ export function DashboardContent() {
         if (fetchError) throw fetchError;
         if (!records || records.length === 0) {
           setError(
-            "No data found. Check your table name in src/lib/supabase.ts"
+            t("dashboard.noData")
           );
           setLoading(false);
           return;

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useTheme } from "@mui/material/styles";
 import { usePathname } from "next/navigation";
+import { useLocale } from "@/lib/locale-context";
 import Box from "@mui/material/Box";
 import Fab from "@mui/material/Fab";
 import IconButton from "@mui/material/IconButton";
@@ -13,6 +14,7 @@ import { MarketChat } from "@/components/MarketChat";
 
 export function FloatingChat() {
   const theme = useTheme();
+  const { t } = useLocale();
   const isDark = theme.palette.mode === "dark";
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -74,7 +76,7 @@ export function FloatingChat() {
             <MarketChat
               compact
               sharp
-              placeholder="Ask about Indonesian stocks..."
+              placeholder={t("chat.placeholderStocks")}
             />
           </Box>
         </Box>

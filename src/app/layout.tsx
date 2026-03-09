@@ -8,6 +8,7 @@ import { FeedbackWidget } from "@/components/FeedbackWidget";
 import { BackToTop } from "@/components/BackToTop";
 import { Footer } from "@/components/Footer";
 import { ProProvider } from "@/lib/pro-context";
+import { LocaleProvider } from "@/lib/locale-context";
 import { getBaseUrl, SITE_NAME, SITE_DESCRIPTION, SITE_KEYWORDS } from "@/lib/site";
 import "./globals.css";
 
@@ -51,7 +52,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="id" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
@@ -96,12 +97,14 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <ProProvider>
-            <Navbar />
-            <LayoutShell>{children}</LayoutShell>
-            <Footer />
-            <FloatingChat />
-            <FeedbackWidget />
-            <BackToTop />
+            <LocaleProvider>
+              <Navbar />
+              <LayoutShell>{children}</LayoutShell>
+              <Footer />
+              <FloatingChat />
+              <FeedbackWidget />
+              <BackToTop />
+            </LocaleProvider>
           </ProProvider>
         </ThemeProvider>
         <Analytics />

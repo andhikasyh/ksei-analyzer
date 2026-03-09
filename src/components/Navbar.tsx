@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useColorMode } from "@/components/ThemeProvider";
 import { useProContext } from "@/lib/pro-context";
-import { SITE_NAME } from "@/lib/site";
+import { useLocale } from "@/lib/locale-context";
 import { useEffect, useState, useCallback } from "react";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
@@ -35,35 +35,50 @@ import BusinessIcon from "@mui/icons-material/Business";
 import EventIcon from "@mui/icons-material/Event";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import ScienceIcon from "@mui/icons-material/Science";
+import LanguageIcon from "@mui/icons-material/Language";
 import { ProPaywallModal } from "@/components/ProPaywallModal";
 
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard" },
-  { href: "/screener", label: "Screener" },
-  { href: "/brokers", label: "Brokers" },
-  { href: "/intelligent", label: "Insights" },
+  { href: "/", labelKey: "nav.dashboard" },
+  { href: "/screener", labelKey: "nav.screener" },
+  { href: "/brokers", labelKey: "nav.brokers" },
+  { href: "/intelligent", labelKey: "nav.insights" },
 ];
 
-const MORE_ITEMS: { href: string; label: string; icon: React.ComponentType<{ sx?: object }>; beta?: boolean }[] = [
-  { href: "/watchlist", label: "Watchlist", icon: StarBorderIcon },
-  { href: "/foreign-flow", label: "Foreign Flow", icon: TrendingUpIcon },
-  { href: "/sectors", label: "Sectors", icon: BusinessIcon },
-  { href: "/dividends", label: "Dividends", icon: EventIcon },
-  { href: "/compare", label: "Compare", icon: CompareArrowsIcon },
-  { href: "/lab", label: "Strategy Lab", icon: ScienceIcon, beta: true },
+const MORE_ITEMS: { href: string; labelKey: string; icon: React.ComponentType<{ sx?: object }>; beta?: boolean }[] = [
+  { href: "/watchlist", labelKey: "nav.watchlist", icon: StarBorderIcon },
+  { href: "/foreign-flow", labelKey: "nav.foreignFlow", icon: TrendingUpIcon },
+  { href: "/sectors", labelKey: "nav.sectors", icon: BusinessIcon },
+  { href: "/dividends", labelKey: "nav.dividends", icon: EventIcon },
+  { href: "/compare", labelKey: "nav.compare", icon: CompareArrowsIcon },
+  { href: "/lab", labelKey: "nav.strategyLab", icon: ScienceIcon, beta: true },
 ];
 
 export function Navbar() {
   const pathname = usePathname();
   const { mode, toggleColorMode } = useColorMode();
   const { user, isPro, signOut, loading: proLoading } = useProContext();
+  const { t, locale, setLocale } = useLocale();
   const [mounted, setMounted] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [moreAnchorEl, setMoreAnchorEl] = useState<null | HTMLElement>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [langAnchorEl, setLangAnchorEl] = useState<null | HTMLElement>(null);
 
   useEffect(() => setMounted(true), []);
+
+  const handleLangMenuOpen = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    setLangAnchorEl(e.currentTarget);
+  }, []);
+  const handleLangMenuClose = useCallback(() => setLangAnchorEl(null), []);
+  const handleSetLocale = useCallback(
+    (newLocale: "id" | "en") => {
+      setLocale(newLocale);
+      handleLangMenuClose();
+    },
+    [setLocale, handleLangMenuClose]
+  );
 
   const isDark = mode === "dark";
   const accent = isDark ? "#c9a227" : "#c9a227";
@@ -138,12 +153,12 @@ export function Navbar() {
                     color: "text.primary",
                   }}
                 >
-                  {SITE_NAME}
+                  {t("common.siteName")}
                 </Typography>
               </Box>
 
               <Box sx={{ display: { xs: "none", md: "flex" }, alignItems: "center", gap: 0.5 }}>
-                {NAV_ITEMS.map(({ href, label }) => {
+                {NAV_ITEMS.map(({ href, labelKey }) => {
                   const isActive =
                     pathname === href ||
                     (href !== "/" && pathname.startsWith(href));
@@ -179,7 +194,7 @@ export function Navbar() {
                         },
                       }}
                     >
-                      {label}
+                      {t(labelKey)}
                     </Button>
                   );
                 })}
@@ -212,7 +227,7 @@ export function Navbar() {
                         },
                       }}
                     >
-                      More
+                      {t("common.more")}
                     </Button>
                   );
                 })()}
@@ -237,7 +252,7 @@ export function Navbar() {
                   transformOrigin={{ horizontal: "left", vertical: "top" }}
                   anchorOrigin={{ horizontal: "left", vertical: "bottom" }}
                 >
-                  {MORE_ITEMS.map(({ href, label, icon: Icon, beta }) => {
+                  {MORE_ITEMS.map(({ href, labelKey, icon: Icon, beta }) => {
                     const isActive = pathname.startsWith(href);
                     return (
                       <MenuItem
@@ -257,7 +272,7 @@ export function Navbar() {
                         }}
                       >
                         <Icon sx={{ fontSize: 16, color: isActive ? accent : "text.secondary" }} />
-                        {label}
+                        {t(labelKey)}
                         {beta && (
                           <Box
                             component="span"
@@ -274,7 +289,7 @@ export function Navbar() {
                               color: accent,
                             }}
                           >
-                            BETA
+                            {t("common.beta")}
                           </Box>
                         )}
                       </MenuItem>
@@ -288,7 +303,7 @@ export function Navbar() {
               <IconButton
                 onClick={() => setMobileMenuOpen(true)}
                 size="small"
-                aria-label="Open menu"
+                aria-label={t("common.openMenu")}
                 sx={{
                   display: { xs: "inline-flex", md: "none" },
                   width: 40,
@@ -334,7 +349,7 @@ export function Navbar() {
                             letterSpacing: "0.06em",
                           }}
                         >
-                          PRO
+                          {t("common.pro")}
                         </Typography>
                       </Box>
                     )}
@@ -342,7 +357,7 @@ export function Navbar() {
                     <IconButton
                       size="small"
                       onClick={handleMenuOpen}
-                      aria-label="Account menu"
+                      aria-label={t("common.accountMenu")}
                       sx={{
                         width: 40,
                         height: 40,
@@ -423,7 +438,7 @@ export function Navbar() {
                               letterSpacing: "0.05em",
                             }}
                           >
-                            {isPro ? "PRO MEMBER" : "FREE"}
+                            {isPro ? t("common.proMember") : t("common.free")}
                           </Typography>
                         </Box>
                       </Box>
@@ -445,7 +460,7 @@ export function Navbar() {
                             fontWeight: 600,
                           }}
                         >
-                          Upgrade ke Pro
+                          {t("common.upgradeToPro")}
                         </MenuItem>
                       )}
 
@@ -461,7 +476,7 @@ export function Navbar() {
                         }}
                       >
                         <LogoutIcon sx={{ fontSize: 15 }} />
-                        Keluar
+                        {t("common.signOut")}
                       </MenuItem>
                     </Menu>
                   </>
@@ -486,42 +501,102 @@ export function Navbar() {
                       },
                     }}
                   >
-                    Masuk
+                    {t("common.signIn")}
                   </Button>
                 )}
                 </Box>
               )}
 
               {mounted && (
-                <IconButton
-                  onClick={toggleColorMode}
-                  size="small"
-                  aria-label={mode === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                  sx={{
-                    width: 40,
-                    height: 40,
-                    color: "text.secondary",
-                    border: 1,
-                    borderColor: isDark
-                      ? "rgba(255,255,255,0.08)"
-                      : "rgba(0,0,0,0.08)",
-                    borderRadius: "8px",
-                    transition: "all 0.15s ease",
-                    "&:hover": {
-                      borderColor: "primary.main",
-                      color: "primary.main",
-                      bgcolor: isDark
-                        ? "rgba(201,162,39,0.06)"
-                        : "rgba(201,162,39,0.04)",
-                    },
-                  }}
-                >
-                  {mode === "dark" ? (
-                    <LightModeIcon sx={{ fontSize: 18 }} />
-                  ) : (
-                    <DarkModeIcon sx={{ fontSize: 18 }} />
-                  )}
-                </IconButton>
+                <>
+                  <IconButton
+                    onClick={handleLangMenuOpen}
+                    size="small"
+                    aria-label={t("common.language")}
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      color: "text.secondary",
+                      border: 1,
+                      borderColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(0,0,0,0.08)",
+                      borderRadius: "8px",
+                      transition: "all 0.15s ease",
+                      "&:hover": {
+                        borderColor: "primary.main",
+                        color: "primary.main",
+                        bgcolor: isDark
+                          ? "rgba(201,162,39,0.06)"
+                          : "rgba(201,162,39,0.04)",
+                      },
+                    }}
+                  >
+                    <LanguageIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                  <Menu
+                    anchorEl={langAnchorEl}
+                    open={Boolean(langAnchorEl)}
+                    onClose={handleLangMenuClose}
+                    slotProps={{
+                      paper: {
+                        sx: {
+                          borderRadius: "12px",
+                          border: `1px solid ${isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)"}`,
+                          bgcolor: isDark ? "#0d0d0d" : "#f0eeeb",
+                          minWidth: 140,
+                          mt: 0.5,
+                        },
+                      },
+                    }}
+                    anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+                    transformOrigin={{ horizontal: "right", vertical: "top" }}
+                  >
+                    <MenuItem
+                      onClick={() => handleSetLocale("id")}
+                      selected={locale === "id"}
+                      sx={{ fontSize: "0.8rem", fontFamily: '"Plus Jakarta Sans", sans-serif' }}
+                    >
+                      {t("common.indonesian")}
+                    </MenuItem>
+                    <MenuItem
+                      onClick={() => handleSetLocale("en")}
+                      selected={locale === "en"}
+                      sx={{ fontSize: "0.8rem", fontFamily: '"Plus Jakarta Sans", sans-serif' }}
+                    >
+                      {t("common.english")}
+                    </MenuItem>
+                  </Menu>
+                  <IconButton
+                    onClick={toggleColorMode}
+                    size="small"
+                    aria-label={mode === "dark" ? t("common.lightMode") : t("common.darkMode")}
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      color: "text.secondary",
+                      border: 1,
+                      borderColor: isDark
+                        ? "rgba(255,255,255,0.08)"
+                        : "rgba(0,0,0,0.08)",
+                      borderRadius: "8px",
+                      transition: "all 0.15s ease",
+                      "&:hover": {
+                        borderColor: "primary.main",
+                        color: "primary.main",
+                        bgcolor: isDark
+                          ? "rgba(201,162,39,0.06)"
+                          : "rgba(201,162,39,0.04)",
+                      },
+                    }}
+                  >
+                    {mode === "dark" ? (
+                      <LightModeIcon sx={{ fontSize: 18 }} />
+                    ) : (
+                      <DarkModeIcon sx={{ fontSize: 18 }} />
+                    )}
+                  </IconButton>
+                </>
               )}
             </Box>
           </Toolbar>
@@ -545,7 +620,7 @@ export function Navbar() {
         }}
       >
         <List sx={{ px: 1 }}>
-          {NAV_ITEMS.map(({ href, label }) => {
+          {NAV_ITEMS.map(({ href, labelKey }) => {
             const isActive =
               pathname === href || (href !== "/" && pathname.startsWith(href));
             return (
@@ -567,13 +642,13 @@ export function Navbar() {
                     },
                   }}
                 >
-                  <ListItemText primary={label} primaryTypographyProps={{ fontSize: "0.9rem" }} />
+                  <ListItemText primary={t(labelKey)} primaryTypographyProps={{ fontSize: "0.9rem" }} />
                 </ListItemButton>
               </ListItem>
             );
           })}
           <Divider sx={{ my: 1, mx: 0.5 }} />
-          {MORE_ITEMS.map(({ href, label, icon: Icon, beta }) => {
+          {MORE_ITEMS.map(({ href, labelKey, icon: Icon, beta }) => {
             const isActive = pathname.startsWith(href);
             return (
               <ListItem key={href} disablePadding sx={{ mb: 0.5 }}>
@@ -599,7 +674,7 @@ export function Navbar() {
                   <ListItemText
                     primary={
                       <>
-                        {label}
+                        {t(labelKey)}
                         {beta && (
                           <Box
                             component="span"
@@ -616,7 +691,7 @@ export function Navbar() {
                               color: accent,
                             }}
                           >
-                            BETA
+                            {t("common.beta")}
                           </Box>
                         )}
                       </>
@@ -647,7 +722,7 @@ export function Navbar() {
                       }}
                       sx={{ fontSize: "0.78rem", fontWeight: 600, color: accent }}
                     >
-                      Upgrade ke Pro
+                      {t("common.upgradeToPro")}
                     </Button>
                   )}
                   <Button
@@ -659,7 +734,7 @@ export function Navbar() {
                     }}
                     sx={{ fontSize: "0.78rem", color: "text.secondary" }}
                   >
-                    Keluar
+                    {t("common.signOut")}
                   </Button>
                 </Stack>
               ) : (
@@ -683,7 +758,7 @@ export function Navbar() {
                     },
                   }}
                 >
-                  Masuk
+                  {t("common.signIn")}
                 </Button>
               )}
             </Box>

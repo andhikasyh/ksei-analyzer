@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@mui/material/styles";
+import { useLocale } from "@/lib/locale-context";
 import { supabase, TABLE_NAME } from "@/lib/supabase";
 import { KSEIRecord } from "@/lib/types";
 import TextField from "@mui/material/TextField";
@@ -18,6 +19,7 @@ interface SearchOption {
 export function GlobalSearch({ compact }: { compact?: boolean }) {
   const router = useRouter();
   const theme = useTheme();
+  const { t } = useLocale();
   const isDark = theme.palette.mode === "dark";
   const [options, setOptions] = useState<SearchOption[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -45,7 +47,7 @@ export function GlobalSearch({ compact }: { compact?: boolean }) {
     <Autocomplete
       fullWidth
       options={options}
-      groupBy={(o) => (o.type === "ticker" ? "Tickers" : "Investors")}
+      groupBy={(o) => (o.type === "ticker" ? t("screener.tickers") : t("screener.investors"))}
       getOptionLabel={(o) => o.label}
       onChange={(_, value) => {
         if (!value) return;
@@ -55,7 +57,7 @@ export function GlobalSearch({ compact }: { compact?: boolean }) {
       renderInput={(params) => (
         <TextField
           {...params}
-          placeholder="Search ticker or investor..."
+          placeholder={t("search.placeholder")}
           size={compact ? "small" : "medium"}
           slotProps={{
             input: {

@@ -4,14 +4,15 @@ import Link from "next/link";
 import Box from "@mui/material/Box";
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
-import { SITE_NAME } from "@/lib/site";
+import { useLocale } from "@/lib/locale-context";
 
 const LEGAL_LINKS = [
-  { href: "/privacy", label: "Privacy Policy" },
-  { href: "/terms", label: "Terms of Service" },
+  { href: "/privacy", labelKey: "common.privacyPolicy" },
+  { href: "/terms", labelKey: "common.termsOfService" },
 ];
 
 export function Footer() {
+  const { t } = useLocale();
   return (
     <Box
       component="footer"
@@ -46,7 +47,7 @@ export function Footer() {
             letterSpacing: "0.02em",
           }}
         >
-          {new Date().getFullYear()} {SITE_NAME}
+          {new Date().getFullYear()} {t("common.siteName")}
         </Typography>
 
         <Box
@@ -56,7 +57,7 @@ export function Footer() {
             gap: { xs: 2, sm: 3 },
           }}
         >
-          {LEGAL_LINKS.map(({ href, label }) => (
+          {LEGAL_LINKS.map(({ href, labelKey }) => (
             <Typography
               key={href}
               component={Link}
@@ -72,7 +73,7 @@ export function Footer() {
                 },
               }}
             >
-              {label}
+              {t(labelKey)}
             </Typography>
           ))}
         </Box>
