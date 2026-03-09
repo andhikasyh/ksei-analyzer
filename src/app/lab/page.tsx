@@ -288,9 +288,7 @@ export default function LabPage() {
     if (!user?.id) return;
     setSavedLoading(true);
     try {
-      const res = await fetch("/api/lab/experiments", {
-        headers: { "x-user-id": user.id },
-      });
+      const res = await fetch("/api/lab/experiments");
       const data = await res.json();
       setSavedExperiments(data.experiments || []);
     } catch { /* ignore */ }
@@ -312,7 +310,7 @@ export default function LabPage() {
 
     await fetch("/api/lab/experiments", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-user-id": user.id },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: saveName, type, config, results }),
     });
     setSaveDialogOpen(false);
@@ -323,7 +321,6 @@ export default function LabPage() {
     if (!user?.id) return;
     await fetch(`/api/lab/experiments?id=${id}`, {
       method: "DELETE",
-      headers: { "x-user-id": user.id },
     });
     setSavedExperiments((prev) => prev.filter((e) => e.id !== id));
   }, [user?.id]);

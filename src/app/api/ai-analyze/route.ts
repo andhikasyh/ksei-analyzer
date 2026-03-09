@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
+import { checkRateLimit } from "@/lib/rate-limit";
+import { getAuthUser } from "@/lib/auth";
+import { checkProStatusServer } from "@/lib/supabase";
 
 const TABLE_NAME = "main_db";
 
@@ -53,10 +56,34 @@ async function fetchNews(stockCode: string, companyName?: string): Promise<strin
 }
 
 export async function POST(request: NextRequest) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "anonymous";
+
+  const user = await getAuthUser();
+  const isPro = user ? await checkProStatusServer(user.id) : false;
+
+  const rateLimitKey = user ? `ai-analyze:user:${user.id}` : `ai-analyze:ip:${ip}`;
+  const { allowed, retryAfterMs } = checkRateLimit(rateLimitKey);
+  if (!allowed && !isPro) {
+    const retryAfterSec = Math.ceil(retryAfterMs / 1000);
+    return new Response(
+      JSON.stringify({ error: `Rate limit exceeded. Try again in ${Math.ceil(retryAfterSec / 60)} minute(s).` }),
+      {
+        status: 429,
+        headers: {
+          "Content-Type": "application/json",
+          "Retry-After": String(retryAfterSec),
+        },
+      }
+    );
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return new Response(
-      JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
+      JSON.stringify({ error: "Service unavailable" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -64,14 +91,14 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { stockCode, messages: clientMessages } = body;
 
-  if (!stockCode) {
+  if (!stockCode || typeof stockCode !== "string" || stockCode.length > 10) {
     return new Response(
       JSON.stringify({ error: "stockCode is required" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
 
-  if (!Array.isArray(clientMessages) || clientMessages.length === 0) {
+  if (!Array.isArray(clientMessages) || clientMessages.length === 0 || clientMessages.length > 50) {
     return new Response(
       JSON.stringify({ error: "messages array is required" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
@@ -456,10 +483,11 @@ Do not use any emojis. Do not use markdown tables.`;
         }
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
-      } catch (err: any) {
+      } catch (err: unknown) {
+        console.error("AI analysis stream error:", err instanceof Error ? err.message : err);
         controller.enqueue(
           encoder.encode(
-            `data: ${JSON.stringify({ error: err.message || "Analysis failed" })}\n\n`
+            `data: ${JSON.stringify({ error: "Analysis failed" })}\n\n`
           )
         );
         controller.close();

@@ -8,13 +8,19 @@ function getSupabase() {
   );
 }
 
+const BROKER_CODE_PATTERN = /^[A-Z]{2}$/;
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const code = searchParams.get("code");
   const compare = searchParams.get("compare");
 
-  if (!code) {
-    return NextResponse.json({ error: "Missing code" }, { status: 400 });
+  if (!code || !BROKER_CODE_PATTERN.test(code)) {
+    return NextResponse.json({ error: "Missing or invalid code" }, { status: 400 });
+  }
+
+  if (compare && !BROKER_CODE_PATTERN.test(compare)) {
+    return NextResponse.json({ error: "Invalid compare code" }, { status: 400 });
   }
 
   const supabase = getSupabase();

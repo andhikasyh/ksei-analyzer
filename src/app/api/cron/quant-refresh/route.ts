@@ -52,13 +52,14 @@ export async function GET(request: NextRequest) {
         view_name: view,
       });
       if (error) {
-        results.push({ view, ok: false, error: error.message, ms: Date.now() - start });
+        console.error(`Quant refresh failed for ${view}:`, error.message);
+        results.push({ view, ok: false, error: "Refresh failed", ms: Date.now() - start });
       } else {
         results.push({ view, ok: true, ms: Date.now() - start });
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      results.push({ view, ok: false, error: msg, ms: Date.now() - start });
+      console.error(`Quant refresh exception for ${view}:`, err instanceof Error ? err.message : err);
+      results.push({ view, ok: false, error: "Refresh failed", ms: Date.now() - start });
     }
   }
 

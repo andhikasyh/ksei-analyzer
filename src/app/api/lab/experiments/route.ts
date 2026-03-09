@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAuth } from "@/lib/auth";
 
 function serviceClient() {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -9,9 +10,10 @@ function serviceClient() {
   });
 }
 
-export async function GET(request: NextRequest) {
-  const userId = request.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET() {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const userId = auth.user.id;
 
   const supabase = serviceClient();
   const { data, error } = await supabase
@@ -21,17 +23,25 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false })
     .limit(50);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("Failed to fetch experiments:", error.message);
+    return NextResponse.json({ error: "Failed to fetch experiments" }, { status: 500 });
+  }
   return NextResponse.json({ experiments: data || [] });
 }
 
 export async function POST(request: NextRequest) {
-  const userId = request.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const userId = auth.user.id;
 
   const body = await request.json().catch(() => null);
   if (!body?.name || !body?.type || !body?.config || !body?.results) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  }
+
+  if (typeof body.name !== "string" || body.name.length > 200) {
+    return NextResponse.json({ error: "Invalid name" }, { status: 400 });
   }
 
   const supabase = serviceClient();
@@ -47,17 +57,26 @@ export async function POST(request: NextRequest) {
     .select("id, name, type, created_at")
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("Failed to save experiment:", error.message);
+    return NextResponse.json({ error: "Failed to save experiment" }, { status: 500 });
+  }
   return NextResponse.json({ experiment: data });
 }
 
 export async function DELETE(request: NextRequest) {
-  const userId = request.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const userId = auth.user.id;
 
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
+
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(id)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
 
   const supabase = serviceClient();
   const { error } = await supabase
@@ -66,6 +85,9 @@ export async function DELETE(request: NextRequest) {
     .eq("id", id)
     .eq("user_id", userId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("Failed to delete experiment:", error.message);
+    return NextResponse.json({ error: "Failed to delete experiment" }, { status: 500 });
+  }
   return NextResponse.json({ ok: true });
 }

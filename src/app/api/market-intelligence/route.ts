@@ -20,7 +20,10 @@ export async function GET(request: NextRequest) {
       .select("report_date")
       .order("report_date", { ascending: true })
       .limit(1);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      console.error("market-intelligence oldest error:", error.message);
+      return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });
+    }
     return NextResponse.json({ oldest: data?.[0]?.report_date ?? null });
   }
 
@@ -33,7 +36,8 @@ export async function GET(request: NextRequest) {
       .limit(limit);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("market-intelligence list error:", error.message);
+      return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });
     }
 
     const items = (data || []).map((row: Record<string, unknown>) => {
@@ -71,7 +75,8 @@ export async function GET(request: NextRequest) {
   const { data, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error("market-intelligence query error:", error.message);
+    return NextResponse.json({ error: "Failed to fetch data" }, { status: 500 });
   }
 
   if (!data?.length) {

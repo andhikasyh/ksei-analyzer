@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { requireAuth } from "@/lib/auth";
 
 const FREE_INSIGHT_LIMIT = 1;
 
@@ -12,13 +13,10 @@ function serviceClient(): SupabaseClient<any> {
   });
 }
 
-// GET /api/referral?action=view_count   — returns how many free views this user has used
-// POST /api/referral  { action: "consume_view" }   — increments view count
-// POST /api/referral  { action: "redeem", code: "XYZ" }  — redeems a referral code
-
-export async function GET(request: NextRequest) {
-  const userId = request.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(_request: NextRequest) {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const userId = auth.user.id;
 
   const supabase = serviceClient();
   const { data } = await supabase
@@ -35,8 +33,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const userId = request.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const userId = auth.user.id;
 
   const body = await request.json().catch(() => ({}));
   const { action, code } = body as { action?: string; code?: string };
@@ -68,7 +67,6 @@ export async function POST(request: NextRequest) {
   if (action === "redeem" && code) {
     const normalizedCode = code.trim().toUpperCase();
 
-    // Check if user already has active pro
     const { data: existingPro } = await supabase
       .from("pro_subscribers")
       .select("id, status")
@@ -80,7 +78,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Kamu sudah menjadi Pro member." }, { status: 400 });
     }
 
-    // Find the referral code
     const { data: refCode } = await supabase
       .from("referral_codes")
       .select("id, quota, used_count, free_months, active, expires_at")
@@ -103,7 +100,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Kode referral sudah habis kuotanya." }, { status: 400 });
     }
 
-    // Check if this user already redeemed this code
     const { data: alreadyRedeemed } = await supabase
       .from("referral_redemptions")
       .select("id")
@@ -115,11 +111,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Kamu sudah pernah menggunakan kode ini." }, { status: 400 });
     }
 
-    // All checks passed — activate pro + record redemption
     const expiresAt = new Date();
     expiresAt.setMonth(expiresAt.getMonth() + (refCode.free_months ?? 1));
 
-    // Get user email
     const { data: userData } = await supabase.auth.admin.getUserById(userId);
     const email = userData?.user?.email ?? "";
 
@@ -144,14 +138,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Record redemption
     await supabase.from("referral_redemptions").insert({ code_id: refCode.id, user_id: userId });
 
-    // Increment usage count
     await supabase
       .from("referral_codes")
       .update({ used_count: refCode.used_count + 1 })
-      .eq("id", refCode.id);
+      .eq("id", refCode.id)
+      .lt("used_count", refCode.quota);
 
     return NextResponse.json({
       ok: true,

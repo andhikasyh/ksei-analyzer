@@ -79,10 +79,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
         try {
           await fetch("/api/user/locale", {
             method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "x-user-id": user.id,
-            },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ locale: newLocale }),
           });
         } catch {
@@ -108,9 +105,7 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/user/locale", {
-          headers: { "x-user-id": user.id },
-        });
+        const res = await fetch("/api/user/locale");
         if (!res.ok || cancelled) return;
         const data = await res.json();
         const cloudLocale = data.locale === "en" ? "en" : "id";

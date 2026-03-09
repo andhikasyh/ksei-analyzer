@@ -16,3 +16,16 @@ export function createServiceClient() {
 }
 
 export const TABLE_NAME = "main_db";
+
+export async function checkProStatusServer(userId: string): Promise<boolean> {
+  const sc = createServiceClient();
+  const { data } = await sc
+    .from("pro_subscribers")
+    .select("status, expires_at")
+    .eq("user_id", userId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (!data) return false;
+  return !data.expires_at || new Date(data.expires_at) > new Date();
+}

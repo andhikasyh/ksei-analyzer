@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 function getSupabase() {
   return createClient(
@@ -341,6 +342,20 @@ async function runStrategyBacktest(
 export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    "anonymous";
+
+  const { allowed, retryAfterMs } = checkRateLimit(`backtest:${ip}`);
+  if (!allowed) {
+    const retryAfterSec = Math.ceil(retryAfterMs / 1000);
+    return NextResponse.json(
+      { error: `Rate limit exceeded. Try again in ${Math.ceil(retryAfterSec / 60)} minute(s).` },
+      { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
+    );
+  }
+
   try {
     const body = await request.json();
     const supabase = getSupabase();
@@ -350,7 +365,8 @@ export async function POST(request: NextRequest) {
       if (!stocks?.length || !entryDate || !exitRule) {
         return NextResponse.json({ error: "Missing fields" }, { status: 400 });
       }
-      const trades = await runManualBacktest(supabase, stocks.slice(0, 5), entryDate, exitRule, capital, sizing);
+      const cappedCapital = Math.min(Math.max(Number(capital) || 100_000_000, 1_000_000), 1_000_000_000_000);
+      const trades = await runManualBacktest(supabase, stocks.slice(0, 5), entryDate, exitRule, cappedCapital, sizing);
       return NextResponse.json({ trades });
     }
 
@@ -359,8 +375,10 @@ export async function POST(request: NextRequest) {
       if (!strategy || !exitRule) {
         return NextResponse.json({ error: "Missing fields" }, { status: 400 });
       }
+      const cappedLookback = Math.min(Math.max(Number(lookbackMonths) || 6, 1), 36);
+      const cappedCapital = Math.min(Math.max(Number(capital) || 100_000_000, 1_000_000), 1_000_000_000_000);
       const result = await runStrategyBacktest(
-        supabase, stocks.slice(0, 20), strategy, exitRule, lookbackMonths, capital, sizing
+        supabase, stocks.slice(0, 20), strategy, exitRule, cappedLookback, cappedCapital, sizing
       );
       return NextResponse.json(result);
     }

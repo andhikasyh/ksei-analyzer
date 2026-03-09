@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAuth } from "@/lib/auth";
 
 const VALID_LOCALES = ["id", "en"] as const;
 
@@ -11,9 +12,10 @@ function serviceClient() {
   });
 }
 
-export async function GET(request: NextRequest) {
-  const userId = request.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET() {
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const userId = auth.user.id;
 
   const supabase = serviceClient();
   const { data } = await supabase
@@ -28,8 +30,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const userId = request.headers.get("x-user-id");
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAuth();
+  if (auth.error) return auth.error;
+  const userId = auth.user.id;
 
   const body = await request.json().catch(() => ({}));
   const locale = typeof body.locale === "string" ? body.locale : "id";
@@ -45,6 +48,9 @@ export async function POST(request: NextRequest) {
       { onConflict: "user_id" }
     );
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error("Failed to save locale:", error.message);
+    return NextResponse.json({ error: "Failed to save locale" }, { status: 500 });
+  }
   return NextResponse.json({ locale });
 }

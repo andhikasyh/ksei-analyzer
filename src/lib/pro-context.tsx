@@ -110,9 +110,7 @@ export function ProProvider({ children }: { children: ReactNode }) {
 
   const fetchFreeViewCount = useCallback(async (uid: string) => {
     try {
-      const res = await fetch("/api/referral?action=view_count", {
-        headers: { "x-user-id": uid },
-      });
+      const res = await fetch("/api/referral?action=view_count");
       if (res.ok) {
         const data = await res.json();
         setFreeViewCount(data.view_count ?? 0);
@@ -221,7 +219,7 @@ export function ProProvider({ children }: { children: ReactNode }) {
     try {
       const res = await fetch("/api/referral", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-id": user.id },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "consume_view" }),
       });
       const data = await res.json();
@@ -237,7 +235,7 @@ export function ProProvider({ children }: { children: ReactNode }) {
     try {
       const res = await fetch("/api/referral", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-user-id": user.id },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "redeem", code }),
       });
       const data = await res.json();

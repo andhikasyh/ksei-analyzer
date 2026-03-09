@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return new Response(
-      JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }),
+      JSON.stringify({ error: "Service unavailable" }),
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -39,9 +39,9 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { messages: clientMessages, context } = body;
 
-  if (!Array.isArray(clientMessages) || clientMessages.length === 0) {
+  if (!Array.isArray(clientMessages) || clientMessages.length === 0 || clientMessages.length > 50) {
     return new Response(
-      JSON.stringify({ error: "messages array is required" }),
+      JSON.stringify({ error: "messages array is required (max 50)" }),
       { status: 400, headers: { "Content-Type": "application/json" } }
     );
   }
@@ -102,10 +102,9 @@ Use this context when relevant to provide more specific answers about that day's
         controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Chat failed";
+        console.error("Market chat stream error:", err instanceof Error ? err.message : err);
         controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ error: message })}\n\n`)
+          encoder.encode(`data: ${JSON.stringify({ error: "Chat failed" })}\n\n`)
         );
         controller.close();
       }

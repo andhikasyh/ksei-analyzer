@@ -113,9 +113,11 @@ export function FeedbackWidget() {
             overflow: "hidden",
             background: panelBg,
             border,
+            borderTop: "3px solid",
+            borderTopColor: "primary.main",
             boxShadow: isDark
-              ? "0 20px 60px rgba(0,0,0,0.7)"
-              : "0 12px 48px rgba(0,0,0,0.12)",
+              ? "0 24px 64px rgba(0,0,0,0.75), 0 0 0 1px rgba(201,162,39,0.15)"
+              : "0 16px 56px rgba(0,0,0,0.18), 0 0 0 1px rgba(201,162,39,0.2)",
             backdropFilter: "blur(20px)",
           }}
         >
@@ -127,6 +129,7 @@ export function FeedbackWidget() {
               px: 2,
               py: 1.5,
               borderBottom: border,
+              bgcolor: isDark ? "rgba(201,162,39,0.06)" : "rgba(201,162,39,0.04)",
             }}
           >
             <Typography
@@ -136,7 +139,7 @@ export function FeedbackWidget() {
                 fontWeight: 700,
                 letterSpacing: "0.06em",
                 textTransform: "uppercase",
-                color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)",
+                color: "primary.main",
               }}
             >
               {t("feedback.sendFeedback")}
@@ -271,38 +274,98 @@ export function FeedbackWidget() {
         </Box>
       </Slide>
 
-      <Fab
-        onClick={open ? handleClose : handleOpen}
-        size="small"
+      <Box
         sx={{
           position: "fixed",
           bottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
           left: { xs: 16, sm: "auto" },
           right: { xs: "auto", sm: 76 },
           zIndex: 1299,
-          width: 40,
-          height: 40,
-          bgcolor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
-          color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)",
-          border: isDark
-            ? "1px solid rgba(255,255,255,0.1)"
-            : "1px solid rgba(0,0,0,0.1)",
-          boxShadow: "none",
-          backdropFilter: "blur(12px)",
-          transition: "all 0.2s ease",
-          "&:hover": {
-            bgcolor: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)",
-            color: isDark ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.7)",
-            boxShadow: "none",
-          },
+          display: "flex",
+          alignItems: "center",
+          gap: 0,
+          flexDirection: { xs: "column", sm: "row-reverse" },
         }}
       >
-        {open ? (
-          <CloseIcon sx={{ fontSize: 17 }} />
-        ) : (
-          <ChatBubbleOutlineIcon sx={{ fontSize: 17 }} />
+        {!open && (
+          <Slide direction="right" in mountOnEnter unmountOnExit>
+            <Box
+              sx={{
+                position: "relative",
+                maxWidth: { xs: "calc(100vw - 80px)", sm: 200 },
+                mb: { xs: 1, sm: 0 },
+                mr: { xs: 0, sm: 1 },
+                px: 1.5,
+                py: 1.25,
+                borderRadius: "10px",
+                background: isDark ? "rgba(201,162,39,0.12)" : "rgba(201,162,39,0.1)",
+                border: "1px solid",
+                borderColor: "primary.main",
+                boxShadow: isDark
+                  ? "0 4px 16px rgba(0,0,0,0.3)"
+                  : "0 4px 16px rgba(201,162,39,0.15)",
+                "&::after": {
+                  content: '""',
+                  position: "absolute",
+                  bottom: { xs: "-6px", sm: "50%" },
+                  left: { xs: 24, sm: "100%" },
+                  marginBottom: { xs: 0, sm: "-6px" },
+                  marginLeft: { xs: 0, sm: "-1px" },
+                  width: 12,
+                  height: 12,
+                  background: isDark ? "rgba(201,162,39,0.12)" : "rgba(201,162,39,0.1)",
+                  borderRight: { xs: "none", sm: "1px solid" },
+                  borderBottom: { xs: "1px solid", sm: "none" },
+                  borderColor: "primary.main",
+                  transform: { xs: "rotate(-45deg)", sm: "rotate(45deg)" },
+                },
+              }}
+            >
+              <Typography
+                sx={{
+                  position: "relative",
+                  fontSize: "0.8rem",
+                  fontWeight: 500,
+                  color: isDark ? "rgba(255,255,255,0.92)" : "rgba(0,0,0,0.78)",
+                  lineHeight: 1.35,
+                }}
+              >
+                {t("feedback.helpUsImprove")}
+              </Typography>
+            </Box>
+          </Slide>
         )}
-      </Fab>
+        <Fab
+          onClick={open ? handleClose : handleOpen}
+          size="small"
+          sx={{
+            width: 48,
+            height: 48,
+            bgcolor: "primary.main",
+            color: "rgba(0,0,0,0.88)",
+            border: "none",
+            boxShadow: isDark
+              ? "0 4px 20px rgba(201,162,39,0.35), 0 0 0 1px rgba(201,162,39,0.2)"
+              : "0 6px 24px rgba(201,162,39,0.4), 0 0 0 1px rgba(201,162,39,0.15)",
+            backdropFilter: "blur(12px)",
+            transition: "transform 0.2s ease, box-shadow 0.2s ease",
+            "&:hover": {
+              bgcolor: "primary.light",
+              color: "rgba(0,0,0,0.92)",
+              boxShadow: isDark
+                ? "0 6px 28px rgba(201,162,39,0.45), 0 0 0 1px rgba(201,162,39,0.3)"
+                : "0 8px 32px rgba(201,162,39,0.5), 0 0 0 1px rgba(201,162,39,0.25)",
+              transform: "scale(1.06)",
+            },
+          }}
+        >
+          {open ? (
+            <CloseIcon sx={{ fontSize: 20 }} />
+          ) : (
+            <ChatBubbleOutlineIcon sx={{ fontSize: 22 }} />
+          )}
+        </Fab>
+      </Box>
     </>
   );
 }
