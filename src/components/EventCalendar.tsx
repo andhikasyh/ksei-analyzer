@@ -94,6 +94,7 @@ export function EventCalendar({ events }: EventCalendarProps) {
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [rangeFilter, setRangeFilter] = useState<RangeFilter>("week");
+  const [typeFilter, setTypeFilter] = useState<string>("All");
 
   const eventsByDate = useMemo(() => {
     const map: Record<string, IDXCalendarEvent[]> = {};
@@ -110,26 +111,36 @@ export function EventCalendar({ events }: EventCalendarProps) {
     [currentYear, currentMonth]
   );
 
+  const eventTypes = useMemo(() => {
+    const types = new Set<string>();
+    events.forEach((ev) => types.add(ev.event_type));
+    return ["All", ...Array.from(types).sort()];
+  }, [events]);
+
   const filteredEvents = useMemo(() => {
+    let result: IDXCalendarEvent[];
     if (selectedDate) {
-      return (eventsByDate[selectedDate] || []).sort((a, b) =>
+      result = (eventsByDate[selectedDate] || []).sort((a, b) =>
         a.event_date.localeCompare(b.event_date)
       );
-    }
-
-    let start: string, end: string;
-    if (rangeFilter === "week") {
-      [start, end] = getWeekRange(today);
-    } else if (rangeFilter === "month") {
-      [start, end] = getMonthRange(today);
     } else {
-      [start, end] = getYearRange(today);
+      let start: string, end: string;
+      if (rangeFilter === "week") {
+        [start, end] = getWeekRange(today);
+      } else if (rangeFilter === "month") {
+        [start, end] = getMonthRange(today);
+      } else {
+        [start, end] = getYearRange(today);
+      }
+      result = events
+        .filter((ev) => ev.event_date >= start && ev.event_date <= end)
+        .sort((a, b) => a.event_date.localeCompare(b.event_date));
     }
-
-    return events
-      .filter((ev) => ev.event_date >= start && ev.event_date <= end)
-      .sort((a, b) => a.event_date.localeCompare(b.event_date));
-  }, [selectedDate, rangeFilter, events, eventsByDate]);
+    if (typeFilter !== "All") {
+      result = result.filter((ev) => ev.event_type === typeFilter);
+    }
+    return result;
+  }, [selectedDate, rangeFilter, typeFilter, events, eventsByDate]);
 
   const prevMonth = useCallback(() => {
     setCurrentMonth((m) => {
@@ -540,6 +551,39 @@ export function EventCalendar({ events }: EventCalendarProps) {
                 />
               </Stack>
             </Stack>
+
+            {/* Event type filter chips */}
+            {eventTypes.length > 2 && (
+              <Stack direction="row" spacing={0.4} useFlexGap sx={{ mt: 0.75, flexWrap: "wrap" }}>
+                {eventTypes.map((t) => (
+                  <Chip
+                    key={t}
+                    label={t === "All" ? "All Types" : t}
+                    size="small"
+                    onClick={() => setTypeFilter(t)}
+                    sx={{
+                      height: 20, fontSize: "0.52rem", fontWeight: typeFilter === t ? 700 : 500,
+                      cursor: "pointer",
+                      bgcolor: typeFilter === t
+                        ? (t.includes("RUPS") ? (isDark ? "rgba(192,132,252,0.15)" : "rgba(147,51,234,0.08)")
+                          : t.includes("Dividen") ? (isDark ? "rgba(52,211,153,0.15)" : "rgba(5,150,105,0.08)")
+                          : t.includes("Paparan") ? (isDark ? "rgba(96,165,250,0.15)" : "rgba(37,99,235,0.08)")
+                          : (isDark ? "rgba(251,191,36,0.15)" : "rgba(217,119,6,0.08)"))
+                        : "transparent",
+                      color: typeFilter === t
+                        ? (t.includes("RUPS") ? (isDark ? "#c084fc" : "#9333ea")
+                          : t.includes("Dividen") ? (isDark ? "#34d399" : "#059669")
+                          : t.includes("Paparan") ? (isDark ? "#60a5fa" : "#2563eb")
+                          : (isDark ? "#fbbf24" : "#d97706"))
+                        : "text.secondary",
+                      border: "1px solid",
+                      borderColor: typeFilter === t ? "currentColor" : "transparent",
+                      "&:hover": { bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)" },
+                    }}
+                  />
+                ))}
+              </Stack>
+            )}
           </Box>
 
           <Box

@@ -17,9 +17,11 @@ import {
   formatRatio,
 } from "@/lib/types";
 import { INDEX_LABELS } from "@/lib/index-constituents";
+import { useWatchlist } from "@/lib/watchlist";
 import { GlobalSearch } from "@/components/SearchInput";
 import { InvestorTypeBadge, LocalForeignBadge } from "@/components/Badge";
 import { EventCalendar } from "@/components/EventCalendar";
+import { StockTreemap, StockTreemapSkeleton } from "@/components/StockTreemap";
 import Box from "@mui/material/Box";
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
@@ -33,6 +35,22 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Chip from "@mui/material/Chip";
+import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
+import Link from "next/link";
+import {
+  BarChart,
+  Bar,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ReferenceLine,
+  ResponsiveContainer,
+} from "recharts";
 
 interface TopInvestor {
   name: string;
@@ -86,16 +104,6 @@ function aggregateInvestors(records: KSEIRecord[]): TopInvestor[] {
     .slice(0, 10);
 }
 
-interface UpcomingEvent {
-  code: string;
-  name: string;
-  type: "Dividend" | "Right Issue" | "Warrant" | "Stock Split" | "Bond Conversion" | "Additional Listing" | "Delisting" | string;
-  detail: string;
-  date: string;
-  endDate?: string;
-  amount?: string;
-}
-
 interface MarketMover {
   code: string;
   name: string;
@@ -119,13 +127,20 @@ export function DashboardContent() {
   const [indexes, setIndexes] = useState<
     { code: string; close: number; change: number; changePct: number; history: number[] }[]
   >([]);
-  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEvent[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<{ code: string; name: string; type: string; detail: string; date: string }[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<IDXCalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [treemapStocks, setTreemapStocks] = useState<{ code: string; stock_name: string; sector: string; market_cap: number; change_pct: number }[]>([]);
+  const [foreignFlowDays, setForeignFlowDays] = useState<{ date: string; net: number }[]>([]);
+  const [foreignFlowRange, setForeignFlowRange] = useState<"1M" | "3M" | "6M">("1M");
+  const [foreignFlowLoading, setForeignFlowLoading] = useState(false);
+  const [allTradingDates, setAllTradingDates] = useState<string[]>([]);
+  const [latestNews, setLatestNews] = useState<{ id: number; stock_code: string; headline: string; source: string; url: string; published_at: string | null }[]>([]);
   const [moverTab, setMoverTab] = useState<"gain" | "loss" | "active">("gain");
   const [playerTab, setPlayerTab] = useState<"foreign" | "local" | "conglom">("foreign");
   const router = useRouter();
+  const { isWatched, toggle: toggleWatchlist } = useWatchlist();
 
   useEffect(() => {
     async function fetchData() {
@@ -184,6 +199,46 @@ export function DashboardContent() {
             .sort((a, b) => b.value - a.value)
             .slice(0, 8);
           setMovers({ gainers, losers, active });
+
+          // Build treemap data from stock summaries (top 100 by value)
+          const treemapData = all
+            .filter((m) => m.close > 0)
+            .sort((a, b) => b.value - a.value)
+            .slice(0, 100)
+            .map((m) => {
+              const stk = latestMap.get(m.code);
+              const listed = stk ? parseFloat(stk.listed_shares) || 0 : 0;
+              return {
+                code: m.code,
+                stock_name: m.name,
+                sector: "Market",
+                market_cap: m.close * listed,
+                change_pct: m.changePct,
+              };
+            })
+            .filter((s) => s.market_cap > 0);
+          setTreemapStocks(treemapData);
+
+          // Seed the 1M foreign flow from already-fetched data (no extra request)
+          const byDate: Record<string, { buy: number; sell: number }> = {};
+          (stockRes.data as IDXStockSummary[]).forEach((r) => {
+            const buy = parseFloat(r.foreign_buy) || 0;
+            const sell = parseFloat(r.foreign_sell) || 0;
+            if (buy === 0 && sell === 0) return;
+            if (!byDate[r.date]) byDate[r.date] = { buy: 0, sell: 0 };
+            byDate[r.date].buy += buy;
+            byDate[r.date].sell += sell;
+          });
+          const seedDays = Object.entries(byDate)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .slice(-22)
+            .map(([date, { buy, sell }]) => ({ date, net: buy - sell }));
+          setForeignFlowDays(seedDays);
+
+          // Also record distinct trading dates from this data for use by range selector
+          const distinctDates = [...new Set((stockRes.data as IDXStockSummary[]).map((r) => r.date))]
+            .sort((a, b) => b.localeCompare(a));
+          setAllTradingDates(distinctDates);
         }
 
         if (indexRes.data) {
@@ -215,29 +270,7 @@ export function DashboardContent() {
           setIndexes(parsed);
         }
 
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const cutoffDate = thirtyDaysAgo.toISOString().split("T")[0];
-
-        const [divRes, caRes, splitRes, calendarRes] = await Promise.all([
-          supabase
-            .from("idx_dividends")
-            .select("code, name, cash_dividend, cum_dividend, ex_dividend, payment_date, note")
-            .gte("payment_date", cutoffDate)
-            .order("ex_dividend", { ascending: true })
-            .limit(20),
-          supabase
-            .from("idx_corporate_actions")
-            .select("code, issuer_name, action_type, action_type_raw, num_of_shares, start_date, last_date")
-            .gte("last_date", cutoffDate)
-            .order("start_date", { ascending: true })
-            .limit(20),
-          supabase
-            .from("idx_stock_splits")
-            .select("code, stock_name, ratio, ssrs, nominal_value, nominal_value_new, listing_date")
-            .gte("listing_date", cutoffDate)
-            .order("listing_date", { ascending: true })
-            .limit(10),
+        const [calendarRes] = await Promise.all([
           supabase
             .from("idx_calendar_events")
             .select("*")
@@ -245,52 +278,6 @@ export function DashboardContent() {
             .order("event_date", { ascending: true })
             .limit(100),
         ]);
-
-        const events: UpcomingEvent[] = [];
-
-        if (divRes.data) {
-          (divRes.data as IDXDividend[]).forEach((d) => {
-            const noteLabel =
-              d.note === "F" ? "Final" : d.note === "I" ? "Interim" : d.note === "S" ? "Special" : d.note || "";
-            events.push({
-              code: d.code,
-              name: d.name,
-              type: "Dividend",
-              detail: `${noteLabel} - Rp ${formatRatio(d.cash_dividend)}/share`,
-              date: d.ex_dividend,
-              endDate: d.payment_date,
-              amount: d.cash_dividend,
-            });
-          });
-        }
-
-        if (caRes.data) {
-          (caRes.data as IDXCorporateAction[]).forEach((ca) => {
-            events.push({
-              code: ca.code,
-              name: ca.issuer_name,
-              type: ca.action_type,
-              detail: `${ca.action_type_raw} - ${formatShares(ca.num_of_shares)} shares`,
-              date: ca.start_date,
-              endDate: ca.last_date,
-            });
-          });
-        }
-
-        if (splitRes.data) {
-          (splitRes.data as IDXStockSplit[]).forEach((s) => {
-            events.push({
-              code: s.code,
-              name: s.stock_name,
-              type: "Stock Split",
-              detail: `${s.ssrs === "SS" ? "Split" : "Reverse"} ${s.ratio} (Rp ${formatRatio(s.nominal_value)} -> Rp ${formatRatio(s.nominal_value_new)})`,
-              date: s.listing_date,
-            });
-          });
-        }
-
-        events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        setUpcomingEvents(events.slice(0, 25));
 
         if (calendarRes.data) {
           setCalendarEvents(calendarRes.data as IDXCalendarEvent[]);
@@ -362,6 +349,78 @@ export function DashboardContent() {
     fetchData();
   }, []);
 
+  // Fetch latest market news independently
+  useEffect(() => {
+    async function fetchLatestNews() {
+      const { data } = await supabase
+        .from("stock_news")
+        .select("id,stock_code,headline,source,url,published_at")
+        .order("published_at", { ascending: false })
+        .limit(20);
+      if (data) setLatestNews(data);
+    }
+    fetchLatestNews();
+  }, []);
+  useEffect(() => {
+    if (foreignFlowRange === "1M" && foreignFlowDays.length > 0) return; // already seeded from main fetch
+
+    async function fetchFlowRange() {
+      setForeignFlowLoading(true);
+
+      // Get distinct trading dates via BBCA proxy
+      let tradingDates = allTradingDates;
+      if (tradingDates.length < 66) {
+        const { data } = await supabase
+          .from("idx_stock_summary")
+          .select("date")
+          .eq("stock_code", "BBCA")
+          .order("date", { ascending: false })
+          .limit(180);
+        if (data) {
+          tradingDates = data.map((r) => r.date);
+          setAllTradingDates(tradingDates);
+        }
+      }
+
+      const rangeDays = foreignFlowRange === "1M" ? 22 : foreignFlowRange === "3M" ? 66 : 132;
+      const datesInRange = tradingDates.slice(0, rangeDays);
+      if (datesInRange.length === 0) { setForeignFlowLoading(false); return; }
+
+      const oldestDate = datesInRange[datesInRange.length - 1];
+      const newestDate = datesInRange[0];
+
+      const { data } = await supabase
+        .from("idx_stock_summary")
+        .select("date,foreign_buy,foreign_sell")
+        .gte("date", oldestDate)
+        .lte("date", newestDate)
+        .order("date", { ascending: true });
+
+      if (!data) { setForeignFlowLoading(false); return; }
+
+      const byDate: Record<string, { buy: number; sell: number }> = {};
+      data.forEach((r) => {
+        const buy = parseFloat(r.foreign_buy) || 0;
+        const sell = parseFloat(r.foreign_sell) || 0;
+        if (buy === 0 && sell === 0) return;
+        if (!byDate[r.date]) byDate[r.date] = { buy: 0, sell: 0 };
+        byDate[r.date].buy += buy;
+        byDate[r.date].sell += sell;
+      });
+
+      const flows = datesInRange
+        .slice()
+        .reverse()
+        .filter((d) => byDate[d])
+        .map((date) => ({ date, net: byDate[date].buy - byDate[date].sell }));
+
+      setForeignFlowDays(flows);
+      setForeignFlowLoading(false);
+    }
+
+    fetchFlowRange();
+  }, [foreignFlowRange]); // eslint-disable-line react-hooks/exhaustive-deps
+
   if (error) {
     return (
       <Box
@@ -401,6 +460,7 @@ export function DashboardContent() {
         </Box>
         <Skeleton variant="rounded" height={40} sx={{ borderRadius: 2 }} />
         <Skeleton variant="rounded" height={52} sx={{ borderRadius: 2 }} />
+        <StockTreemapSkeleton />
         <Grid container spacing={1.5}>
           <Grid size={{ xs: 12, lg: 8 }}>
             <Skeleton variant="rounded" height={340} sx={{ borderRadius: 2 }} />
@@ -457,6 +517,215 @@ export function DashboardContent() {
         </Box>
       )}
 
+      {/* ── Market Heatmap ── */}
+      {treemapStocks.length > 0 && (
+        <Box className="animate-in animate-in-delay-3">
+          <Paper sx={{ borderRadius: 2, overflow: "hidden" }}>
+            <Box sx={{ px: 1.5, pt: 1.25, pb: 0.75, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Typography sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 700, fontSize: "0.85rem", letterSpacing: "-0.02em" }}>
+                  Market Heatmap
+                </Typography>
+                <Chip label={`${treemapStocks.length} stocks`} size="small" sx={{ height: 18, fontSize: "0.55rem", fontWeight: 700, bgcolor: isDark ? "rgba(212,168,67,0.08)" : "rgba(161,124,47,0.05)", color: "primary.main" }} />
+              </Stack>
+              <Typography sx={{ fontSize: "0.6rem", color: "text.secondary", fontStyle: "italic" }}>
+                Size = Market Cap &middot; Color = Daily Change
+              </Typography>
+            </Box>
+            <StockTreemap data={treemapStocks} onStockClick={(code) => router.push(`/stock/${code}`)} />
+          </Paper>
+        </Box>
+      )}
+
+      {/* ── Foreign Flow ── */}
+      {(foreignFlowDays.length > 0 || foreignFlowLoading) && (
+        <Box className="animate-in animate-in-delay-3">
+          <Paper sx={{ borderRadius: 2, px: 2, pt: 1.5, pb: 2 }}>
+            {/* Header row */}
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Typography sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 700, fontSize: "0.85rem", letterSpacing: "-0.02em" }}>
+                  Foreign Flow
+                </Typography>
+                {/* Range pills */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)",
+                    borderRadius: "7px",
+                    p: 0.3,
+                    gap: 0.25,
+                  }}
+                >
+                  {(["1M", "3M", "6M"] as const).map((r) => (
+                    <Box
+                      key={r}
+                      onClick={() => setForeignFlowRange(r)}
+                      sx={{
+                        px: 1.25,
+                        py: 0.35,
+                        borderRadius: "5px",
+                        cursor: "pointer",
+                        bgcolor: foreignFlowRange === r
+                          ? isDark ? "rgba(212,168,67,0.15)" : "rgba(161,124,47,0.12)"
+                          : "transparent",
+                        border: `1px solid ${foreignFlowRange === r
+                          ? isDark ? "rgba(212,168,67,0.28)" : "rgba(161,124,47,0.22)"
+                          : "transparent"}`,
+                        transition: "all 0.12s ease",
+                      }}
+                    >
+                      <Typography
+                        sx={{
+                          fontFamily: '"JetBrains Mono", monospace',
+                          fontSize: "0.65rem",
+                          fontWeight: foreignFlowRange === r ? 700 : 500,
+                          color: foreignFlowRange === r
+                            ? isDark ? "#d4a843" : "#a17c2f"
+                            : "text.secondary",
+                        }}
+                      >
+                        {r}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Stack>
+              <Box
+                component={Link}
+                href="/foreign-flow"
+                sx={{
+                  fontSize: "0.68rem",
+                  fontFamily: '"Plus Jakarta Sans", sans-serif',
+                  fontWeight: 600,
+                  color: isDark ? "rgba(212,168,67,0.7)" : "rgba(161,124,47,0.8)",
+                  textDecoration: "none",
+                  "&:hover": { color: "primary.main" },
+                }}
+              >
+                Full Dashboard →
+              </Box>
+            </Stack>
+
+            {/* Cumulative summary strip */}
+            {!foreignFlowLoading && foreignFlowDays.length > 0 && (() => {
+              const cumNet = foreignFlowDays.reduce((s, d) => s + d.net, 0);
+              const inflows = foreignFlowDays.filter((d) => d.net > 0).length;
+              const outflows = foreignFlowDays.filter((d) => d.net < 0).length;
+              const isPos = cumNet >= 0;
+              return (
+                <Stack direction="row" spacing={3} sx={{ mb: 1.5 }}>
+                  <Box>
+                    <Typography sx={{ fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: "0.62rem", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 }}>
+                      Cumulative Net
+                    </Typography>
+                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "0.92rem", color: isPos ? "#22c55e" : "#ef4444", letterSpacing: "-0.02em" }}>
+                      {isPos ? "+" : ""}{formatValue(cumNet)}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: "0.62rem", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 }}>
+                      Inflow Days
+                    </Typography>
+                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: "0.88rem", color: "#22c55e" }}>
+                      {inflows}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography sx={{ fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: "0.62rem", color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.04em", fontWeight: 600 }}>
+                      Outflow Days
+                    </Typography>
+                    <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 700, fontSize: "0.88rem", color: "#ef4444" }}>
+                      {outflows}
+                    </Typography>
+                  </Box>
+                </Stack>
+              );
+            })()}
+
+            {foreignFlowLoading ? (
+              <Skeleton variant="rectangular" height={160} sx={{ borderRadius: "8px" }} />
+            ) : (
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={foreignFlowDays} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barCategoryGap="18%">
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke={isDark ? "rgba(107,127,163,0.1)" : "rgba(12,18,34,0.07)"}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(d) => {
+                      const dt = new Date(d);
+                      return dt.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                    }}
+                    tick={{
+                      fontFamily: '"JetBrains Mono", monospace',
+                      fontSize: 10,
+                      fill: isDark ? "rgba(107,127,163,0.65)" : "rgba(12,18,34,0.42)",
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tickFormatter={(v) => formatValue(v)}
+                    tick={{
+                      fontFamily: '"JetBrains Mono", monospace',
+                      fontSize: 10,
+                      fill: isDark ? "rgba(107,127,163,0.55)" : "rgba(12,18,34,0.38)",
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                    width={56}
+                  />
+                  <ReferenceLine
+                    y={0}
+                    stroke={isDark ? "rgba(107,127,163,0.3)" : "rgba(12,18,34,0.15)"}
+                    strokeWidth={1}
+                  />
+                  <RechartsTooltip
+                    cursor={{ fill: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)" }}
+                    contentStyle={{
+                      background: isDark ? "#0d1425" : "#ffffff",
+                      border: `1px solid ${isDark ? "rgba(107,127,163,0.22)" : "rgba(12,18,34,0.12)"}`,
+                      borderRadius: "10px",
+                      fontFamily: '"JetBrains Mono", monospace',
+                      fontSize: 11,
+                      padding: "8px 12px",
+                      boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.5)" : "0 4px 16px rgba(0,0,0,0.1)",
+                    }}
+                    labelStyle={{
+                      color: isDark ? "rgba(107,127,163,0.8)" : "rgba(12,18,34,0.55)",
+                      fontFamily: '"Plus Jakarta Sans", sans-serif',
+                      fontSize: 10,
+                      marginBottom: 4,
+                    }}
+                    itemStyle={{
+                      color: isDark ? "#e2e8f0" : "#0c1222",
+                      padding: 0,
+                    }}
+                    formatter={(value: number) => [
+                      (value >= 0 ? "+" : "") + formatValue(value),
+                      "Net Flow",
+                    ]}
+                  />
+                  <Bar dataKey="net" radius={[3, 3, 0, 0]} maxBarSize={18}>
+                    {foreignFlowDays.map((entry, i) => (
+                      <Cell
+                        key={i}
+                        fill={entry.net >= 0 ? "#22c55e" : "#ef4444"}
+                        fillOpacity={0.82}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </Paper>
+        </Box>
+      )}
+
       <Box
         sx={{
           display: { xs: "block", lg: "flex" },
@@ -465,7 +734,7 @@ export function DashboardContent() {
         }}
       >
         <Box sx={{ flex: "7 1 0%", minWidth: 0, mb: { xs: 1.5, lg: 0 }, display: "flex" }}>
-            {movers && (
+            {movers ? (
               <Paper
                 className="animate-in animate-in-delay-3"
                 sx={{
@@ -530,7 +799,7 @@ export function DashboardContent() {
                   </Stack>
                 </Box>
 
-                <TableContainer sx={{ overflowX: "auto" }}>
+                <TableContainer sx={{ overflowX: "auto", maxHeight: 360, overflowY: "auto" }}>
                   <Table size="small" sx={{ minWidth: 320 }}>
                     <TableHead>
                       <TableRow>
@@ -599,6 +868,23 @@ export function DashboardContent() {
                                 >
                                   {m.name}
                                 </Typography>
+                                <Tooltip title={isWatched(m.code) ? "Remove from watchlist" : "Add to watchlist"} arrow>
+                                  <IconButton
+                                    size="small"
+                                    onClick={(e) => { e.stopPropagation(); toggleWatchlist(m.code); }}
+                                    sx={{
+                                      p: 0.2,
+                                      color: isWatched(m.code) ? (isDark ? "#d4a843" : "#a17c2f") : "text.secondary",
+                                      opacity: isWatched(m.code) ? 1 : 0.4,
+                                      "&:hover": { opacity: 1, color: isDark ? "#d4a843" : "#a17c2f" },
+                                    }}
+                                  >
+                                    {isWatched(m.code)
+                                      ? <StarIcon sx={{ fontSize: 13 }} />
+                                      : <StarBorderIcon sx={{ fontSize: 13 }} />
+                                    }
+                                  </IconButton>
+                                </Tooltip>
                               </Stack>
                             </TableCell>
                             <TableCell align="right" sx={{ py: 0.4 }}>
@@ -671,154 +957,151 @@ export function DashboardContent() {
                   </Table>
                 </TableContainer>
               </Paper>
+            ) : (
+              <Paper className="animate-in animate-in-delay-3" sx={{ borderRadius: 2, flex: 1, display: "flex", alignItems: "center", justifyContent: "center", py: 6 }}>
+                <Stack alignItems="center" spacing={0.5}>
+                  <Typography sx={{ fontSize: "0.82rem", color: "text.secondary" }}>Market data loading...</Typography>
+                  <Typography sx={{ fontSize: "0.65rem", color: "text.secondary", opacity: 0.6 }}>Market movers will appear when data is available</Typography>
+                </Stack>
+              </Paper>
             )}
         </Box>
 
         <Box sx={{ flex: "5 1 0%", minWidth: 0 }}>
-          {upcomingEvents.length > 0 && (
-            <Paper
-              className="animate-in animate-in-delay-3"
+          <Paper
+            className="animate-in animate-in-delay-3"
+            sx={{ borderRadius: 2, overflow: "hidden", display: "flex", flexDirection: "column" }}
+          >
+            {/* Header */}
+            <Box
               sx={{
-                borderRadius: 2,
-                overflow: "hidden",
-                position: "relative",
-                "&::before": {
-                  content: '""',
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: 2,
-                  bottom: 0,
-                  background: `linear-gradient(180deg, ${theme.palette.success.main}60, ${theme.palette.primary.main}40, transparent)`,
-                },
+                px: 1.5,
+                pt: 1.25,
+                pb: 0.75,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                borderBottom: `1px solid ${isDark ? "rgba(107,127,163,0.08)" : "rgba(12,18,34,0.05)"}`,
+                flexShrink: 0,
               }}
             >
-              <Box sx={{ px: 1.5, pt: 1.25, pb: 0.5 }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography
-                    sx={{
-                      fontFamily: '"Outfit", sans-serif',
-                      fontWeight: 700,
-                      fontSize: "0.85rem",
-                      letterSpacing: "-0.02em",
-                    }}
-                  >
-                    Corporate Actions
-                  </Typography>
-                  <Chip
-                    label={`${upcomingEvents.length} events`}
-                    size="small"
-                    sx={{
-                      height: 18,
-                      fontSize: "0.55rem",
-                      fontWeight: 700,
-                      bgcolor: isDark ? "rgba(52,211,153,0.08)" : "rgba(5,150,105,0.05)",
-                      color: isDark ? "#34d399" : "#059669",
-                    }}
-                  />
+              <Typography sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 700, fontSize: "0.85rem", letterSpacing: "-0.02em" }}>
+                Latest News
+              </Typography>
+              {latestNews.length > 0 && (
+                <Chip
+                  label={`${latestNews.length} articles`}
+                  size="small"
+                  sx={{ height: 18, fontSize: "0.55rem", fontWeight: 700, bgcolor: isDark ? "rgba(59,130,246,0.08)" : "rgba(59,130,246,0.05)", color: isDark ? "#60a5fa" : "#3b82f6" }}
+                />
+              )}
+            </Box>
+
+            {/* News list — fixed height to match ~Market Movers height, scrollable inside */}
+            <Box sx={{ height: 360, overflowY: "auto", px: 0.5, py: 0.5 }}>
+              {latestNews.length === 0 ? (
+                <Stack alignItems="center" justifyContent="center" sx={{ height: "100%" }} spacing={0.5}>
+                  <Typography sx={{ fontSize: "0.78rem", color: "text.secondary" }}>No recent news</Typography>
+                  <Typography sx={{ fontSize: "0.62rem", color: "text.secondary", opacity: 0.6 }}>News is updated daily after market close</Typography>
                 </Stack>
-              </Box>
-
-              <Box sx={{ maxHeight: 360, overflow: "auto", px: 1, pb: 1 }}>
-                <Stack spacing={0.25}>
-                  {upcomingEvents.map((ev, i) => {
-                    const eventDate = new Date(ev.date);
-                    const isUpcoming = eventDate >= new Date();
-                    const typeColor =
-                      ev.type === "Dividend"
-                        ? isDark ? "#34d399" : "#059669"
-                        : ev.type === "Right Issue"
-                          ? isDark ? "#60a5fa" : "#3b82f6"
-                          : ev.type === "Stock Split"
-                            ? isDark ? "#a855f7" : "#8b5cf6"
-                            : isDark ? "#fbbf24" : "#d97706";
-
-                    return (
-                      <Box
-                        key={`${ev.code}-${ev.type}-${i}`}
-                        onClick={() => router.push(`/stock/${ev.code}`)}
-                        sx={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: 1,
-                          px: 1,
-                          py: 0.75,
-                          borderRadius: 1.5,
-                          cursor: "pointer",
-                          opacity: isUpcoming ? 1 : 0.7,
-                          transition: "all 0.12s ease",
-                          "&:hover": {
-                            bgcolor: isDark ? "rgba(212,168,67,0.04)" : "rgba(161,124,47,0.03)",
-                          },
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            width: 3,
-                            minHeight: 28,
-                            borderRadius: 1,
-                            bgcolor: typeColor,
-                            opacity: 0.85,
-                            flexShrink: 0,
-                            mt: 0.25,
-                          }}
-                        />
-                        <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
+              ) : (
+                latestNews.map((item, i) => {
+                  const dateLabel = item.published_at
+                    ? new Date(item.published_at + "T00:00:00").toLocaleDateString("en-GB", { day: "2-digit", month: "short" })
+                    : null;
+                  return (
+                    <Box
+                      key={item.id}
+                      component={item.url ? "a" : "div"}
+                      {...(item.url ? { href: item.url, target: "_blank", rel: "noopener noreferrer" } : {})}
+                      sx={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 1,
+                        px: 1,
+                        py: 0.9,
+                        borderRadius: 1.5,
+                        textDecoration: "none",
+                        color: "inherit",
+                        borderBottom: i < latestNews.length - 1
+                          ? `1px solid ${isDark ? "rgba(107,127,163,0.06)" : "rgba(12,18,34,0.04)"}`
+                          : "none",
+                        transition: "background 0.12s ease",
+                        "&:hover": {
+                          bgcolor: isDark ? "rgba(212,168,67,0.04)" : "rgba(161,124,47,0.03)",
+                          "& .news-code": { color: "primary.main" },
+                          "& .news-headline": { color: isDark ? "#e2e8f0" : "#0c1222" },
+                        },
+                      }}
+                    >
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Stack direction="row" spacing={0.75} alignItems="baseline" sx={{ mb: 0.2 }}>
+                          <Typography
+                            className="news-code"
+                            sx={{
+                              fontFamily: '"JetBrains Mono", monospace',
+                              fontWeight: 700,
+                              fontSize: "0.68rem",
+                              color: isDark ? "#93c5fd" : "#3b82f6",
+                              flexShrink: 0,
+                            }}
+                          >
+                            {item.stock_code}
+                          </Typography>
+                          {item.source && (
+                            <Typography
+                              sx={{
+                                fontSize: "0.55rem",
+                                color: "text.secondary",
+                                opacity: 0.6,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {item.source}
+                            </Typography>
+                          )}
+                          {dateLabel && (
                             <Typography
                               sx={{
                                 fontFamily: '"JetBrains Mono", monospace',
-                                fontWeight: 700,
-                                fontSize: "0.7rem",
-                                color: "primary.main",
+                                fontSize: "0.55rem",
+                                color: "text.secondary",
+                                opacity: 0.55,
+                                whiteSpace: "nowrap",
+                                flexShrink: 0,
+                                ml: "auto !important",
                               }}
                             >
-                              {ev.code}
+                              {dateLabel}
                             </Typography>
-                            <Typography
-                              sx={{
-                                fontSize: "0.52rem",
-                                fontWeight: 700,
-                                color: typeColor,
-                                textTransform: "uppercase",
-                                letterSpacing: "0.04em",
-                              }}
-                            >
-                              {ev.type}
-                            </Typography>
-                          </Stack>
-                          <Typography
-                            sx={{
-                              color: isDark ? "rgba(255,255,255,0.75)" : "rgba(0,0,0,0.7)",
-                              fontSize: "0.6rem",
-                              lineHeight: 1.3,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {ev.detail}
-                          </Typography>
-                        </Box>
+                          )}
+                        </Stack>
                         <Typography
+                          className="news-headline"
                           sx={{
-                            fontFamily: '"JetBrains Mono", monospace',
-                            fontSize: "0.58rem",
-                            color: isDark ? "rgba(255,255,255,0.65)" : "rgba(0,0,0,0.55)",
-                            whiteSpace: "nowrap",
-                            flexShrink: 0,
-                            fontWeight: isUpcoming ? 600 : 400,
+                            fontSize: "0.72rem",
+                            fontFamily: '"Plus Jakarta Sans", sans-serif',
+                            fontWeight: 500,
+                            lineHeight: 1.45,
+                            color: isDark ? "rgba(255,255,255,0.75)" : "rgba(12,18,34,0.78)",
+                            overflow: "hidden",
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            transition: "color 0.12s ease",
                           }}
                         >
-                          {eventDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+                          {item.headline}
                         </Typography>
                       </Box>
-                    );
-                  })}
-                </Stack>
-              </Box>
-            </Paper>
-          )}
+                    </Box>
+                  );
+                })
+              )}
+            </Box>
+          </Paper>
         </Box>
       </Box>
 

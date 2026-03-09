@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/quant-refresh",
+      "schedule": "0 9 * * 1-5"
+    },
+    {
       "path": "/api/cron/market-intelligence",
       "schedule": "0 10 * * 1-5"
     },

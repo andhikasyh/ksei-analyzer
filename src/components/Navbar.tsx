@@ -28,6 +28,13 @@ import DarkModeIcon from "@mui/icons-material/DarkMode";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
+import BusinessIcon from "@mui/icons-material/Business";
+import EventIcon from "@mui/icons-material/Event";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
+import ScienceIcon from "@mui/icons-material/Science";
 import { ProPaywallModal } from "@/components/ProPaywallModal";
 
 const NAV_ITEMS = [
@@ -37,12 +44,22 @@ const NAV_ITEMS = [
   { href: "/intelligent", label: "Insights" },
 ];
 
+const MORE_ITEMS: { href: string; label: string; icon: React.ComponentType<{ sx?: object }>; beta?: boolean }[] = [
+  { href: "/watchlist", label: "Watchlist", icon: StarBorderIcon },
+  { href: "/foreign-flow", label: "Foreign Flow", icon: TrendingUpIcon },
+  { href: "/sectors", label: "Sectors", icon: BusinessIcon },
+  { href: "/dividends", label: "Dividends", icon: EventIcon },
+  { href: "/compare", label: "Compare", icon: CompareArrowsIcon },
+  { href: "/lab", label: "Strategy Lab", icon: ScienceIcon, beta: true },
+];
+
 export function Navbar() {
   const pathname = usePathname();
   const { mode, toggleColorMode } = useColorMode();
   const { user, isPro, signOut, loading: proLoading } = useProContext();
   const [mounted, setMounted] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [moreAnchorEl, setMoreAnchorEl] = useState<null | HTMLElement>(null);
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -166,6 +183,104 @@ export function Navbar() {
                     </Button>
                   );
                 })}
+
+                {/* More dropdown */}
+                {(() => {
+                  const isMoreActive = MORE_ITEMS.some((item) => pathname.startsWith(item.href));
+                  return (
+                    <Button
+                      size="small"
+                      onClick={(e) => setMoreAnchorEl(e.currentTarget)}
+                      endIcon={<ExpandMoreIcon sx={{ fontSize: "14px !important", transition: "transform 0.15s ease", transform: Boolean(moreAnchorEl) ? "rotate(180deg)" : "rotate(0deg)" }} />}
+                      sx={{
+                        px: 1.5,
+                        py: 0.75,
+                        fontSize: "0.8rem",
+                        fontWeight: isMoreActive ? 700 : 500,
+                        color: isMoreActive ? "primary.main" : "text.secondary",
+                        bgcolor: isMoreActive
+                          ? isDark ? "rgba(212,168,67,0.08)" : "rgba(161,124,47,0.06)"
+                          : "transparent",
+                        borderRadius: 1.5,
+                        minWidth: "auto",
+                        borderBottom: "2px solid transparent",
+                        ...(isMoreActive && { borderBottomColor: "primary.main" }),
+                        transition: "color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease",
+                        "&:hover": {
+                          bgcolor: isDark ? "rgba(212,168,67,0.06)" : "rgba(161,124,47,0.04)",
+                          color: isMoreActive ? "primary.main" : "text.primary",
+                        },
+                      }}
+                    >
+                      More
+                    </Button>
+                  );
+                })()}
+
+                <Menu
+                  anchorEl={moreAnchorEl}
+                  open={Boolean(moreAnchorEl)}
+                  onClose={() => setMoreAnchorEl(null)}
+                  slotProps={{
+                    paper: {
+                      sx: {
+                        borderRadius: "14px",
+                        border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"}`,
+                        bgcolor: isDark ? "#0d1425" : "#ffffff",
+                        boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.5)" : "0 8px 32px rgba(0,0,0,0.1)",
+                        backgroundImage: "none",
+                        minWidth: 200,
+                        mt: 0.5,
+                      },
+                    },
+                  }}
+                  transformOrigin={{ horizontal: "left", vertical: "top" }}
+                  anchorOrigin={{ horizontal: "left", vertical: "bottom" }}
+                >
+                  {MORE_ITEMS.map(({ href, label, icon: Icon, beta }) => {
+                    const isActive = pathname.startsWith(href);
+                    return (
+                      <MenuItem
+                        key={href}
+                        component={Link}
+                        href={href}
+                        onClick={() => setMoreAnchorEl(null)}
+                        sx={{
+                          fontSize: "0.8rem",
+                          fontFamily: '"Plus Jakarta Sans", sans-serif',
+                          py: 1,
+                          px: 2,
+                          gap: 1.25,
+                          color: isActive ? accent : "text.primary",
+                          fontWeight: isActive ? 700 : 500,
+                          "&:hover": { bgcolor: isDark ? "rgba(212,168,67,0.06)" : "rgba(161,124,47,0.04)" },
+                        }}
+                      >
+                        <Icon sx={{ fontSize: 16, color: isActive ? accent : "text.secondary" }} />
+                        {label}
+                        {beta && (
+                          <Box
+                            component="span"
+                            sx={{
+                              ml: 0.75,
+                              px: 0.65,
+                              py: 0.15,
+                              borderRadius: "4px",
+                              fontSize: "0.55rem",
+                              fontWeight: 700,
+                              fontFamily: '"JetBrains Mono", monospace',
+                              letterSpacing: "0.05em",
+                              bgcolor: isDark ? "rgba(212,168,67,0.15)" : "rgba(161,124,47,0.12)",
+                              color: accent,
+                            }}
+                          >
+                            BETA
+                          </Box>
+                        )}
+                      </MenuItem>
+                    );
+                  })}
+                </Menu>
               </Box>
             </Box>
 
@@ -453,6 +568,61 @@ export function Navbar() {
                   }}
                 >
                   <ListItemText primary={label} primaryTypographyProps={{ fontSize: "0.9rem" }} />
+                </ListItemButton>
+              </ListItem>
+            );
+          })}
+          <Divider sx={{ my: 1, mx: 0.5 }} />
+          {MORE_ITEMS.map(({ href, label, icon: Icon, beta }) => {
+            const isActive = pathname.startsWith(href);
+            return (
+              <ListItem key={href} disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  component={Link}
+                  href={href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  sx={{
+                    borderRadius: 1.5,
+                    py: 1.1,
+                    bgcolor: isActive
+                      ? isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.08)"
+                      : "transparent",
+                    color: isActive ? "primary.main" : "text.primary",
+                    fontWeight: isActive ? 700 : 500,
+                    gap: 1.25,
+                    "&:hover": {
+                      bgcolor: isDark ? "rgba(212,168,67,0.06)" : "rgba(161,124,47,0.04)",
+                    },
+                  }}
+                >
+                  <Icon sx={{ fontSize: 16, color: isActive ? "primary.main" : "text.secondary" }} />
+                  <ListItemText
+                    primary={
+                      <>
+                        {label}
+                        {beta && (
+                          <Box
+                            component="span"
+                            sx={{
+                              ml: 0.75,
+                              px: 0.65,
+                              py: 0.15,
+                              borderRadius: "4px",
+                              fontSize: "0.55rem",
+                              fontWeight: 700,
+                              fontFamily: '"JetBrains Mono", monospace',
+                              letterSpacing: "0.05em",
+                              bgcolor: isDark ? "rgba(212,168,67,0.15)" : "rgba(161,124,47,0.12)",
+                              color: accent,
+                            }}
+                          >
+                            BETA
+                          </Box>
+                        )}
+                      </>
+                    }
+                    primaryTypographyProps={{ fontSize: "0.88rem", display: "flex", alignItems: "center" }}
+                  />
                 </ListItemButton>
               </ListItem>
             );

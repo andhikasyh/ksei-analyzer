@@ -147,7 +147,7 @@ async function fetchBandarmologyData(
       .limit(topCodes.length),
     supabase
       .from("idx_ba_stock_ranking")
-      .select("symbol, date, broker_code, total_value, total_volume, value_share, rank")
+      .select("symbol, date, broker_code, net_value, b_val, s_val, value_share, rank")
       .in("symbol", topCodes)
       .eq("period", "1M")
       .eq("investor_type", "ALL")
@@ -186,19 +186,17 @@ async function fetchBandarmologyData(
     const latest = rows.filter((r: Record<string, string>) => r.date === latestDate);
 
     const brokers: BrokerRankingRow[] = [];
-    let totalValue = 0;
 
     for (const r of latest) {
-      const val = parseFloat(r.total_value as string) || 0;
-      totalValue += val;
+      const netVal = parseFloat(r.net_value as string) || 0;
       const bc = r.broker_code as string;
 
       brokers.push({
         code: sym,
         brokerCode: bc,
         brokerName: brokerMeta.get(bc)?.name || bc,
-        totalValue: val,
-        totalVolume: parseFloat(r.total_volume as string) || 0,
+        totalValue: Math.abs(netVal),
+        totalVolume: 0,
         valueShare: parseFloat(r.value_share as string) || 0,
         rank: r.rank as number,
         isForeign: brokerMeta.get(bc)?.isForeign || false,
@@ -321,6 +319,70 @@ interface FundamentalRatio {
   fsDate: string;
 }
 
+interface BrokerClusterInfo {
+  cluster_label: string;
+  members: string[];
+  cluster_size: number;
+  avg_correlation: number;
+}
+
+interface StockRegimeInfo {
+  symbol: string;
+  regime: string;
+  confidence_score: number;
+  accum_ratio: number;
+  volume_ratio: number;
+  volatility: number;
+  foreign_flow_dir: number;
+}
+
+async function fetchBrokerClusters(
+  supabase: ReturnType<typeof getSupabase>
+): Promise<BrokerClusterInfo[]> {
+  const { data } = await supabase
+    .from("mv_broker_clusters")
+    .select("cluster_id, cluster_label, broker_code, cluster_size, avg_internal_correlation")
+    .order("cluster_id")
+    .order("broker_code");
+  if (!data) return [];
+
+  const map = new Map<number, BrokerClusterInfo>();
+  for (const row of data) {
+    const id = row.cluster_id as number;
+    if (!map.has(id)) {
+      map.set(id, {
+        cluster_label: row.cluster_label as string,
+        members: [],
+        cluster_size: row.cluster_size as number,
+        avg_correlation: parseFloat(row.avg_internal_correlation as string) || 0,
+      });
+    }
+    map.get(id)!.members.push(row.broker_code as string);
+  }
+  return Array.from(map.values());
+}
+
+async function fetchStockRegimes(
+  supabase: ReturnType<typeof getSupabase>
+): Promise<StockRegimeInfo[]> {
+  const { data } = await supabase
+    .from("mv_stock_regime")
+    .select("symbol, regime, confidence_score, accum_ratio, volume_ratio, volatility, foreign_flow_dir")
+    .order("confidence_score", { ascending: false })
+    .limit(500);
+  if (!data) return [];
+
+  return (data as any[]).map((r) => ({
+    symbol: r.symbol,
+    regime: r.regime,
+    confidence_score: parseFloat(r.confidence_score) || 0,
+    accum_ratio: parseFloat(r.accum_ratio) || 0,
+    volume_ratio: parseFloat(r.volume_ratio) || 0,
+    volatility: parseFloat(r.volatility) || 0,
+    foreign_flow_dir: parseFloat(r.foreign_flow_dir) || 0,
+  }));
+}
+
 interface AggregatedMarketData {
   tradingDate: string;
   totalStocks: number;
@@ -347,6 +409,8 @@ interface AggregatedMarketData {
   recentCorporateActions: { code: string; issuerName: string; type: string; detail: string; startDate: string }[];
   bandarmologySignals: BandarmologySignal[];
   fundamentals: Map<string, FundamentalRatio>;
+  brokerClusters: BrokerClusterInfo[];
+  stockRegimes: StockRegimeInfo[];
   discoveryData: {
     volumeAnomalies: { code: string; name: string; close: number; changePct: number; volume: number; avgVolume: number; volumeRatio: number; foreignNet: number; sector?: string }[];
     foreignFlowOutliers: { code: string; name: string; close: number; changePct: number; value: number; foreignNet: number; foreignIntensity: number; sector?: string }[];
@@ -504,7 +568,7 @@ async function aggregateMarketData(
 
   const volumeCutoff = new Date(Date.now() - 15 * 86400000).toISOString().split("T")[0];
 
-  const [priceHistory, corpActionsRes, bandarmologySignals, { data: fundamentalRows }, { data: volumeHistoryData }] = await Promise.all([
+  const [priceHistory, corpActionsRes, bandarmologySignals, { data: fundamentalRows }, { data: volumeHistoryData }, brokerClusters, stockRegimes] = await Promise.all([
     fetchMultiDayHistory(supabase, allHistoryCodes),
     supabase
       .from("idx_corporate_actions")
@@ -527,6 +591,8 @@ async function aggregateMarketData(
       .lt("date", latestDate)
       .order("date", { ascending: false })
       .limit(volumeCheckCodes.length * 10),
+    fetchBrokerClusters(supabase),
+    fetchStockRegimes(supabase),
   ]);
 
   const fundamentals = new Map<string, FundamentalRatio>();
@@ -668,6 +734,8 @@ async function aggregateMarketData(
     recentCorporateActions,
     bandarmologySignals,
     fundamentals,
+    brokerClusters,
+    stockRegimes,
     discoveryData: {
       volumeAnomalies,
       foreignFlowOutliers,
@@ -829,6 +897,30 @@ const REPORT_SCHEMA = `{
     ],
     "alertStocks": ["TICKER1", "TICKER2"] (stocks showing highest broker concentration -- top priority watchlist)
   },
+  "brokerNetworkAnalysis": {
+    "summary": "3-5 sentence analysis of broker network clusters detected through correlation analysis. Which broker groups appear to be acting as a single entity? What does this mean for market manipulation risk or institutional coordination?",
+    "clusters": [
+      {
+        "label": "Cluster X",
+        "members": ["broker codes"],
+        "avgCorrelation": number,
+        "interpretation": "2-3 sentence interpretation of what this cluster likely represents and which stocks they are targeting"
+      }
+    ],
+    "implications": "2-3 sentence analysis of how broker clustering affects market dynamics and what investors should watch for"
+  },
+  "regimeAnalysis": {
+    "summary": "3-5 sentence overview of the market regime distribution. What percentage of stocks are in accumulation vs distribution vs markup vs markdown? What does this tell us about the overall market cycle?",
+    "regimeBreakdown": { "accumulation": number, "markup": number, "distribution": number, "markdown": number, "neutral": number },
+    "notableTransitions": [
+      {
+        "code": "TICKER",
+        "regime": "accumulation" | "markup" | "distribution" | "markdown",
+        "confidence": number,
+        "interpretation": "1-2 sentence explanation of why this stock's regime classification is significant"
+      }
+    ]
+  },
   "aiDiscovery": {
     "summary": "3-4 sentence overview of the non-obvious patterns you identified across the broader market beyond headline stocks. What is the hidden narrative?",
     "hiddenGems": [
@@ -910,9 +1002,11 @@ SECTION RULES:
 9. pricePredictions: 5-8 stocks. Include at least 2 non-blue-chip stocks. Be honest about confidence.
 10. chartData: include ALL data points from price history (do NOT truncate). Price history for at least 6 stocks. Foreign flow chart, sector chart, breadth chart.
 11. bandarmology: analyze broker concentration using HHI scores. "interpretation": 3-4 sentences connecting broker concentration patterns to price/volume/fundamentals. Include non-blue-chip stocks from the expanded bandarmology data.
-12. aiDiscovery: THIS IS MANDATORY. Analyze the discovery data (volume anomalies, foreign flow outliers, undervalued fundamentals, stealth accumulation) to find 4-8 hidden gems. Each thesis should be a genuine insight that the reader cannot get from surface-level analysis. Use SPECIFIC data points.
-13. marketOutlook: synthesize everything into a cohesive thesis. Be actionable.
-14. Write all analysis in English.
+12. brokerNetworkAnalysis: use the broker cluster data to identify coordinated trading entities. Explain what each cluster likely represents (same institution, same client group) and which stocks they are targeting. This is NEW intelligence not available from simple HHI analysis.
+13. regimeAnalysis: provide the regime breakdown numbers and highlight 3-5 notable stocks whose regime classification is significant (e.g., a blue-chip entering accumulation, or a liquid stock shifting to distribution). Connect regime to price action and broker activity.
+14. aiDiscovery: THIS IS MANDATORY. Analyze the discovery data (volume anomalies, foreign flow outliers, undervalued fundamentals, stealth accumulation) to find 4-8 hidden gems. Each thesis should be a genuine insight that the reader cannot get from surface-level analysis. Use SPECIFIC data points.
+15. marketOutlook: synthesize everything including regime distribution and broker network patterns into a cohesive thesis. Be actionable.
+16. Write all analysis in English.
 15. Do not use any emojis.
 16. Connect seemingly unrelated data points. The hallmark of great analysis is finding the hidden thread.`;
 
@@ -994,6 +1088,36 @@ ${marketData.bandarmologySignals.length > 0 ? marketData.bandarmologySignals.map
   Signal: ${s.rationale}`;
 }).join("\n\n") : "No bandarmology data available."}
 
+BROKER NETWORK CLUSTERS (brokers with correlated trading patterns -- likely same entity):
+${marketData.brokerClusters.length > 0 ? marketData.brokerClusters.map((c) =>
+  `${c.cluster_label}: [${c.members.join(", ")}] (${c.cluster_size} members, avg correlation: ${c.avg_correlation.toFixed(3)})`
+).join("\n") : "No broker clusters detected."}
+
+STOCK REGIME CLASSIFICATION (market phase detection based on price + volume + broker concentration):
+${(() => {
+  const regimeCounts: Record<string, number> = {};
+  for (const r of marketData.stockRegimes) {
+    regimeCounts[r.regime] = (regimeCounts[r.regime] || 0) + 1;
+  }
+  const summary = Object.entries(regimeCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([regime, count]) => `${regime}: ${count} stocks`)
+    .join(", ");
+
+  const topByRegime = ["accumulation", "markup", "distribution", "markdown"]
+    .map((regime) => {
+      const stocks = marketData.stockRegimes
+        .filter((r) => r.regime === regime && r.confidence_score >= 0.35)
+        .slice(0, 5);
+      if (stocks.length === 0) return null;
+      return `Top ${regime}: ${stocks.map((s) => `${s.symbol}(conf=${s.confidence_score.toFixed(2)}, ratio=${s.accum_ratio.toFixed(1)}, vol=${s.volume_ratio.toFixed(1)}x, fflow=${s.foreign_flow_dir.toFixed(2)})`).join(", ")}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  return `Market regime distribution: ${summary}\n${topByRegime}`;
+})()}
+
 ===== AI DISCOVERY DATA -- NON-OBVIOUS SIGNALS (stocks outside the top-20 by value) =====
 Use this data to populate the "aiDiscovery" section. These are mid-cap stocks showing unusual patterns that warrant deeper analysis.
 
@@ -1025,7 +1149,7 @@ Generate the market intelligence report. KEY REQUIREMENTS:
 
   const stream = anthropic.messages.stream({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 32000,
+    max_tokens: 12000,
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
   });
@@ -1046,23 +1170,13 @@ Generate the market intelligence report. KEY REQUIREMENTS:
   const imageUrl = generateCoverImageUrl(marketData.tradingDate, sentiment);
   const title = report.title || null;
 
-  let indonesianReport: Record<string, unknown> | null = null;
-  try {
-    indonesianReport = await translateReportToIndonesian(anthropic, report);
-  } catch (err) {
-    console.error("Indonesian translation failed:", err);
-  }
-
-  const reportWithTranslation = indonesianReport
-    ? { ...report, _indonesian: indonesianReport }
-    : report;
-
+  // Save English report first so it's always persisted even if translation times out
   const { error: upsertError } = await supabase
     .from("market_intelligence")
     .upsert(
       {
         report_date: marketData.tradingDate,
-        report: reportWithTranslation,
+        report,
         title,
         image_url: imageUrl,
       },
@@ -1073,8 +1187,28 @@ Generate the market intelligence report. KEY REQUIREMENTS:
     console.error("Failed to store report:", upsertError);
   }
 
+  // Attempt translation after saving English report
+  let finalReport = report;
+  try {
+    const indonesianReport = await translateReportToIndonesian(anthropic, report);
+    finalReport = { ...report, _indonesian: indonesianReport };
+    await supabase
+      .from("market_intelligence")
+      .upsert(
+        {
+          report_date: marketData.tradingDate,
+          report: finalReport,
+          title,
+          image_url: imageUrl,
+        },
+        { onConflict: "report_date" }
+      );
+  } catch (err) {
+    console.error("Indonesian translation failed:", err);
+  }
+
   return {
-    report: reportWithTranslation,
+    report: finalReport,
     reportDate: marketData.tradingDate,
     title,
     imageUrl,

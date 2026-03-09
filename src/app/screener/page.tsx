@@ -522,11 +522,28 @@ function ScreenerContent() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [guideOpen, setGuideOpen] = useState(false);
   const [screenerTab, setScreenerTab] = useState(0);
+  const [regimeFilter, setRegimeFilter] = useState("All");
+  const [regimeMap, setRegimeMap] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    fetch("/api/stock-regime")
+      .then((r) => r.json())
+      .then((d) => {
+        const m = new Map<string, string>();
+        for (const r of d.regimes || []) m.set(r.symbol, r.regime);
+        setRegimeMap(m);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     const idx = searchParams.get("index");
     if (idx && (idx === "COMPOSITE" || INDEX_CONSTITUENTS[idx])) {
       setIndexFilter(idx === "COMPOSITE" ? "All" : idx);
+    }
+    const sec = searchParams.get("sector");
+    if (sec) {
+      setSectorFilter(sec);
     }
   }, [searchParams]);
 
@@ -614,6 +631,9 @@ function ScreenerContent() {
     if (sectorFilter !== "All") {
       result = result.filter((r) => r.sector === sectorFilter);
     }
+    if (regimeFilter !== "All") {
+      result = result.filter((r) => regimeMap.get(r.code) === regimeFilter);
+    }
     result = [...result].sort((a, b) => {
       const col = COLUMNS.find((c) => c.key === sortKey);
       if (col?.numeric) {
@@ -628,7 +648,7 @@ function ScreenerContent() {
         : bv.localeCompare(av);
     });
     return result;
-  }, [data, search, sectorFilter, indexFilter, sortKey, sortDir]);
+  }, [data, search, sectorFilter, indexFilter, regimeFilter, regimeMap, sortKey, sortDir]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -751,6 +771,48 @@ function ScreenerContent() {
       {screenerTab === 1 && <InvestorScreener />}
 
       {screenerTab === 0 && <>
+
+      {/* ── Quick Presets ── */}
+      <Stack direction="row" spacing={0.75} sx={{ overflowX: "auto", pb: 0.5, scrollbarWidth: "none", "&::-webkit-scrollbar": { display: "none" } }}>
+        {([
+          { label: "All", apply: () => { setSortKey("market_cap"); setSortDir("desc"); setSectorFilter("All"); } },
+          { label: "Value Stocks", apply: () => { setSortKey("per"); setSortDir("asc"); setSectorFilter("All"); } },
+          { label: "High ROE", apply: () => { setSortKey("roe"); setSortDir("desc"); setSectorFilter("All"); } },
+          { label: "High Dividend", apply: () => { setSortKey("eps"); setSortDir("desc"); setSectorFilter("All"); } },
+          { label: "Most Active", apply: () => { setSortKey("daily_value"); setSortDir("desc"); setSectorFilter("All"); } },
+          { label: "Foreign Inflow", apply: () => { setSortKey("foreign_net"); setSortDir("desc"); setSectorFilter("All"); } },
+          { label: "Top Gainers", apply: () => { setSortKey("change_pct"); setSortDir("desc"); setSectorFilter("All"); } },
+        ]).map((preset) => (
+          <Chip
+            key={preset.label}
+            label={preset.label}
+            size="small"
+            onClick={() => {
+              preset.apply();
+              setVisibleCount(PAGE_SIZE);
+              setSearch("");
+              setIndexFilter("All");
+            }}
+            sx={{
+              fontFamily: '"JetBrains Mono", monospace',
+              fontWeight: 600,
+              fontSize: "0.68rem",
+              height: 26,
+              cursor: "pointer",
+              flexShrink: 0,
+              bgcolor: isDark ? "rgba(212,168,67,0.08)" : "rgba(161,124,47,0.05)",
+              border: "1px solid",
+              borderColor: isDark ? "rgba(212,168,67,0.15)" : "rgba(161,124,47,0.1)",
+              color: "primary.main",
+              "&:hover": {
+                bgcolor: isDark ? "rgba(212,168,67,0.15)" : "rgba(161,124,47,0.1)",
+              },
+            }}
+          />
+        ))}
+      </Stack>
+
+      {/* ── Index Filter ── */}
       <Stack
         direction="row"
         spacing={0.75}
@@ -852,6 +914,22 @@ function ScreenerContent() {
               ))}
             </Select>
           </FormControl>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <Select
+              value={regimeFilter}
+              onChange={(e) => {
+                setRegimeFilter(e.target.value);
+                setVisibleCount(PAGE_SIZE);
+              }}
+              sx={{ borderRadius: 2, fontSize: "0.85rem" }}
+            >
+              {["All", "accumulation", "markup", "distribution", "markdown", "neutral"].map((r) => (
+                <MenuItem key={r} value={r} sx={{ fontSize: "0.85rem" }}>
+                  {r === "All" ? "All Regimes" : r.charAt(0).toUpperCase() + r.slice(1)}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </Stack>
         <Chip
           label={`${filtered.length} result${filtered.length !== 1 ? "s" : ""}`}
@@ -947,30 +1025,20 @@ function ScreenerContent() {
                   {r.code}
                 </TableCell>
                 <TableCell align="right">
-                  <Chip
-                    label={r.score}
-                    size="small"
-                    sx={{
-                      fontSize: "0.65rem",
-                      height: 18,
-                      fontWeight: 700,
-                      fontFamily: '"JetBrains Mono", monospace',
-                      minWidth: 32,
-                      bgcolor:
-                        r.score >= 60
-                          ? "rgba(52,211,153,0.12)"
-                          : r.score >= 35
-                            ? "rgba(251,191,36,0.12)"
-                            : "rgba(251,113,133,0.12)",
-                      color:
-                        r.score >= 60
-                          ? "#34d399"
-                          : r.score >= 35
-                            ? "#fbbf24"
-                            : "#fb7185",
-                      "& .MuiChip-label": { px: 0.75 },
-                    }}
-                  />
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, justifyContent: "flex-end" }}>
+                    <Box sx={{ width: 36, height: 4, borderRadius: 2, bgcolor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)", overflow: "hidden" }}>
+                      <Box sx={{
+                        width: `${Math.min(r.score, 100)}%`, height: "100%", borderRadius: 2,
+                        bgcolor: r.score >= 60 ? "#34d399" : r.score >= 35 ? "#fbbf24" : "#fb7185",
+                        transition: "width 0.3s ease",
+                      }} />
+                    </Box>
+                    <Typography sx={{
+                      fontSize: "0.65rem", fontWeight: 700, fontFamily: '"JetBrains Mono", monospace',
+                      minWidth: 20, textAlign: "right",
+                      color: r.score >= 60 ? "#34d399" : r.score >= 35 ? "#fbbf24" : "#fb7185",
+                    }}>{r.score}</Typography>
+                  </Box>
                 </TableCell>
                 <TableCell
                   sx={{

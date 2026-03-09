@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useTheme } from "@mui/material/styles";
 import { supabase, TABLE_NAME } from "@/lib/supabase";
 import { KSEIRecord, INVESTOR_TYPE_MAP, formatShares } from "@/lib/types";
+import { useWatchlist } from "@/lib/watchlist";
 import { GlobalSearch } from "@/components/SearchInput";
 import { OwnershipPieChart } from "@/components/Charts";
 import { InvestorTypeBadge, LocalForeignBadge } from "@/components/Badge";
@@ -38,7 +39,12 @@ import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
+import Tooltip from "@mui/material/Tooltip";
+import IconButton from "@mui/material/IconButton";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 
 export default function StockDetailPage() {
   const params = useParams();
@@ -46,6 +52,8 @@ export default function StockDetailPage() {
   const router = useRouter();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
+  const accent = isDark ? "#d4a843" : "#a17c2f";
+  const { isWatched, toggle: toggleWatchlist } = useWatchlist();
   const [records, setRecords] = useState<KSEIRecord[]>([]);
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);
   const [graphLinks, setGraphLinks] = useState<GraphLink[]>([]);
@@ -259,6 +267,55 @@ export default function StockDetailPage() {
             </Typography>
           </Stack>
         </Box>
+        {/* Watchlist star */}
+        <Tooltip title={isWatched(code) ? "Remove from watchlist" : "Add to watchlist"} arrow>
+          <IconButton
+            size="small"
+            onClick={() => toggleWatchlist(code)}
+            sx={{
+              border: `1px solid ${isWatched(code)
+                ? isDark ? "rgba(212,168,67,0.35)" : "rgba(161,124,47,0.3)"
+                : isDark ? "rgba(107,127,163,0.18)" : "rgba(12,18,34,0.1)"}`,
+              borderRadius: "8px",
+              p: 0.75,
+              color: isWatched(code) ? accent : "text.secondary",
+              bgcolor: isWatched(code)
+                ? isDark ? "rgba(212,168,67,0.08)" : "rgba(161,124,47,0.06)"
+                : "transparent",
+              transition: "all 0.15s ease",
+              "&:hover": {
+                color: accent,
+                borderColor: isDark ? "rgba(212,168,67,0.4)" : "rgba(161,124,47,0.35)",
+                bgcolor: isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.08)",
+              },
+            }}
+          >
+            {isWatched(code)
+              ? <StarIcon sx={{ fontSize: 18 }} />
+              : <StarBorderIcon sx={{ fontSize: 18 }} />
+            }
+          </IconButton>
+        </Tooltip>
+        {/* Compare button */}
+        <Tooltip title="Compare with other stocks" arrow>
+          <IconButton
+            size="small"
+            onClick={() => router.push(`/compare?stocks=${code}`)}
+            sx={{
+              border: `1px solid ${isDark ? "rgba(107,127,163,0.18)" : "rgba(12,18,34,0.1)"}`,
+              borderRadius: "8px",
+              p: 0.75,
+              color: "text.secondary",
+              transition: "all 0.15s ease",
+              "&:hover": {
+                color: "text.primary",
+                borderColor: isDark ? "rgba(107,127,163,0.35)" : "rgba(12,18,34,0.22)",
+              },
+            }}
+          >
+            <CompareArrowsIcon sx={{ fontSize: 18 }} />
+          </IconButton>
+        </Tooltip>
       </Stack>
 
       <Paper
