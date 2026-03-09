@@ -35,6 +35,7 @@ import BusinessIcon from "@mui/icons-material/Business";
 import EventIcon from "@mui/icons-material/Event";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import ScienceIcon from "@mui/icons-material/Science";
+import DashboardCustomizeIcon from "@mui/icons-material/DashboardCustomize";
 import LanguageIcon from "@mui/icons-material/Language";
 import { ProPaywallModal } from "@/components/ProPaywallModal";
 
@@ -43,6 +44,7 @@ const NAV_ITEMS = [
   { href: "/screener", labelKey: "nav.screener" },
   { href: "/brokers", labelKey: "nav.brokers" },
   { href: "/intelligent", labelKey: "nav.insights" },
+  { href: "/my-dashboard", labelKey: "nav.customDashboard" },
 ];
 
 const MORE_ITEMS: { href: string; labelKey: string; icon: React.ComponentType<{ sx?: object }>; beta?: boolean }[] = [

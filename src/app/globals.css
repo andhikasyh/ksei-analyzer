@@ -88,6 +88,25 @@ a {
   font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
 }
 
+/* Dashboard grid */
+.dashboard-grid .react-grid-item {
+  overflow: hidden;
+}
+
+.dashboard-grid .react-grid-item > div {
+  height: 100%;
+}
+
+.dashboard-grid .react-grid-placeholder {
+  background: rgba(201, 162, 39, 0.15) !important;
+  border: 1px dashed rgba(201, 162, 39, 0.4);
+  border-radius: 10px;
+}
+
+.dashboard-grid .react-resizable-handle::after {
+  border-color: rgba(201, 162, 39, 0.4) !important;
+}
+
 body::after {
   content: "";
   position: fixed;

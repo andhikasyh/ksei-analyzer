@@ -621,3 +621,54 @@ export interface BABrokerRanking {
   value_share: number;
   rank: number;
 }
+
+export type WidgetType =
+  | "IndexCards"
+  | "MarketHeatmap"
+  | "MarketMovers"
+  | "ForeignFlowChart"
+  | "EventCalendar"
+  | "StockScreener"
+  | "InvestorScreener"
+  | "Watchlist"
+  | "MarketIntelligence"
+  | "TradingViewChart"
+  | "CompanyProfile"
+  | "FinancialTrends"
+  | "OwnershipChart"
+  | "ShareholderHistory"
+  | "DividendHistory"
+  | "BrokerSummary"
+  | "StockNews"
+  | "ConnectionGraph";
+
+export type LinkGroupId = "A" | "B" | "C" | "D";
+
+export interface WidgetConfig {
+  i: string;
+  type: WidgetType;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  config?: { stockCode?: string; [key: string]: unknown };
+  linkGroup?: LinkGroupId | null;
+}
+
+export interface DashboardLayout {
+  id: string;
+  user_id: string;
+  name: string;
+  layout: WidgetConfig[];
+  link_groups: Record<LinkGroupId, string | null>;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export const LINK_GROUP_COLORS: Record<LinkGroupId, string> = {
+  A: "#3b82f6",
+  B: "#22c55e",
+  C: "#f97316",
+  D: "#a855f7",
+};
