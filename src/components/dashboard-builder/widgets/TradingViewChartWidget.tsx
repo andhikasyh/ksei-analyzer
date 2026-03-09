@@ -21,7 +21,7 @@ export function TradingViewChartWidget({ stockCode }: WidgetComponentProps) {
     let cancelled = false;
 
     function inject() {
-      if (cancelled || !container) return;
+      if (cancelled || !wrapper || !container) return;
       const w = Math.floor(wrapper.clientWidth);
       const h = Math.floor(wrapper.clientHeight);
 

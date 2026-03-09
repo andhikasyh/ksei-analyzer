@@ -4,10 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "rm -rf .next && next build",
+    "build": "rimraf .next && next build",
     "start": "next start",
     "lint": "next lint",
-    "clean": "rm -rf .next"
+    "clean": "rimraf .next"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
@@ -30,6 +30,7 @@
     "recharts": "^2.15.0"
   },
   "devDependencies": {
+    "rimraf": "^6.0.1",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
