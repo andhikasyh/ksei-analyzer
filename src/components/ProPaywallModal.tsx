@@ -134,6 +134,7 @@ function EmailAuthForm({
         "Invalid login credentials": t("auth.errorInvalidCredentials"),
         "Email not confirmed": t("auth.errorEmailNotConfirmed"),
         "User already registered": t("auth.errorAlreadyRegistered"),
+        "CAPTCHA_OR_SERVER": t("auth.errorCaptchaOrServer"),
       };
       setError(msg[error] ?? error);
       turnstileRef.current?.reset();
@@ -169,7 +170,15 @@ function EmailAuthForm({
   });
 
   return (
-    <Stack spacing={1.5}>
+    <Stack
+      component="form"
+      spacing={1.5}
+      onSubmit={(e) => {
+        e.preventDefault();
+        handleSubmit();
+      }}
+      noValidate
+    >
       {/* email */}
       <TextField
         fullWidth size="small" label={t("auth.email")} type="email"
@@ -303,7 +312,7 @@ function EmailAuthForm({
         </Box>
       )}
 
-      <Button fullWidth variant="contained" onClick={handleSubmit}
+      <Button fullWidth type="submit" variant="contained"
         disabled={!canSubmit}
         sx={{
           bgcolor: accent, color: "#050505", fontWeight: 700, fontSize: "0.82rem",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "@mui/material/styles";
 import { useLocale } from "@/lib/locale-context";
@@ -135,7 +135,8 @@ export function DashboardContent() {
   const [error, setError] = useState<string | null>(null);
   const [treemapStocks, setTreemapStocks] = useState<{ code: string; stock_name: string; sector: string; market_cap: number; change_pct: number }[]>([]);
   const [foreignFlowDays, setForeignFlowDays] = useState<{ date: string; net: number }[]>([]);
-  const [foreignFlowRange, setForeignFlowRange] = useState<"1M" | "3M" | "6M">("1M");
+  const [foreignFlowRange, setForeignFlowRange] = useState<"1M" | "3M" | "6M">("3M");
+  const foreignFlowRangeRef = useRef(foreignFlowRange);
   const [foreignFlowLoading, setForeignFlowLoading] = useState(false);
   const [allTradingDates, setAllTradingDates] = useState<string[]>([]);
   const [latestNews, setLatestNews] = useState<{ id: number; stock_code: string; headline: string; source: string; url: string; published_at: string | null }[]>([]);
@@ -235,7 +236,7 @@ export function DashboardContent() {
             .sort(([a], [b]) => a.localeCompare(b))
             .slice(-22)
             .map(([date, { buy, sell }]) => ({ date, net: buy - sell }));
-          setForeignFlowDays(seedDays);
+          if (foreignFlowRangeRef.current === "1M") setForeignFlowDays(seedDays);
 
           // Also record distinct trading dates from this data for use by range selector
           const distinctDates = [...new Set((stockRes.data as IDXStockSummary[]).map((r) => r.date))]
@@ -363,6 +364,10 @@ export function DashboardContent() {
     }
     fetchLatestNews();
   }, []);
+  useEffect(() => {
+    foreignFlowRangeRef.current = foreignFlowRange;
+  }, [foreignFlowRange]);
+
   useEffect(() => {
     if (foreignFlowRange === "1M" && foreignFlowDays.length > 0) return; // already seeded from main fetch
 

@@ -73,6 +73,7 @@
     "errorInvalidCredentials": "Email atau password salah.",
     "errorEmailNotConfirmed": "Cek inbox kamu dulu untuk konfirmasi email.",
     "errorAlreadyRegistered": "Email ini sudah terdaftar. Coba masuk.",
+    "errorCaptchaOrServer": "Daftar gagal: verifikasi captcha atau error server. Jika pakai Turnstile, aktifkan di Supabase Auth (Bot protection) dan set secret key.",
     "successConfirmEmail": "Hampir selesai! Cek email kamu untuk konfirmasi akun.",
     "signInWithGoogle": "Masuk dengan Google",
     "proFeaturesTitle": "Fitur Pro",

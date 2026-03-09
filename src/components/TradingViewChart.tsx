@@ -34,7 +34,6 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
     if (!container || width < 100) return;
 
     container.innerHTML = "";
-
     const widgetDiv = document.createElement("div");
     widgetDiv.className = "tradingview-widget-container__widget";
     container.appendChild(widgetDiv);
@@ -42,7 +41,7 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
-    script.async = true;
+    script.async = false;
     script.textContent = JSON.stringify({
       width,
       height: 420,
@@ -64,10 +63,10 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
       hide_volume: false,
       support_host: "https://www.tradingview.com",
     });
-    container.appendChild(script);
+    widgetDiv.appendChild(script);
 
     return () => {
-      if (container) container.innerHTML = "";
+      if (containerRef.current) containerRef.current.innerHTML = "";
     };
   }, [symbol, mode, width]);
 

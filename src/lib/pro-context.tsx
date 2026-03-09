@@ -184,7 +184,11 @@ export function ProProvider({ children }: { children: ReactNode }) {
       password,
       options: captchaToken ? { captchaToken } : undefined,
     });
-    return { error: error?.message ?? null };
+    const msg = error?.message ?? null;
+    if (msg && (msg.toLowerCase().includes("captcha") || msg.toLowerCase().includes("500") || msg.toLowerCase().includes("verification process failed"))) {
+      return { error: "CAPTCHA_OR_SERVER" };
+    }
+    return { error: msg };
   }, []);
 
   const signOut = useCallback(async () => {

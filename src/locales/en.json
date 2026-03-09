@@ -73,6 +73,7 @@
     "errorInvalidCredentials": "Invalid email or password.",
     "errorEmailNotConfirmed": "Check your inbox to confirm your email.",
     "errorAlreadyRegistered": "This email is already registered. Try signing in.",
+    "errorCaptchaOrServer": "Sign up failed: captcha verification or server error. If using Turnstile, enable it in Supabase Auth (Bot protection) and set the secret key.",
     "successConfirmEmail": "Almost done! Check your email to confirm your account.",
     "signInWithGoogle": "Sign in with Google",
     "proFeaturesTitle": "Pro Features",

@@ -400,7 +400,7 @@ export default function StockDetailPage() {
 
       {tab === 0 && (
         <Stack spacing={2}>
-          <TradingViewChart stockCode={code} />
+          <TradingViewChart key={code} stockCode={code} />
           <MarketOverviewPanel stockCode={code} />
         </Stack>
       )}
