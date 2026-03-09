@@ -8,13 +8,13 @@ import {
   useCallback,
   ReactNode,
 } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 import type { User, Session } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-const browserClient = createClient(supabaseUrl, supabaseAnonKey);
+const browserClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 // For guests (not logged in) — localStorage only
 export const FREE_INSIGHT_KEY = "bei_insight_tries";

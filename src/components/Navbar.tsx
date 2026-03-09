@@ -36,6 +36,7 @@ import EventIcon from "@mui/icons-material/Event";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import ScienceIcon from "@mui/icons-material/Science";
 import DashboardCustomizeIcon from "@mui/icons-material/DashboardCustomize";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import LanguageIcon from "@mui/icons-material/Language";
 import { ProPaywallModal } from "@/components/ProPaywallModal";
 
@@ -48,6 +49,7 @@ const NAV_ITEMS = [
 ];
 
 const MORE_ITEMS: { href: string; labelKey: string; icon: React.ComponentType<{ sx?: object }>; beta?: boolean }[] = [
+  { href: "/portfolio", labelKey: "nav.portfolio", icon: AccountBalanceWalletIcon },
   { href: "/watchlist", labelKey: "nav.watchlist", icon: StarBorderIcon },
   { href: "/foreign-flow", labelKey: "nav.foreignFlow", icon: TrendingUpIcon },
   { href: "/sectors", labelKey: "nav.sectors", icon: BusinessIcon },
