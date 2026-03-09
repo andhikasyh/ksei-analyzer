@@ -101,7 +101,7 @@ interface SavedExperiment {
   created_at: string;
 }
 
-const STOCK_COLORS = ["#d4a843", "#3b82f6", "#22c55e", "#f97316", "#a78bfa"];
+const STOCK_COLORS = ["#c9a227", "#3b82f6", "#22c55e", "#f97316", "#a78bfa"];
 
 const EXIT_REASON_LABEL: Record<string, string> = {
   tp: "Take Profit",
@@ -141,7 +141,7 @@ function formatFullRupiah(n: number): string {
 export default function LabPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const accent = isDark ? "#d4a843" : "#a17c2f";
+  const accent = isDark ? "#c9a227" : "#c9a227";
   const { user } = useProContext();
 
   const [tab, setTab] = useState<TabKey>("manual");
@@ -580,7 +580,7 @@ export default function LabPage() {
                 px: 1.25, py: 0.4, cursor: "pointer", borderRadius: 1,
                 ...monoSx, fontSize: "0.65rem", fontWeight: 600,
                 transition: "all 0.15s",
-                color: numVal === preset ? (isDark ? "#fff" : "#0c1222") : "text.secondary",
+                color: numVal === preset ? (isDark ? "#fff" : "#1c1c1a") : "text.secondary",
                 bgcolor: numVal === preset ? `${accent}25` : "transparent",
                 border: `1px solid ${numVal === preset ? accent + "50" : isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
                 "&:hover": { bgcolor: numVal === preset ? undefined : (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)") },
@@ -626,7 +626,7 @@ export default function LabPage() {
                   px: 1.25, py: 0.4, cursor: "pointer", borderRadius: 1,
                   ...monoSx, fontSize: "0.65rem", fontWeight: 600,
                   transition: "all 0.15s",
-                  color: value === opt.key ? (isDark ? "#fff" : "#0c1222") : "text.secondary",
+                  color: value === opt.key ? (isDark ? "#fff" : "#1c1c1a") : "text.secondary",
                   bgcolor: value === opt.key ? `${accent}25` : "transparent",
                   border: `1px solid ${value === opt.key ? accent + "50" : "transparent"}`,
                   "&:hover": { bgcolor: value === opt.key ? undefined : (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)") },
@@ -676,7 +676,7 @@ export default function LabPage() {
                 px: 1.25, py: 0.4, cursor: "pointer", borderRadius: 1,
                 ...monoSx, fontSize: "0.65rem", fontWeight: 600,
                 transition: "all 0.15s",
-                color: et === opt.key ? (isDark ? "#fff" : "#0c1222") : "text.secondary",
+                color: et === opt.key ? (isDark ? "#fff" : "#1c1c1a") : "text.secondary",
                 bgcolor: et === opt.key ? `${accent}25` : "transparent",
                 border: `1px solid ${et === opt.key ? accent + "50" : "transparent"}`,
                 "&:hover": { bgcolor: et === opt.key ? undefined : (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)") },
@@ -841,12 +841,12 @@ export default function LabPage() {
   const panelSx = {
     p: { xs: 2, sm: 2.5 }, borderRadius: 2.5, mb: 2.5,
     border: "1px solid", borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-    bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+    bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
   };
 
   const chartTooltipStyle = {
     ...monoSx, fontSize: "0.7rem",
-    backgroundColor: isDark ? "#1a1a2e" : "#fff",
+    backgroundColor: isDark ? "#1a1a2e" : "#f0eeeb",
     border: `1px solid ${isDark ? "#333" : "#ddd"}`,
     borderRadius: 8,
     boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
@@ -903,7 +903,7 @@ export default function LabPage() {
               px: { xs: 1.5, sm: 2.5 }, py: 1, cursor: "pointer",
               ...monoSx, fontSize: { xs: "0.65rem", sm: "0.72rem" }, fontWeight: 700,
               transition: "all 0.15s",
-              color: tab === t.key ? (isDark ? "#fff" : "#0c1222") : "text.secondary",
+              color: tab === t.key ? (isDark ? "#fff" : "#1c1c1a") : "text.secondary",
               bgcolor: tab === t.key ? `${accent}20` : "transparent",
               borderBottom: tab === t.key ? `2px solid ${accent}` : "2px solid transparent",
               "&:hover": { bgcolor: tab === t.key ? undefined : (isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)") },
@@ -1373,7 +1373,7 @@ export default function LabPage() {
                 sx={{
                   borderRadius: 2.5,
                   border: "1px solid", borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-                  bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+                  bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
                   overflow: "hidden",
                 }}
               >
@@ -1481,7 +1481,7 @@ export default function LabPage() {
                     sx={{
                       borderRadius: 2, overflow: "hidden",
                       border: "1px solid", borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-                      bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+                      bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
                       transition: "transform 0.12s",
                     }}
                   >

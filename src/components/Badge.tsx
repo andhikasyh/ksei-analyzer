@@ -11,10 +11,10 @@ const TYPE_COLORS: Record<string, { bg: string; color: string }> = {
   MF: { bg: "rgba(52,211,153,0.12)", color: "#34d399" },
   PF: { bg: "rgba(244,114,182,0.12)", color: "#f472b6" },
   IS: { bg: "rgba(129,140,248,0.12)", color: "#818cf8" },
-  FD: { bg: "rgba(212,168,67,0.12)", color: "#d4a843" },
+  FD: { bg: "rgba(201,162,39,0.12)", color: "#c9a227" },
 };
 
-const DEFAULT_TYPE_COLOR = { bg: "rgba(107,127,163,0.10)", color: "#6b7fa3" };
+const DEFAULT_TYPE_COLOR = { bg: "rgba(255,255,255,0.08)", color: "#737373" };
 
 export function InvestorTypeBadge({ type }: { type: string }) {
   const c = TYPE_COLORS[type] || DEFAULT_TYPE_COLOR;

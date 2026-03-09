@@ -50,7 +50,7 @@ function getFirstDayOfMonth(year: number, month: number) {
 export default function DividendsPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const accent = isDark ? "#d4a843" : "#a17c2f";
+  const accent = isDark ? "#c9a227" : "#c9a227";
   const router = useRouter();
 
   const now = new Date();
@@ -157,7 +157,7 @@ export default function DividendsPage() {
   while (calCells.length % 7 !== 0) calCells.push(null);
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: isDark ? "#060a14" : "#f5f7fa", pt: { xs: 3, md: 4 }, pb: 6 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: isDark ? "#050505" : "#e8e6e3", pt: { xs: 3, md: 4 }, pb: 6 }}>
       <Container maxWidth="xl" sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
 
         {/* Header */}
@@ -226,7 +226,7 @@ export default function DividendsPage() {
                 border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
                 borderRadius: "14px",
                 p: 2.5,
-                bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+                bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
                 display: "flex",
                 alignItems: "center",
                 gap: 2,
@@ -256,7 +256,7 @@ export default function DividendsPage() {
             borderRadius: "14px",
             p: 2.5,
             mb: 3,
-            bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+            bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
           }}
         >
           <Stack direction={{ xs: "column", sm: "row" }} spacing={3} alignItems={{ xs: "stretch", sm: "center" }}>
@@ -320,7 +320,7 @@ export default function DividendsPage() {
               border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
               borderRadius: "14px",
               overflow: "hidden",
-              bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+              bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
             }}
           >
             {/* Month navigation */}

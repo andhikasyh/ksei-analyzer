@@ -223,7 +223,7 @@ function PerformanceRadar({ financials, ownership }: { financials: IDXFinancialR
   const avg = Math.round(data.reduce((s, d) => s + d.value, 0) / data.length);
 
   const gridColor = isDark ? "rgba(107,127,163,0.1)" : "rgba(12,18,34,0.08)";
-  const axisColor = isDark ? "#6b7fa3" : "#546280";
+  const axisColor = isDark ? "#737373" : "#737373";
 
   return (
     <Paper sx={{ p: 2.5, borderRadius: 3 }}>
@@ -283,14 +283,14 @@ function PerformanceRadar({ financials, ownership }: { financials: IDXFinancialR
           <Radar
             name="Performance"
             dataKey="value"
-            stroke="#d4a843"
-            fill="#d4a843"
+            stroke="#c9a227"
+            fill="#c9a227"
             fillOpacity={isDark ? 0.25 : 0.15}
             strokeWidth={2}
           />
           <Tooltip
             contentStyle={{
-              background: isDark ? "#111b30" : "#fff",
+              background: isDark ? "#141414" : "#111111",
               border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"}`,
               borderRadius: "8px",
               fontSize: "12px",
@@ -470,7 +470,7 @@ export function CompanyProfilePanel({ stockCode }: CompanyProfileProps) {
                   borderRadius: 2,
                   overflow: "hidden",
                   flexShrink: 0,
-                  bgcolor: "#fff",
+                  bgcolor: "var(--mui-palette-background-paper, #f0eeeb)",
                   border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}`,
                   display: "flex",
                   alignItems: "center",

@@ -66,7 +66,7 @@ export function Navbar() {
   useEffect(() => setMounted(true), []);
 
   const isDark = mode === "dark";
-  const accent = isDark ? "#d4a843" : "#a17c2f";
+  const accent = isDark ? "#c9a227" : "#c9a227";
 
   const handleMenuOpen = useCallback((e: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(e.currentTarget);
@@ -87,12 +87,12 @@ export function Navbar() {
         position="sticky"
         elevation={0}
         sx={{
-          bgcolor: isDark ? "rgba(6,10,20,0.85)" : "rgba(245,247,250,0.85)",
+          bgcolor: isDark ? "rgba(5,5,5,0.92)" : "rgba(240,238,235,0.92)",
           backdropFilter: "blur(16px) saturate(1.4)",
           borderBottom: 1,
           borderColor: isDark
-            ? "rgba(107,127,163,0.1)"
-            : "rgba(12,18,34,0.06)",
+            ? "rgba(255,255,255,0.06)"
+            : "rgba(0,0,0,0.06)",
         }}
       >
         <Container maxWidth="xl" sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
@@ -115,19 +115,19 @@ export function Navbar() {
                     height: 28,
                     borderRadius: "8px",
                     background: isDark
-                      ? "linear-gradient(135deg, #d4a843 0%, #e8c468 100%)"
-                      : "linear-gradient(135deg, #a17c2f 0%, #c49a3a 100%)",
+                      ? "linear-gradient(135deg, #c9a227 0%, #e0b83d 100%)"
+                      : "linear-gradient(135deg, #c9a227 0%, #e0b83d 100%)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     flexShrink: 0,
                     boxShadow: isDark
-                      ? "0 0 14px rgba(212,168,67,0.25), 0 0 4px rgba(212,168,67,0.15)"
-                      : "0 0 10px rgba(161,124,47,0.18)",
+                      ? "0 0 14px rgba(201,162,39,0.28), 0 0 4px rgba(201,162,39,0.15)"
+                      : "0 0 10px rgba(201,162,39,0.2)",
                     transition: "box-shadow 0.3s ease",
                   }}
                 >
-                  <LensIcon sx={{ fontSize: 18, color: "#060a14" }} />
+                  <LensIcon sx={{ fontSize: 18, color: "#050505" }} />
                 </Box>
                 <Typography
                   sx={{
@@ -161,8 +161,8 @@ export function Navbar() {
                         color: isActive ? "primary.main" : "text.secondary",
                         bgcolor: isActive
                           ? isDark
-                            ? "rgba(212,168,67,0.08)"
-                            : "rgba(161,124,47,0.06)"
+                            ? "rgba(201,162,39,0.08)"
+                            : "rgba(201,162,39,0.06)"
                           : "transparent",
                         borderRadius: 1.5,
                         minWidth: "auto",
@@ -173,8 +173,8 @@ export function Navbar() {
                         transition: "color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease",
                         "&:hover": {
                           bgcolor: isDark
-                            ? "rgba(212,168,67,0.06)"
-                            : "rgba(161,124,47,0.04)",
+                            ? "rgba(201,162,39,0.06)"
+                            : "rgba(201,162,39,0.04)",
                           color: isActive ? "primary.main" : "text.primary",
                         },
                       }}
@@ -199,7 +199,7 @@ export function Navbar() {
                         fontWeight: isMoreActive ? 700 : 500,
                         color: isMoreActive ? "primary.main" : "text.secondary",
                         bgcolor: isMoreActive
-                          ? isDark ? "rgba(212,168,67,0.08)" : "rgba(161,124,47,0.06)"
+                          ? isDark ? "rgba(201,162,39,0.08)" : "rgba(201,162,39,0.06)"
                           : "transparent",
                         borderRadius: 1.5,
                         minWidth: "auto",
@@ -207,7 +207,7 @@ export function Navbar() {
                         ...(isMoreActive && { borderBottomColor: "primary.main" }),
                         transition: "color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease",
                         "&:hover": {
-                          bgcolor: isDark ? "rgba(212,168,67,0.06)" : "rgba(161,124,47,0.04)",
+                          bgcolor: isDark ? "rgba(201,162,39,0.06)" : "rgba(201,162,39,0.04)",
                           color: isMoreActive ? "primary.main" : "text.primary",
                         },
                       }}
@@ -225,9 +225,9 @@ export function Navbar() {
                     paper: {
                       sx: {
                         borderRadius: "14px",
-                        border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"}`,
-                        bgcolor: isDark ? "#0d1425" : "#ffffff",
-                        boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.5)" : "0 8px 32px rgba(0,0,0,0.1)",
+                        border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
+                        bgcolor: isDark ? "#0d0d0d" : "#111111",
+                        boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.6)" : "0 8px 32px rgba(0,0,0,0.3)",
                         backgroundImage: "none",
                         minWidth: 200,
                         mt: 0.5,
@@ -253,7 +253,7 @@ export function Navbar() {
                           gap: 1.25,
                           color: isActive ? accent : "text.primary",
                           fontWeight: isActive ? 700 : 500,
-                          "&:hover": { bgcolor: isDark ? "rgba(212,168,67,0.06)" : "rgba(161,124,47,0.04)" },
+                          "&:hover": { bgcolor: isDark ? "rgba(201,162,39,0.06)" : "rgba(201,162,39,0.04)" },
                         }}
                       >
                         <Icon sx={{ fontSize: 16, color: isActive ? accent : "text.secondary" }} />
@@ -270,7 +270,7 @@ export function Navbar() {
                               fontWeight: 700,
                               fontFamily: '"JetBrains Mono", monospace',
                               letterSpacing: "0.05em",
-                              bgcolor: isDark ? "rgba(212,168,67,0.15)" : "rgba(161,124,47,0.12)",
+                              bgcolor: isDark ? "rgba(201,162,39,0.15)" : "rgba(201,162,39,0.12)",
                               color: accent,
                             }}
                           >
@@ -296,13 +296,13 @@ export function Navbar() {
                   color: "text.secondary",
                   border: 1,
                   borderColor: isDark
-                    ? "rgba(107,127,163,0.12)"
-                    : "rgba(12,18,34,0.08)",
+                    ? "rgba(255,255,255,0.08)"
+                    : "rgba(0,0,0,0.08)",
                   borderRadius: "8px",
                   "&:hover": {
                     borderColor: "primary.main",
                     color: "primary.main",
-                    bgcolor: isDark ? "rgba(212,168,67,0.06)" : "rgba(161,124,47,0.04)",
+                    bgcolor: isDark ? "rgba(201,162,39,0.06)" : "rgba(201,162,39,0.04)",
                   },
                 }}
               >
@@ -320,9 +320,9 @@ export function Navbar() {
                           py: 0.35,
                           borderRadius: "6px",
                           background: isDark
-                            ? "linear-gradient(135deg, rgba(212,168,67,0.12), rgba(212,168,67,0.07))"
-                            : "linear-gradient(135deg, rgba(161,124,47,0.1), rgba(161,124,47,0.06))",
-                          border: `1px solid ${isDark ? "rgba(212,168,67,0.22)" : "rgba(161,124,47,0.18)"}`,
+                            ? "linear-gradient(135deg, rgba(201,162,39,0.12), rgba(201,162,39,0.07))"
+                            : "linear-gradient(135deg, rgba(201,162,39,0.1), rgba(201,162,39,0.06))",
+                          border: `1px solid ${isDark ? "rgba(201,162,39,0.22)" : "rgba(201,162,39,0.18)"}`,
                         }}
                       >
                         <Typography
@@ -349,16 +349,16 @@ export function Navbar() {
                         color: "text.secondary",
                         border: 1,
                         borderColor: isDark
-                          ? "rgba(107,127,163,0.12)"
-                          : "rgba(12,18,34,0.08)",
+                          ? "rgba(255,255,255,0.08)"
+                          : "rgba(0,0,0,0.08)",
                         borderRadius: "8px",
                         transition: "all 0.15s ease",
                         "&:hover": {
                           borderColor: "primary.main",
                           color: "primary.main",
                           bgcolor: isDark
-                            ? "rgba(212,168,67,0.06)"
-                            : "rgba(161,124,47,0.04)",
+                            ? "rgba(201,162,39,0.06)"
+                            : "rgba(201,162,39,0.04)",
                         },
                       }}
                     >
@@ -373,8 +373,8 @@ export function Navbar() {
                         paper: {
                           sx: {
                             borderRadius: "12px",
-                            border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"}`,
-                            bgcolor: isDark ? "#0d1425" : "#ffffff",
+                            border: `1px solid ${isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)"}`,
+                            bgcolor: isDark ? "#0d0d0d" : "#f0eeeb",
                             boxShadow: isDark
                               ? "0 8px 32px rgba(0,0,0,0.5)"
                               : "0 8px 32px rgba(0,0,0,0.1)",
@@ -407,11 +407,11 @@ export function Navbar() {
                             py: 0.25,
                             borderRadius: "5px",
                             bgcolor: isPro
-                              ? isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.08)"
-                              : isDark ? "rgba(107,127,163,0.1)" : "rgba(12,18,34,0.05)",
+                              ? isDark ? "rgba(201,162,39,0.1)" : "rgba(201,162,39,0.08)"
+                              : isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
                             border: `1px solid ${isPro
-                              ? isDark ? "rgba(212,168,67,0.2)" : "rgba(161,124,47,0.15)"
-                              : isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"}`,
+                              ? isDark ? "rgba(201,162,39,0.2)" : "rgba(201,162,39,0.15)"
+                              : isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.08)"}`,
                           }}
                         >
                           <Typography
@@ -475,13 +475,13 @@ export function Navbar() {
                       fontSize: "0.75rem",
                       fontWeight: 600,
                       color: accent,
-                      border: `1px solid ${isDark ? "rgba(212,168,67,0.2)" : "rgba(161,124,47,0.18)"}`,
+                      border: `1px solid ${isDark ? "rgba(201,162,39,0.2)" : "rgba(201,162,39,0.18)"}`,
                       borderRadius: "8px",
-                      bgcolor: isDark ? "rgba(212,168,67,0.05)" : "rgba(161,124,47,0.04)",
+                      bgcolor: isDark ? "rgba(201,162,39,0.05)" : "rgba(201,162,39,0.04)",
                       fontFamily: '"Plus Jakarta Sans", sans-serif',
                       transition: "all 0.15s ease",
                       "&:hover": {
-                        bgcolor: isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.08)",
+                        bgcolor: isDark ? "rgba(201,162,39,0.1)" : "rgba(201,162,39,0.08)",
                         borderColor: accent,
                       },
                     }}
@@ -503,16 +503,16 @@ export function Navbar() {
                     color: "text.secondary",
                     border: 1,
                     borderColor: isDark
-                      ? "rgba(107,127,163,0.12)"
-                      : "rgba(12,18,34,0.08)",
+                      ? "rgba(255,255,255,0.08)"
+                      : "rgba(0,0,0,0.08)",
                     borderRadius: "8px",
                     transition: "all 0.15s ease",
                     "&:hover": {
                       borderColor: "primary.main",
                       color: "primary.main",
                       bgcolor: isDark
-                        ? "rgba(212,168,67,0.06)"
-                        : "rgba(161,124,47,0.04)",
+                        ? "rgba(201,162,39,0.06)"
+                        : "rgba(201,162,39,0.04)",
                     },
                   }}
                 >
@@ -536,8 +536,8 @@ export function Navbar() {
           paper: {
             sx: {
               width: { xs: "min(320px, 100vw)", sm: 320 },
-              borderLeft: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
-              bgcolor: isDark ? "#0d1425" : "#fafafa",
+              borderLeft: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
+              bgcolor: isDark ? "#0d0d0d" : "#f5f4f1",
               pt: 2,
               pb: 2,
             },
@@ -558,12 +558,12 @@ export function Navbar() {
                     borderRadius: 1.5,
                     py: 1.25,
                     bgcolor: isActive
-                      ? isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.08)"
+                      ? isDark ? "rgba(201,162,39,0.1)" : "rgba(201,162,39,0.08)"
                       : "transparent",
                     color: isActive ? "primary.main" : "text.primary",
                     fontWeight: isActive ? 700 : 500,
                     "&:hover": {
-                      bgcolor: isDark ? "rgba(212,168,67,0.06)" : "rgba(161,124,47,0.04)",
+                      bgcolor: isDark ? "rgba(201,162,39,0.06)" : "rgba(201,162,39,0.04)",
                     },
                   }}
                 >
@@ -585,13 +585,13 @@ export function Navbar() {
                     borderRadius: 1.5,
                     py: 1.1,
                     bgcolor: isActive
-                      ? isDark ? "rgba(212,168,67,0.1)" : "rgba(161,124,47,0.08)"
+                      ? isDark ? "rgba(201,162,39,0.1)" : "rgba(201,162,39,0.08)"
                       : "transparent",
                     color: isActive ? "primary.main" : "text.primary",
                     fontWeight: isActive ? 700 : 500,
                     gap: 1.25,
                     "&:hover": {
-                      bgcolor: isDark ? "rgba(212,168,67,0.06)" : "rgba(161,124,47,0.04)",
+                      bgcolor: isDark ? "rgba(201,162,39,0.06)" : "rgba(201,162,39,0.04)",
                     },
                   }}
                 >
@@ -612,7 +612,7 @@ export function Navbar() {
                               fontWeight: 700,
                               fontFamily: '"JetBrains Mono", monospace',
                               letterSpacing: "0.05em",
-                              bgcolor: isDark ? "rgba(212,168,67,0.15)" : "rgba(161,124,47,0.12)",
+                              bgcolor: isDark ? "rgba(201,162,39,0.15)" : "rgba(201,162,39,0.12)",
                               color: accent,
                             }}
                           >
@@ -674,11 +674,11 @@ export function Navbar() {
                     fontSize: "0.85rem",
                     fontWeight: 600,
                     color: accent,
-                    border: `1px solid ${isDark ? "rgba(212,168,67,0.2)" : "rgba(161,124,47,0.18)"}`,
+                    border: `1px solid ${isDark ? "rgba(201,162,39,0.2)" : "rgba(201,162,39,0.18)"}`,
                     borderRadius: "8px",
                     py: 1,
                     "&:hover": {
-                      bgcolor: isDark ? "rgba(212,168,67,0.08)" : "rgba(161,124,47,0.06)",
+                      bgcolor: isDark ? "rgba(201,162,39,0.08)" : "rgba(201,162,39,0.06)",
                       borderColor: accent,
                     },
                   }}

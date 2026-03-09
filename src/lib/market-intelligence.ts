@@ -948,6 +948,41 @@ const REPORT_SCHEMA = `{
   }
 }`;
 
+function repairTruncatedJson(json: string): string {
+  let repaired = json.trimEnd();
+  if (repaired.endsWith(",")) {
+    repaired = repaired.slice(0, -1);
+  }
+
+  let braces = 0;
+  let brackets = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (const ch of repaired) {
+    if (escaped) { escaped = false; continue; }
+    if (ch === "\\") { escaped = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === "{") braces++;
+    if (ch === "}") braces--;
+    if (ch === "[") brackets++;
+    if (ch === "]") brackets--;
+  }
+
+  if (inString) repaired += '"';
+
+  const lastChar = repaired.trimEnd().slice(-1);
+  if (lastChar === "," || lastChar === ":") {
+    repaired = repaired.trimEnd().slice(0, -1);
+  }
+
+  while (brackets > 0) { repaired += "]"; brackets--; }
+  while (braces > 0) { repaired += "}"; braces--; }
+
+  return repaired;
+}
+
 export interface GenerateReportResult {
   report: Record<string, unknown>;
   reportDate: string;
@@ -957,6 +992,8 @@ export interface GenerateReportResult {
 }
 
 export async function generateMarketIntelligenceReport(): Promise<GenerateReportResult> {
+  const startTime = Date.now();
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY not configured");
@@ -1149,26 +1186,46 @@ Generate the market intelligence report. KEY REQUIREMENTS:
 
   const stream = anthropic.messages.stream({
     model: "claude-sonnet-4-20250514",
-    max_tokens: 12000,
+    max_tokens: 16000,
     system: systemPrompt,
     messages: [{ role: "user", content: userMessage }],
   });
 
   const response = await stream.finalMessage();
 
+  if (response.stop_reason === "max_tokens") {
+    console.warn("Claude response was truncated (max_tokens reached). Attempting JSON repair.");
+  }
+
   const textBlock = response.content.find((b) => b.type === "text");
   const text = textBlock?.type === "text" ? textBlock.text : "";
 
+  if (!text || text.trim().length < 10) {
+    throw new Error(`Claude returned empty or too-short response (${text.length} chars). Stop reason: ${response.stop_reason}`);
+  }
+
   const cleaned = text
     .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/i, "")
+    .replace(/\s*```\s*$/i, "")
     .trim();
 
-  const report = JSON.parse(cleaned);
+  let report: Record<string, unknown>;
+  try {
+    report = JSON.parse(cleaned);
+  } catch (parseErr) {
+    if (response.stop_reason === "max_tokens") {
+      const repaired = repairTruncatedJson(cleaned);
+      report = JSON.parse(repaired);
+    } else {
+      const preview = cleaned.slice(0, 200) + "..." + cleaned.slice(-200);
+      throw new Error(`JSON parse failed (stop_reason: ${response.stop_reason}). Preview: ${preview}`);
+    }
+  }
 
-  const sentiment = report.marketOutlook?.sentiment || "neutral";
+  const outlook = report.marketOutlook as Record<string, unknown> | undefined;
+  const sentiment = (outlook?.sentiment as string) || "neutral";
   const imageUrl = generateCoverImageUrl(marketData.tradingDate, sentiment);
-  const title = report.title || null;
+  const title = (report.title as string) || null;
 
   // Save English report first so it's always persisted even if translation times out
   const { error: upsertError } = await supabase
@@ -1187,24 +1244,34 @@ Generate the market intelligence report. KEY REQUIREMENTS:
     console.error("Failed to store report:", upsertError);
   }
 
-  // Attempt translation after saving English report
+  const elapsedMs = Date.now() - startTime;
+  const remainingMs = 280_000 - elapsedMs;
+
   let finalReport = report;
-  try {
-    const indonesianReport = await translateReportToIndonesian(anthropic, report);
-    finalReport = { ...report, _indonesian: indonesianReport };
-    await supabase
-      .from("market_intelligence")
-      .upsert(
-        {
-          report_date: marketData.tradingDate,
-          report: finalReport,
-          title,
-          image_url: imageUrl,
-        },
-        { onConflict: "report_date" }
+  if (remainingMs > 30_000) {
+    try {
+      const translationPromise = translateReportToIndonesian(anthropic, report);
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Translation timed out")), remainingMs - 5_000)
       );
-  } catch (err) {
-    console.error("Indonesian translation failed:", err);
+      const indonesianReport = await Promise.race([translationPromise, timeoutPromise]);
+      finalReport = { ...report, _indonesian: indonesianReport };
+      await supabase
+        .from("market_intelligence")
+        .upsert(
+          {
+            report_date: marketData.tradingDate,
+            report: finalReport,
+            title,
+            image_url: imageUrl,
+          },
+          { onConflict: "report_date" }
+        );
+    } catch (err) {
+      console.error("Indonesian translation failed (report saved in English):", err);
+    }
+  } else {
+    console.warn(`Skipping translation -- only ${(remainingMs / 1000).toFixed(0)}s remaining.`);
   }
 
   return {
@@ -1243,10 +1310,19 @@ RULES:
   const textBlock = translationResponse.content.find((b) => b.type === "text");
   const translatedText = textBlock?.type === "text" ? textBlock.text : "";
 
+  if (!translatedText || translatedText.trim().length < 10) {
+    throw new Error("Translation returned empty response");
+  }
+
   const cleanedTranslation = translatedText
     .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/i, "")
+    .replace(/\s*```\s*$/i, "")
     .trim();
 
-  return JSON.parse(cleanedTranslation);
+  try {
+    return JSON.parse(cleanedTranslation);
+  } catch {
+    const repaired = repairTruncatedJson(cleanedTranslation);
+    return JSON.parse(repaired);
+  }
 }

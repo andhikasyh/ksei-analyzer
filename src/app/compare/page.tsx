@@ -61,7 +61,7 @@ interface StockOption {
   name: string;
 }
 
-const STOCK_COLORS = ["#d4a843", "#3b82f6", "#22c55e", "#f97316", "#a78bfa"];
+const STOCK_COLORS = ["#c9a227", "#3b82f6", "#22c55e", "#f97316", "#a78bfa"];
 
 const METRICS = [
   { key: "close", label: "Price", format: (v: number) => v.toLocaleString(), unit: "IDR" },
@@ -100,7 +100,7 @@ function normalizeRadar(value: number, max: number, higherIsBetter: boolean): nu
 function CompareContent() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const accent = isDark ? "#d4a843" : "#a17c2f";
+  const accent = isDark ? "#c9a227" : "#c9a227";
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -263,7 +263,7 @@ function CompareContent() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: isDark ? "#060a14" : "#f5f7fa", pt: { xs: 3, md: 4 }, pb: 6 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: isDark ? "#050505" : "#e8e6e3", pt: { xs: 3, md: 4 }, pb: 6 }}>
       <Container maxWidth="xl" sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
 
         {/* Header */}
@@ -367,7 +367,7 @@ function CompareContent() {
                         zIndex: 1400,
                         borderRadius: "10px",
                         border: `1px solid ${isDark ? "rgba(107,127,163,0.2)" : "rgba(12,18,34,0.1)"}`,
-                        bgcolor: isDark ? "#0d1425" : "#fff",
+                        bgcolor: isDark ? "#0d0d0d" : "#f0eeeb",
                         overflow: "hidden",
                         boxShadow: isDark ? "0 12px 40px rgba(0,0,0,0.6)" : "0 8px 32px rgba(0,0,0,0.14)",
                       }}
@@ -416,7 +416,7 @@ function CompareContent() {
                         borderRadius: "10px",
                         px: 2,
                         py: 1.5,
-                        bgcolor: isDark ? "#0d1425" : "#fff",
+                        bgcolor: isDark ? "#0d0d0d" : "#f0eeeb",
                         border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"}`,
                       }}
                     >
@@ -497,7 +497,7 @@ function CompareContent() {
                 border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
                 borderRadius: "14px",
                 p: { xs: 2, md: 3 },
-                bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+                bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
               }}
             >
               <Typography sx={{ fontFamily: '"Outfit", sans-serif', fontWeight: 700, fontSize: "1rem", color: "text.primary", mb: 2 }}>
@@ -531,7 +531,7 @@ function CompareContent() {
                   ))}
                   <RechartsTooltip
                     contentStyle={{
-                      background: isDark ? "#0d1425" : "#fff",
+                      background: isDark ? "#0d0d0d" : "#f0eeeb",
                       border: `1px solid ${isDark ? "rgba(107,127,163,0.2)" : "rgba(12,18,34,0.1)"}`,
                       borderRadius: "10px",
                       fontFamily: '"JetBrains Mono", monospace',
@@ -554,7 +554,7 @@ function CompareContent() {
                 border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
                 borderRadius: "14px",
                 overflow: "hidden",
-                bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+                bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
               }}
             >
               <Box sx={{ px: 2.5, py: 1.75, borderBottom: `1px solid ${isDark ? "rgba(107,127,163,0.1)" : "rgba(12,18,34,0.07)"}` }}>

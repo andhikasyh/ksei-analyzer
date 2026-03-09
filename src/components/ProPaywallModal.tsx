@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import Box from "@mui/material/Box";
@@ -13,15 +13,16 @@ import CircularProgress from "@mui/material/CircularProgress";
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import Stack from "@mui/material/Stack";
-import Divider from "@mui/material/Divider";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CloseIcon from "@mui/icons-material/Close";
-import GoogleIcon from "@mui/icons-material/Google";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import type { User } from "@supabase/supabase-js";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { useProContext } from "@/lib/pro-context";
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
 export type PaywallMode = "login" | "pro" | "signup" | "payment";
 
@@ -89,13 +90,15 @@ function EmailAuthForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
-  // reset state when mode changes
   useEffect(() => {
     setEmail(""); setPassword(""); setConfirm("");
     setShowPw(false); setShowConfirm(false);
     setTouched({ email: false, password: false, confirm: false });
-    setError(""); setSuccess("");
+    setError(""); setSuccess(""); setCaptchaToken("");
+    turnstileRef.current?.reset();
   }, [mode]);
 
   const strength = passwordStrength(password);
@@ -103,7 +106,8 @@ function EmailAuthForm({
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const passwordOk = password.length >= 8;
   const confirmMatch = !isSignup || confirm === password;
-  const canSubmit = emailValid && passwordOk && confirmMatch && !loading;
+  const hasCaptcha = !TURNSTILE_SITE_KEY || !!captchaToken;
+  const canSubmit = emailValid && passwordOk && confirmMatch && hasCaptcha && !loading;
 
   const emailError = touched.email && !emailValid ? "Format email tidak valid" : "";
   const passwordError = touched.password && !passwordOk ? "Minimal 8 karakter" : "";
@@ -115,7 +119,7 @@ function EmailAuthForm({
     setError("");
     setSuccess("");
     const fn = isSignup ? signUpWithEmail : signInWithEmail;
-    const { error } = await fn(email.trim(), password);
+    const { error } = await fn(email.trim(), password, captchaToken || undefined);
     if (error) {
       const msg: Record<string, string> = {
         "Invalid login credentials": "Email atau password salah.",
@@ -123,6 +127,8 @@ function EmailAuthForm({
         "User already registered": "Email ini sudah terdaftar. Coba masuk.",
       };
       setError(msg[error] ?? error);
+      turnstileRef.current?.reset();
+      setCaptchaToken("");
       setLoading(false);
     } else if (isSignup) {
       setSuccess("Hampir selesai! Cek email kamu untuk konfirmasi akun.");
@@ -130,9 +136,9 @@ function EmailAuthForm({
     } else {
       onSuccess();
     }
-  }, [canSubmit, isSignup, email, password, signInWithEmail, signUpWithEmail, onSuccess]);
+  }, [canSubmit, isSignup, email, password, captchaToken, signInWithEmail, signUpWithEmail, onSuccess]);
 
-  const accent = isDark ? "#d4a843" : "#a17c2f";
+  const accent = isDark ? "#c9a227" : "#c9a227";
   const fieldSx = (hasError: boolean) => ({
     "& .MuiOutlinedInput-root": {
       fontSize: "0.83rem",
@@ -272,17 +278,33 @@ function EmailAuthForm({
         </Box>
       )}
 
+      {TURNSTILE_SITE_KEY && (
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
+          <Turnstile
+            ref={turnstileRef}
+            siteKey={TURNSTILE_SITE_KEY}
+            onSuccess={setCaptchaToken}
+            onExpire={() => setCaptchaToken("")}
+            onError={() => setCaptchaToken("")}
+            options={{
+              theme: isDark ? "dark" : "light",
+              size: "flexible",
+            }}
+          />
+        </Box>
+      )}
+
       <Button fullWidth variant="contained" onClick={handleSubmit}
         disabled={!canSubmit}
         sx={{
-          bgcolor: accent, color: "#060a14", fontWeight: 700, fontSize: "0.82rem",
+          bgcolor: accent, color: "#050505", fontWeight: 700, fontSize: "0.82rem",
           borderRadius: "8px", py: 0.9, boxShadow: "none", mt: 0.5,
-          "&:hover": { bgcolor: isDark ? "#e8c468" : "#c49a3a", boxShadow: "none" },
+          "&:hover": { bgcolor: isDark ? "#e0b83d" : "#e0b83d", boxShadow: "none" },
           "&:disabled": { opacity: 0.4 },
         }}
       >
         {loading
-          ? <CircularProgress size={16} sx={{ color: "#060a14" }} />
+          ? <CircularProgress size={16} sx={{ color: "#050505" }} />
           : mode === "login" ? "Masuk" : "Buat akun"}
       </Button>
 
@@ -436,25 +458,18 @@ export function ProPaywallModal({
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const isMobile = useMediaQuery((t) => t.breakpoints.down("sm"));
-  const { signInWithGoogle, user, isPro, redeemReferral } = useProContext();
+  const { user, isPro, redeemReferral } = useProContext();
   const [mode, setMode] = useState<PaywallMode>(initialMode);
-  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const accent = isDark ? "#d4a843" : "#a17c2f";
+  const accent = isDark ? "#c9a227" : "#c9a227";
 
   useEffect(() => {
     if (open) {
       setMode(initialMode);
-      setGoogleLoading(false);
     }
   }, [open, initialMode]);
 
   const handleAuthSuccess = useCallback(() => setMode("pro"), []);
-
-  const handleGoogleSignIn = useCallback(async () => {
-    setGoogleLoading(true);
-    await signInWithGoogle();
-  }, [signInWithGoogle]);
 
   if (open && user && isPro) {
     onClose();
@@ -477,7 +492,7 @@ export function ProPaywallModal({
           sx: {
             borderRadius: isMobile ? 0 : "16px",
             border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.07)"}`,
-            bgcolor: isDark ? "#0d1425" : "#fafafa",
+            bgcolor: isDark ? "#0d0d0d" : "#f0eeeb",
             backgroundImage: "none",
             overflow: "hidden",
             boxShadow: isDark ? "0 24px 64px rgba(0,0,0,0.6)" : "0 24px 64px rgba(0,0,0,0.12)",
@@ -510,53 +525,12 @@ export function ProPaywallModal({
           <Stack spacing={2.5}>
             <Box>
               <Typography sx={{
-                fontFamily: '"JetBrains Mono", monospace',
-                fontSize: "0.58rem", fontWeight: 600,
-                letterSpacing: "0.1em", color: accent,
-                textTransform: "uppercase", mb: 1,
-              }}>
-                Gunaa Pro
-              </Typography>
-              <Typography sx={{
                 fontFamily: '"Outfit", sans-serif',
                 fontWeight: 700, fontSize: "1.05rem",
-                letterSpacing: "-0.02em", mb: 0.4,
+                letterSpacing: "-0.02em",
               }}>
                 {mode === "login" ? "Masuk" : "Buat akun"}
               </Typography>
-              <Typography sx={{
-                fontSize: "0.75rem", color: "text.secondary",
-                fontFamily: '"Plus Jakarta Sans", sans-serif', lineHeight: 1.55,
-              }}>
-                {reason === "insight"
-                  ? "Laporan gratis sudah digunakan. Masuk untuk lanjut ke Pro."
-                  : "Masuk untuk akses AI Chat dan fitur Pro lainnya."}
-              </Typography>
-            </Box>
-
-            <Button fullWidth variant="outlined"
-              startIcon={googleLoading
-                ? <CircularProgress size={15} sx={{ color: "text.primary" }} />
-                : <GoogleIcon sx={{ fontSize: 16 }} />}
-              onClick={handleGoogleSignIn}
-              disabled={googleLoading}
-              sx={{
-                borderColor: isDark ? "rgba(107,127,163,0.22)" : "rgba(12,18,34,0.12)",
-                color: "text.primary", fontWeight: 600, fontSize: "0.82rem",
-                borderRadius: "8px", py: 0.85, boxShadow: "none",
-                "&:hover": { borderColor: isDark ? "rgba(107,127,163,0.4)" : "rgba(12,18,34,0.25)", bgcolor: "transparent" },
-                "&:disabled": { opacity: 0.6 },
-              }}
-            >
-              {googleLoading ? "Mengarahkan..." : "Lanjut dengan Google"}
-            </Button>
-
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-              <Divider sx={{ flex: 1 }} />
-              <Typography sx={{ fontSize: "0.62rem", color: "text.secondary", fontFamily: '"JetBrains Mono", monospace' }}>
-                atau
-              </Typography>
-              <Divider sx={{ flex: 1 }} />
             </Box>
 
             <EmailAuthForm
@@ -631,10 +605,10 @@ export function ProPaywallModal({
               fullWidth variant="contained"
               onClick={() => user ? setMode("payment") : setMode("login")}
               sx={{
-                bgcolor: accent, color: "#060a14",
+                bgcolor: accent, color: "#050505",
                 fontWeight: 700, fontSize: "0.85rem",
                 borderRadius: "8px", py: 1, boxShadow: "none",
-                "&:hover": { bgcolor: isDark ? "#e8c468" : "#c49a3a", boxShadow: "none" },
+                "&:hover": { bgcolor: isDark ? "#e0b83d" : "#e0b83d", boxShadow: "none" },
               }}
             >
               Berlangganan sekarang

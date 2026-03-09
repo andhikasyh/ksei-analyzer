@@ -52,7 +52,7 @@ export default function StockDetailPage() {
   const router = useRouter();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const accent = isDark ? "#d4a843" : "#a17c2f";
+  const accent = isDark ? "#c9a227" : "#c9a227";
   const { isWatched, toggle: toggleWatchlist } = useWatchlist();
   const [records, setRecords] = useState<KSEIRecord[]>([]);
   const [graphNodes, setGraphNodes] = useState<GraphNode[]>([]);

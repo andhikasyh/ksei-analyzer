@@ -334,7 +334,7 @@ export function MarketChat({ context, placeholder, compact, sharp, locked, onLoc
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: isDark ? "#d4a843" : "#a17c2f",
+            color: isDark ? "#c9a227" : "#c9a227",
           }}
         >
           <AutoAwesomeIcon sx={{ fontSize: 18 }} />
@@ -378,7 +378,7 @@ export function MarketChat({ context, placeholder, compact, sharp, locked, onLoc
             sx={{
               fontSize: "0.68rem",
               fontWeight: 700,
-              color: isDark ? "#d4a843" : "#a17c2f",
+              color: isDark ? "#c9a227" : "#c9a227",
               fontFamily: '"JetBrains Mono", monospace',
               letterSpacing: "0.04em",
             }}

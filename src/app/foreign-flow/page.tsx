@@ -53,7 +53,7 @@ interface StockFlow {
 export default function ForeignFlowPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const accent = isDark ? "#d4a843" : "#a17c2f";
+  const accent = isDark ? "#c9a227" : "#c9a227";
   const router = useRouter();
 
   const [dailyFlows, setDailyFlows] = useState<DailyFlow[]>([]);
@@ -200,7 +200,7 @@ export default function ForeignFlowPage() {
     return (
       <Box
         sx={{
-          bgcolor: isDark ? "#0d1425" : "#fff",
+          bgcolor: isDark ? "#0d0d0d" : "#f0eeeb",
           border: `1px solid ${isDark ? "rgba(107,127,163,0.2)" : "rgba(12,18,34,0.1)"}`,
           borderRadius: "10px",
           p: 1.5,
@@ -229,7 +229,7 @@ export default function ForeignFlowPage() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: isDark ? "#060a14" : "#f5f7fa", pt: { xs: 3, md: 4 }, pb: 6 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: isDark ? "#050505" : "#e8e6e3", pt: { xs: 3, md: 4 }, pb: 6 }}>
       <Container maxWidth="xl" sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
 
         {/* Header */}
@@ -297,7 +297,7 @@ export default function ForeignFlowPage() {
                 border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
                 borderRadius: "14px",
                 p: 2.5,
-                bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+                bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
               }}
             >
               <Typography sx={{ fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: "0.72rem", color: "text.secondary", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, mb: 0.75 }}>
@@ -321,7 +321,7 @@ export default function ForeignFlowPage() {
             borderRadius: "14px",
             p: { xs: 2, md: 3 },
             mb: 3,
-            bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+            bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
           }}
         >
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>

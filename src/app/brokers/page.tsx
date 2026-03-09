@@ -1225,10 +1225,10 @@ export default function BrokersPage() {
     };
   }, [brokers]);
 
-  const textColor = isDark ? "#6b7fa3" : "#546280";
+  const textColor = isDark ? "#737373" : "#737373";
   const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
   const tooltipStyle = {
-    background: isDark ? "#111b30" : "#fff",
+    background: isDark ? "#141414" : "#f0eeeb",
     border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "#e4e4e7"}`,
     borderRadius: "8px",
     fontSize: "12px",
@@ -1355,7 +1355,7 @@ export default function BrokersPage() {
                   fontFamily: '"JetBrains Mono", monospace',
                   letterSpacing: "0.05em",
                   bgcolor: (theme) => (theme.palette.mode === "dark" ? "rgba(212,168,67,0.15)" : "rgba(161,124,47,0.12)"),
-                  color: (theme) => (theme.palette.mode === "dark" ? "#d4a843" : "#a17c2f"),
+                  color: (theme) => (theme.palette.mode === "dark" ? "#c9a227" : "#c9a227"),
                 }}
               >
                 BETA
@@ -1497,12 +1497,12 @@ export default function BrokersPage() {
                         >
                           <stop
                             offset="5%"
-                            stopColor="#d4a843"
+                            stopColor="#c9a227"
                             stopOpacity={0.3}
                           />
                           <stop
                             offset="95%"
-                            stopColor="#d4a843"
+                            stopColor="#c9a227"
                             stopOpacity={0}
                           />
                         </linearGradient>
@@ -1526,7 +1526,7 @@ export default function BrokersPage() {
                       <Area
                         type="monotone"
                         dataKey="totalValue"
-                        stroke="#d4a843"
+                        stroke="#c9a227"
                         fill="url(#valueGrad)"
                         strokeWidth={2}
                       />
@@ -1684,9 +1684,9 @@ export default function BrokersPage() {
                             ...(i < 3 && {
                               borderLeft: `3px solid ${
                                 i === 0
-                                  ? "#d4a843"
+                                  ? "#c9a227"
                                   : i === 1
-                                    ? "#e8c468"
+                                    ? "#e0b83d"
                                     : "#f0d68a"
                               }`,
                             }),
@@ -1755,7 +1755,7 @@ export default function BrokersPage() {
                             <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, justifyContent: "flex-end" }}>
                               <Box sx={{ flex: 1, minWidth: 44, maxWidth: 80 }}>
                                 <Box sx={{ width: "100%", height: 6, borderRadius: 3, bgcolor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)", overflow: "hidden" }}>
-                                  <Box sx={{ width: `${barPct}%`, height: "100%", borderRadius: 3, bgcolor: i < 3 ? "#d4a843" : i < 10 ? "#e8c468" : isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)", transition: "width 0.3s ease" }} />
+                                  <Box sx={{ width: `${barPct}%`, height: "100%", borderRadius: 3, bgcolor: i < 3 ? "#c9a227" : i < 10 ? "#e0b83d" : isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.15)", transition: "width 0.3s ease" }} />
                                 </Box>
                               </Box>
                               <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, minWidth: 52, textAlign: "right" }}>
@@ -1868,9 +1868,9 @@ export default function BrokersPage() {
                                       borderRadius: 3,
                                       bgcolor:
                                         i < 3
-                                          ? "#d4a843"
+                                          ? "#c9a227"
                                           : i < 10
-                                            ? "#e8c468"
+                                            ? "#e0b83d"
                                             : isDark
                                               ? "rgba(255,255,255,0.2)"
                                               : "rgba(0,0,0,0.15)",
@@ -2737,7 +2737,7 @@ export default function BrokersPage() {
               <Box key={t.key} onClick={() => setBaView(t.key)} sx={{
                 px: 2, py: 0.7, cursor: "pointer", fontFamily: '"JetBrains Mono", monospace',
                 fontSize: "0.72rem", fontWeight: 700, transition: "all 0.15s ease", whiteSpace: "nowrap",
-                color: baView === t.key ? (isDark ? "#fff" : "#0c1222") : "text.secondary",
+                color: baView === t.key ? (isDark ? "#fff" : "#1c1c1a") : "text.secondary",
                 bgcolor: baView === t.key ? (isDark ? "rgba(212,168,67,0.18)" : "rgba(161,124,47,0.12)") : "transparent",
                 borderRight: "1px solid", borderRightColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
                 "&:last-child": { borderRight: "none" },
@@ -2775,7 +2775,7 @@ export default function BrokersPage() {
                     <Box key={cat.key} onClick={() => { setBaCategory(cat.key); setBaPage(0); setBaSearch(""); }} sx={{
                       px: 1.5, py: 0.5, cursor: "pointer", fontFamily: '"JetBrains Mono", monospace',
                       fontSize: "0.65rem", fontWeight: 600, transition: "all 0.15s ease", whiteSpace: "nowrap",
-                      color: baCategory === cat.key ? (isDark ? "#fff" : "#0c1222") : "text.secondary",
+                      color: baCategory === cat.key ? (isDark ? "#fff" : "#1c1c1a") : "text.secondary",
                       bgcolor: baCategory === cat.key
                         ? (cat.key === "foreign" ? (isDark ? "rgba(59,130,246,0.18)" : "rgba(59,130,246,0.1)") : (isDark ? "rgba(212,168,67,0.18)" : "rgba(161,124,47,0.12)"))
                         : "transparent",
@@ -2794,7 +2794,7 @@ export default function BrokersPage() {
                     <Box key={p.key} onClick={() => { setBaDashPeriod(p.key); setBaPage(0); setBaSearch(""); }} sx={{
                       px: 1.25, py: 0.5, cursor: "pointer", fontFamily: '"JetBrains Mono", monospace',
                       fontSize: "0.65rem", fontWeight: 600, transition: "all 0.15s ease", whiteSpace: "nowrap",
-                      color: baDashPeriod === p.key ? (isDark ? "#fff" : "#0c1222") : "text.secondary",
+                      color: baDashPeriod === p.key ? (isDark ? "#fff" : "#1c1c1a") : "text.secondary",
                       bgcolor: baDashPeriod === p.key ? (isDark ? "rgba(99,102,241,0.18)" : "rgba(99,102,241,0.1)") : "transparent",
                       borderRight: "1px solid", borderRightColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
                       "&:last-child": { borderRight: "none" },
@@ -2811,7 +2811,7 @@ export default function BrokersPage() {
                     <Box key={sf.key} onClick={() => { setBaSignalFilter(sf.key); setBaPage(0); setBaSearch(""); }} sx={{
                       px: 1.25, py: 0.5, cursor: "pointer", fontFamily: '"JetBrains Mono", monospace',
                       fontSize: "0.65rem", fontWeight: 600, transition: "all 0.15s ease", whiteSpace: "nowrap",
-                      color: baSignalFilter === sf.key ? (isDark ? "#fff" : "#0c1222") : "text.secondary",
+                      color: baSignalFilter === sf.key ? (isDark ? "#fff" : "#1c1c1a") : "text.secondary",
                       bgcolor: baSignalFilter === sf.key
                         ? (sf.key === "accumulation"
                           ? (isDark ? "rgba(34,197,94,0.18)" : "rgba(34,197,94,0.1)")
@@ -2950,7 +2950,7 @@ export default function BrokersPage() {
                             </TableCell>
                             <TableCell sx={{ px: 0 }}>
                               <IconButton size="small" onClick={(e) => { e.stopPropagation(); toggleWatchlist(entry.symbol); }} sx={{ p: 0.25 }}>
-                                {isWatched(entry.symbol) ? <StarIcon sx={{ fontSize: 14, color: "#d4a843" }} /> : <StarBorderIcon sx={{ fontSize: 14, color: "text.disabled" }} />}
+                                {isWatched(entry.symbol) ? <StarIcon sx={{ fontSize: 14, color: "#c9a227" }} /> : <StarBorderIcon sx={{ fontSize: 14, color: "text.disabled" }} />}
                               </IconButton>
                             </TableCell>
                             <TableCell onClick={() => router.push(`/stock/${entry.symbol}`)} sx={{ fontWeight: 700, fontSize: "0.78rem", color: "primary.main" }}>
@@ -3049,7 +3049,7 @@ export default function BrokersPage() {
                           width: 24, height: 24, display: "flex", alignItems: "center", justifyContent: "center",
                           borderRadius: 1, cursor: "pointer", fontSize: "0.65rem", fontWeight: 700,
                           fontFamily: '"JetBrains Mono", monospace', transition: "all 0.12s ease",
-                          color: baPage === pageNum ? (isDark ? "#fff" : "#0c1222") : "text.secondary",
+                          color: baPage === pageNum ? (isDark ? "#fff" : "#1c1c1a") : "text.secondary",
                           bgcolor: baPage === pageNum ? (isDark ? "rgba(212,168,67,0.18)" : "rgba(161,124,47,0.12)") : "transparent",
                           "&:hover": { bgcolor: baPage === pageNum ? undefined : (isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.03)") },
                         }}>{pageNum + 1}</Box>
@@ -3086,7 +3086,7 @@ export default function BrokersPage() {
                     <Box key={v} onClick={() => setClusterMinCorr(v)} sx={{
                       px: 1, py: 0.3, cursor: "pointer", fontFamily: '"JetBrains Mono", monospace',
                       fontSize: "0.62rem", fontWeight: 600, borderRadius: 1, transition: "all 0.15s ease",
-                      color: clusterMinCorr === v ? (isDark ? "#fff" : "#0c1222") : "text.secondary",
+                      color: clusterMinCorr === v ? (isDark ? "#fff" : "#1c1c1a") : "text.secondary",
                       bgcolor: clusterMinCorr === v ? (isDark ? "rgba(99,102,241,0.18)" : "rgba(99,102,241,0.1)") : "transparent",
                       border: "1px solid", borderColor: clusterMinCorr === v ? (isDark ? "rgba(99,102,241,0.3)" : "rgba(99,102,241,0.2)") : "transparent",
                       "&:hover": { bgcolor: clusterMinCorr === v ? undefined : (isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)") },
@@ -3144,12 +3144,12 @@ export default function BrokersPage() {
                         ctx.fillStyle = node.color;
                         ctx.fill();
                         if (node.isForeign) {
-                          ctx.strokeStyle = isDark ? "#e8c468" : "#d4a843";
+                          ctx.strokeStyle = isDark ? "#e0b83d" : "#c9a227";
                           ctx.lineWidth = 1.5;
                           ctx.stroke();
                         }
                         if (isHovered) {
-                          ctx.strokeStyle = isDark ? "#fff" : "#0c1222";
+                          ctx.strokeStyle = isDark ? "#fff" : "#1c1c1a";
                           ctx.lineWidth = 2;
                           ctx.stroke();
                         }
@@ -3338,7 +3338,7 @@ export default function BrokersPage() {
                         </Box>
                       ))}
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, ml: "auto" }}>
-                        <Box sx={{ width: 8, height: 8, borderRadius: "50%", border: "1.5px solid", borderColor: isDark ? "#e8c468" : "#d4a843", bgcolor: "transparent" }} />
+                        <Box sx={{ width: 8, height: 8, borderRadius: "50%", border: "1.5px solid", borderColor: isDark ? "#e0b83d" : "#c9a227", bgcolor: "transparent" }} />
                         <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.6rem", color: "text.secondary" }}>
                           Foreign
                         </Typography>
@@ -3457,7 +3457,7 @@ export default function BrokersPage() {
             fullWidth
             PaperProps={{
               sx: {
-                bgcolor: isDark ? "#0c1222" : "#fff",
+                bgcolor: isDark ? "#0c1222" : "#f0eeeb",
                 borderRadius: 3,
                 border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"}`,
                 maxHeight: "90vh",
@@ -3467,7 +3467,7 @@ export default function BrokersPage() {
             <DialogContent sx={{ p: 0 }}>
               {brokerModalLoading ? (
                 <Stack alignItems="center" justifyContent="center" sx={{ py: 8 }}>
-                  <CircularProgress size={32} sx={{ color: "#d4a843" }} />
+                  <CircularProgress size={32} sx={{ color: "#c9a227" }} />
                   <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.72rem", color: "text.secondary", mt: 1.5 }}>
                     Loading broker data...
                   </Typography>
@@ -3520,11 +3520,11 @@ export default function BrokersPage() {
                       <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
                         <Box>
                           <Stack direction="row" spacing={1} alignItems="center">
-                            <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "1.3rem", color: cl ? CLUSTER_COLORS_STABLE[(cl.cluster_id - 1) % CLUSTER_COLORS_STABLE.length] : "#d4a843" }}>
+                            <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 800, fontSize: "1.3rem", color: cl ? CLUSTER_COLORS_STABLE[(cl.cluster_id - 1) % CLUSTER_COLORS_STABLE.length] : "#c9a227" }}>
                               {bCode}
                             </Typography>
                             {meta?.isForeign && (
-                              <Chip size="small" label="Foreign" sx={{ height: 18, fontFamily: '"JetBrains Mono", monospace', fontSize: "0.52rem", fontWeight: 700, bgcolor: "rgba(232,196,104,0.12)", color: "#e8c468", border: "1px solid rgba(232,196,104,0.25)" }} />
+                              <Chip size="small" label="Foreign" sx={{ height: 18, fontFamily: '"JetBrains Mono", monospace', fontSize: "0.52rem", fontWeight: 700, bgcolor: "rgba(224,184,61,0.12)", color: "#e0b83d", border: "1px solid rgba(224,184,61,0.25)" }} />
                             )}
                             {cl && (
                               <Chip size="small" label={cl.cluster_label} sx={{ height: 18, fontFamily: '"JetBrains Mono", monospace', fontSize: "0.52rem", fontWeight: 700, bgcolor: `${CLUSTER_COLORS_STABLE[(cl.cluster_id - 1) % CLUSTER_COLORS_STABLE.length]}15`, color: CLUSTER_COLORS_STABLE[(cl.cluster_id - 1) % CLUSTER_COLORS_STABLE.length], border: `1px solid ${CLUSTER_COLORS_STABLE[(cl.cluster_id - 1) % CLUSTER_COLORS_STABLE.length]}30` }} />
@@ -3549,7 +3549,7 @@ export default function BrokersPage() {
 
                     {/* Top Stocks Bar Chart */}
                     <Box sx={{ px: 3, py: 2, borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)"}` }}>
-                      <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", fontWeight: 700, color: "#d4a843", textTransform: "uppercase", letterSpacing: "0.04em", mb: 1.5 }}>
+                      <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", fontWeight: 700, color: "#c9a227", textTransform: "uppercase", letterSpacing: "0.04em", mb: 1.5 }}>
                         Top Stocks by Net Value (1M)
                       </Typography>
                       {topAll.length > 0 ? (
@@ -3559,7 +3559,7 @@ export default function BrokersPage() {
                             <XAxis type="number" tick={{ fontSize: 8, fontFamily: '"JetBrains Mono", monospace', fill: isDark ? "#9ca3af" : "#6b7280" }} stroke={isDark ? "#333" : "#ccc"} tickFormatter={(v: number) => formatValue(v)} />
                             <YAxis type="category" dataKey="symbol" tick={{ fontSize: 9, fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, fill: isDark ? "#c8cdd5" : "#374151" }} stroke={isDark ? "#333" : "#ccc"} width={38} />
                             <RechartsTooltip
-                              contentStyle={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", backgroundColor: isDark ? "#111827" : "#fff", color: isDark ? "#e8edf5" : "#1a1a2e", border: `1px solid ${isDark ? "#333" : "#ddd"}`, borderRadius: 8 }}
+                              contentStyle={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", backgroundColor: isDark ? "#111827" : "#f0eeeb", color: isDark ? "#e8edf5" : "#1a1a2e", border: `1px solid ${isDark ? "#333" : "#ddd"}`, borderRadius: 8 }}
                               formatter={(value: number) => [formatValue(value), "Net Value"]}
                             />
                             <Bar dataKey="netValue" radius={[0, 3, 3, 0]}>
@@ -3576,7 +3576,7 @@ export default function BrokersPage() {
 
                     {/* Daily Net Flow Chart */}
                     <Box sx={{ px: 3, py: 2, borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)"}` }}>
-                      <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", fontWeight: 700, color: "#d4a843", textTransform: "uppercase", letterSpacing: "0.04em", mb: 0.3 }}>
+                      <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", fontWeight: 700, color: "#c9a227", textTransform: "uppercase", letterSpacing: "0.04em", mb: 0.3 }}>
                         Daily Net Flow Comparison
                       </Typography>
                       {topNbrCode && (
@@ -3591,11 +3591,11 @@ export default function BrokersPage() {
                             <XAxis dataKey="date" tick={{ fontSize: 8, fontFamily: '"JetBrains Mono", monospace', fill: isDark ? "#9ca3af" : "#6b7280" }} stroke={isDark ? "#333" : "#ccc"} interval="preserveStartEnd" />
                             <YAxis tick={{ fontSize: 8, fontFamily: '"JetBrains Mono", monospace', fill: isDark ? "#9ca3af" : "#6b7280" }} stroke={isDark ? "#333" : "#ccc"} tickFormatter={(v: number) => formatValue(v)} />
                             <RechartsTooltip
-                              contentStyle={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", backgroundColor: isDark ? "#111827" : "#fff", color: isDark ? "#e8edf5" : "#1a1a2e", border: `1px solid ${isDark ? "#333" : "#ddd"}`, borderRadius: 8 }}
+                              contentStyle={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", backgroundColor: isDark ? "#111827" : "#f0eeeb", color: isDark ? "#e8edf5" : "#1a1a2e", border: `1px solid ${isDark ? "#333" : "#ddd"}`, borderRadius: 8 }}
                               formatter={(value: number, name: string) => [formatValue(value), name]}
                             />
                             <Legend wrapperStyle={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.58rem", color: isDark ? "#c8cdd5" : "#4a5568" }} />
-                            <Line type="monotone" dataKey={bCode} stroke={cl ? CLUSTER_COLORS_STABLE[(cl.cluster_id - 1) % CLUSTER_COLORS_STABLE.length] : "#d4a843"} strokeWidth={2} dot={false} connectNulls />
+                            <Line type="monotone" dataKey={bCode} stroke={cl ? CLUSTER_COLORS_STABLE[(cl.cluster_id - 1) % CLUSTER_COLORS_STABLE.length] : "#c9a227"} strokeWidth={2} dot={false} connectNulls />
                             {topNbrCode && (
                               <Line type="monotone" dataKey={topNbrCode} stroke={isDark ? "#94a3b8" : "#64748b"} strokeWidth={1.5} dot={false} strokeDasharray="4 3" connectNulls />
                             )}
@@ -3609,7 +3609,7 @@ export default function BrokersPage() {
                     {/* Correlation Evidence */}
                     {pairComparison && topNbrCode && (
                       <Box sx={{ px: 3, py: 2 }}>
-                        <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", fontWeight: 700, color: "#d4a843", textTransform: "uppercase", letterSpacing: "0.04em", mb: 0.3 }}>
+                        <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", fontWeight: 700, color: "#c9a227", textTransform: "uppercase", letterSpacing: "0.04em", mb: 0.3 }}>
                           Why They Correlate
                         </Typography>
                         <Typography sx={{ fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: "0.62rem", color: "text.secondary", mb: 1.5, lineHeight: 1.6 }}>
@@ -3624,11 +3624,11 @@ export default function BrokersPage() {
                             <XAxis type="number" tick={{ fontSize: 8, fontFamily: '"JetBrains Mono", monospace', fill: isDark ? "#9ca3af" : "#6b7280" }} stroke={isDark ? "#333" : "#ccc"} tickFormatter={(v: number) => formatValue(v)} />
                             <YAxis type="category" dataKey="symbol" tick={{ fontSize: 9, fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, fill: isDark ? "#c8cdd5" : "#374151" }} stroke={isDark ? "#333" : "#ccc"} width={42} />
                             <RechartsTooltip
-                              contentStyle={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", backgroundColor: isDark ? "#111827" : "#fff", color: isDark ? "#e8edf5" : "#1a1a2e", border: `1px solid ${isDark ? "#333" : "#ddd"}`, borderRadius: 8 }}
+                              contentStyle={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem", backgroundColor: isDark ? "#111827" : "#f0eeeb", color: isDark ? "#e8edf5" : "#1a1a2e", border: `1px solid ${isDark ? "#333" : "#ddd"}`, borderRadius: 8 }}
                               formatter={(value: number, name: string) => [formatValue(value), name]}
                             />
                             <Legend wrapperStyle={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.56rem", color: isDark ? "#c8cdd5" : "#4a5568" }} />
-                            <Bar dataKey="a" name={bCode} fill={cl ? CLUSTER_COLORS_STABLE[(cl.cluster_id - 1) % CLUSTER_COLORS_STABLE.length] : "#d4a843"} fillOpacity={0.8} radius={[0, 2, 2, 0]} barSize={8} />
+                            <Bar dataKey="a" name={bCode} fill={cl ? CLUSTER_COLORS_STABLE[(cl.cluster_id - 1) % CLUSTER_COLORS_STABLE.length] : "#c9a227"} fillOpacity={0.8} radius={[0, 2, 2, 0]} barSize={8} />
                             <Bar dataKey="b" name={topNbrCode} fill={isDark ? "#64748b" : "#94a3b8"} fillOpacity={0.7} radius={[0, 2, 2, 0]} barSize={8} />
                           </BarChart>
                         </ResponsiveContainer>
@@ -3862,7 +3862,7 @@ export default function BrokersPage() {
                                 <LinearProgress variant="determinate" value={barPct} sx={{
                                   height: 5, borderRadius: 3,
                                   bgcolor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-                                  "& .MuiLinearProgress-bar": { borderRadius: 3, bgcolor: "#d4a843" },
+                                  "& .MuiLinearProgress-bar": { borderRadius: 3, bgcolor: "#c9a227" },
                                 }} />
                               </Box>
                               <Typography variant="caption" sx={{
@@ -4216,9 +4216,9 @@ function squarifyLayout(
 }
 
 const TREEMAP_PALETTE = [
-  "#d4a843",
-  "#c49a3a",
-  "#e8c468",
+  "#c9a227",
+  "#e0b83d",
+  "#e0b83d",
   "#3b82f6",
   "#8b5cf6",
   "#06b6d4",

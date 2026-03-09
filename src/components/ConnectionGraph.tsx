@@ -37,9 +37,9 @@ interface ConnectionGraphProps {
   centerNodeId: string;
 }
 
-const STOCK_COLOR = "#d4a843";
+const STOCK_COLOR = "#c9a227";
 const INVESTOR_COLOR = "#8b5cf6";
-const CENTER_RING = "#e8c468";
+const CENTER_RING = "#e0b83d";
 
 function truncate(str: string, len: number) {
   return str.length > len ? str.slice(0, len) + "..." : str;

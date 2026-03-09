@@ -14,7 +14,7 @@ import Typography from "@mui/material/Typography";
 import Skeleton from "@mui/material/Skeleton";
 
 const COLORS = [
-  "#d4a843",
+  "#c9a227",
   "#38bdf8",
   "#34d399",
   "#fb7185",
@@ -70,7 +70,7 @@ export function OwnershipPieChart({ data, title }: OwnershipPieChartProps) {
           </Pie>
           <Tooltip
             contentStyle={{
-              background: isDark ? "#111b30" : "#fff",
+              background: isDark ? "#141414" : "#f0eeeb",
               border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "#e4e4e7"}`,
               borderRadius: "8px",
               color: textColor,

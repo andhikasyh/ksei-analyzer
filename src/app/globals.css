@@ -22,7 +22,7 @@ a {
 }
 
 ::selection {
-  background: rgba(212, 168, 67, 0.25);
+  background: rgba(201, 162, 39, 0.28);
 }
 
 ::-webkit-scrollbar {
@@ -35,12 +35,12 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(107, 127, 163, 0.18);
+  background: rgba(255, 255, 255, 0.12);
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(107, 127, 163, 0.32);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 @keyframes fadeInUp {
@@ -71,26 +71,6 @@ a {
   50% { opacity: 0.8; }
 }
 
-@keyframes ambientDrift1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(40px, -30px) scale(1.06); }
-  50% { transform: translate(-20px, 50px) scale(0.94); }
-  75% { transform: translate(30px, 20px) scale(1.03); }
-}
-
-@keyframes ambientDrift2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(-35px, 40px) scale(0.96); }
-  50% { transform: translate(45px, -25px) scale(1.04); }
-  75% { transform: translate(-15px, -35px) scale(0.98); }
-}
-
-@keyframes ambientDrift3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(20px, 30px) scale(1.08); }
-  66% { transform: translate(-40px, -15px) scale(0.95); }
-}
-
 .animate-in {
   animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
@@ -106,57 +86,6 @@ a {
 
 .mono {
   font-family: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
-}
-
-.ambient-glow {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  overflow: hidden;
-}
-
-.ambient-glow::before,
-.ambient-glow::after {
-  content: "";
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(140px);
-  will-change: transform;
-}
-
-.ambient-glow::before {
-  width: 650px;
-  height: 650px;
-  background: var(--accent, #d4a843);
-  top: -280px;
-  right: -180px;
-  opacity: 0.04;
-  animation: ambientDrift1 28s ease-in-out infinite;
-}
-
-.ambient-glow::after {
-  width: 480px;
-  height: 480px;
-  background: #38bdf8;
-  bottom: 5%;
-  left: -180px;
-  opacity: 0.025;
-  animation: ambientDrift2 34s ease-in-out infinite;
-}
-
-.ambient-glow-extra {
-  position: absolute;
-  width: 350px;
-  height: 350px;
-  border-radius: 50%;
-  filter: blur(120px);
-  background: var(--accent, #d4a843);
-  top: 45%;
-  left: 40%;
-  opacity: 0.02;
-  animation: ambientDrift3 40s ease-in-out infinite;
-  pointer-events: none;
 }
 
 body::after {

@@ -194,7 +194,7 @@ function ReportCard({
               justifyContent: "center",
             }}
           >
-            <LockIcon sx={{ fontSize: 14, color: isDark ? "#d4a843" : "#c49a3a" }} />
+            <LockIcon sx={{ fontSize: 14, color: isDark ? "#c9a227" : "#e0b83d" }} />
           </Box>
         )}
         {isFree && !isPro && (
@@ -306,7 +306,7 @@ function ReportCard({
               sx={{
                 fontSize: "0.65rem",
                 fontWeight: 600,
-                color: isDark ? "#d4a843" : "#a17c2f",
+                color: isDark ? "#c9a227" : "#c9a227",
               }}
             >
               Pro members only — Aktifkan untuk baca
@@ -487,9 +487,9 @@ export default function IntelligentPage() {
             }}
             sx={{
               background: isDark
-                ? "linear-gradient(135deg, #d4a843, #e8c468)"
-                : "linear-gradient(135deg, #a17c2f, #c49a3a)",
-              color: "#060a14",
+                ? "linear-gradient(135deg, #c9a227, #e0b83d)"
+                : "linear-gradient(135deg, #c9a227, #e0b83d)",
+              color: "#050505",
               fontWeight: 700,
               fontSize: "0.75rem",
               borderRadius: "10px",

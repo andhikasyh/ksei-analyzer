@@ -148,7 +148,7 @@ export default function ReportDetailPage({
   const isFreeReport = oldestDate !== null && date === oldestDate;
 
   if (!isPro && !isFreeReport) {
-    const accent = isDark ? "#d4a843" : "#a17c2f";
+    const accent = isDark ? "#c9a227" : "#c9a227";
     return (
       <Stack spacing={2.5}>
         <Box className="animate-in">
@@ -283,9 +283,9 @@ export default function ReportDetailPage({
               onClick={() => setPaywallOpen(true)}
               sx={{
                 background: isDark
-                  ? "linear-gradient(135deg, #d4a843, #e8c468)"
-                  : "linear-gradient(135deg, #a17c2f, #c49a3a)",
-                color: "#060a14",
+                  ? "linear-gradient(135deg, #c9a227, #e0b83d)"
+                  : "linear-gradient(135deg, #c9a227, #e0b83d)",
+                color: "#050505",
                 fontWeight: 800,
                 fontSize: "0.82rem",
                 borderRadius: "12px",

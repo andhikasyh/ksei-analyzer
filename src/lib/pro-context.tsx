@@ -27,8 +27,8 @@ export interface ProContextValue {
   isPro: boolean;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
-  signUpWithEmail: (email: string, password: string) => Promise<{ error: string | null }>;
+  signInWithEmail: (email: string, password: string, captchaToken?: string) => Promise<{ error: string | null }>;
+  signUpWithEmail: (email: string, password: string, captchaToken?: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   supabase: typeof browserClient;
   refreshProStatus: () => Promise<void>;
@@ -169,13 +169,21 @@ export function ProProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const signInWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await browserClient.auth.signInWithPassword({ email, password });
+  const signInWithEmail = useCallback(async (email: string, password: string, captchaToken?: string) => {
+    const { error } = await browserClient.auth.signInWithPassword({
+      email,
+      password,
+      options: captchaToken ? { captchaToken } : undefined,
+    });
     return { error: error?.message ?? null };
   }, []);
 
-  const signUpWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await browserClient.auth.signUp({ email, password });
+  const signUpWithEmail = useCallback(async (email: string, password: string, captchaToken?: string) => {
+    const { error } = await browserClient.auth.signUp({
+      email,
+      password,
+      options: captchaToken ? { captchaToken } : undefined,
+    });
     return { error: error?.message ?? null };
   }, []);
 

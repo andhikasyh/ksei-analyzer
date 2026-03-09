@@ -410,7 +410,7 @@ export function AIAnalyzerPanel({ stockCode }: AIAnalyzerProps) {
     runInitialAnalysis();
   }, [runInitialAnalysis]);
 
-  const accentColor = isDark ? "#c9a84c" : "#a17c2f";
+  const accentColor = isDark ? "#c9a227" : "#c9a227";
   const accentBg = isDark ? "rgba(201,168,76,0.08)" : "rgba(161,124,47,0.06)";
   const subtleBg = isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)";
   const borderColor = isDark ? "rgba(201,168,76,0.12)" : "rgba(161,124,47,0.1)";

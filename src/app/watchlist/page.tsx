@@ -53,7 +53,7 @@ interface StockOption {
 export default function WatchlistPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const accent = isDark ? "#d4a843" : "#a17c2f";
+  const accent = isDark ? "#c9a227" : "#c9a227";
   const router = useRouter();
   const { watchlist, removeStock, isWatched, addStock } = useWatchlist();
 
@@ -192,7 +192,7 @@ export default function WatchlistPage() {
   );
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: isDark ? "#060a14" : "#f5f7fa", pt: { xs: 3, md: 4 }, pb: 6 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: isDark ? "#050505" : "#e8e6e3", pt: { xs: 3, md: 4 }, pb: 6 }}>
       <Container maxWidth="xl" sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
 
         {/* Header */}
@@ -292,7 +292,7 @@ export default function WatchlistPage() {
                     </Paper>
                   )}
                   {filteredOptions.length === 0 && searchQuery.trim() && (
-                    <Paper elevation={4} sx={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 1400, borderRadius: "10px", px: 2, py: 1.5, bgcolor: isDark ? "#0d1425" : "#fff", border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"}` }}>
+                    <Paper elevation={4} sx={{ position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 1400, borderRadius: "10px", px: 2, py: 1.5, bgcolor: isDark ? "#0d0d0d" : "#f0eeeb", border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}` }}>
                       <Typography sx={{ fontFamily: '"Plus Jakarta Sans", sans-serif', fontSize: "0.78rem", color: "text.secondary" }}>
                         No results for "{searchQuery}"
                       </Typography>

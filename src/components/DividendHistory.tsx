@@ -74,7 +74,7 @@ function dividendTypeColor(note: string, isDark: boolean) {
   const styles: Record<string, { bg: string; text: string }> = {
     F: {
       bg: isDark ? "rgba(212,168,67,0.15)" : "rgba(212,168,67,0.08)",
-      text: "#d4a843",
+      text: "#c9a227",
     },
     I: {
       bg: isDark ? "rgba(96,165,250,0.15)" : "rgba(59,130,246,0.08)",
@@ -133,7 +133,7 @@ export function DividendHistoryPanel({ stockCode }: DividendHistoryProps) {
     return dividends.reduce((s, d) => s + (parseFloat(d.cash_dividend) || 0), 0);
   }, [dividends]);
 
-  const textColor = isDark ? "#6b7fa3" : "#546280";
+  const textColor = isDark ? "#737373" : "#737373";
   const gridColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
 
   if (loading) return <DividendSkeleton />;
@@ -183,7 +183,7 @@ export function DividendHistoryPanel({ stockCode }: DividendHistoryProps) {
             <YAxis tick={{ fill: textColor, fontSize: 10 }} />
             <Tooltip
               contentStyle={{
-                background: isDark ? "#111b30" : "#fff",
+                background: isDark ? "#141414" : "#f0eeeb",
                 border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "#e4e4e7"}`,
                 borderRadius: "8px",
                 fontSize: "12px",

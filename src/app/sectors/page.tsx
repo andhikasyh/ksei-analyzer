@@ -93,7 +93,7 @@ const SECTOR_COLORS: Record<string, string> = {
 };
 
 const SECTOR_INDICES = [
-  { code: "COMPOSITE", label: "IHSG", color: "#d4a843" },
+  { code: "COMPOSITE", label: "IHSG", color: "#c9a227" },
   { code: "IDXFINANCE", label: "Finance", color: "#3b82f6" },
   { code: "IDXENERGY", label: "Energy", color: "#f97316" },
   { code: "IDXBASIC", label: "Basic Mat", color: "#f59e0b" },
@@ -154,7 +154,7 @@ const RRG_COLORS = [
   "#a3e635", "#fb7185", "#38bdf8", "#facc15", "#d946ef",
   "#34d399", "#f87171", "#93c5fd", "#fde047", "#c4b5fd",
   "#67e8f9", "#fdba74", "#86efac", "#7dd3fc", "#fca5a5",
-  "#d4a843", "#ff6b6b", "#48dbfb", "#1dd1a1", "#ff9f43",
+  "#c9a227", "#ff6b6b", "#48dbfb", "#1dd1a1", "#ff9f43",
   "#5f27cd", "#54a0ff", "#00d2d3", "#feca57", "#ee5a24",
 ];
 
@@ -357,7 +357,7 @@ function RRGChart({
             top: `${(tooltip.y / H) * 100}%`,
             transform: "translate(-50%, -120%)",
             pointerEvents: "none",
-            bgcolor: isDark ? "#1a1f2e" : "#fff",
+            bgcolor: isDark ? "#1a1f2e" : "#f0eeeb",
             border: `1px solid ${isDark ? "#333" : "#ddd"}`,
             borderRadius: 1.5,
             px: 1, py: 0.5,
@@ -416,7 +416,7 @@ function RRGChart({
 export default function SectorsPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const accent = isDark ? "#d4a843" : "#a17c2f";
+  const accent = isDark ? "#c9a227" : "#c9a227";
   const router = useRouter();
   const { watchlist } = useWatchlist();
 
@@ -577,7 +577,7 @@ export default function SectorsPage() {
       code: m.code,
       label: m.label,
       color: SECTOR_INDICES.find((s) => s.code === m.code)?.color
-        || ["#d4a843", "#3b82f6", "#22c55e", "#f97316", "#a78bfa", "#06b6d4", "#ec4899"][MAJOR_INDICES.indexOf(m) % 7],
+        || ["#c9a227", "#3b82f6", "#22c55e", "#f97316", "#a78bfa", "#06b6d4", "#ec4899"][MAJOR_INDICES.indexOf(m) % 7],
     }));
 
     const perfs: IndexPerf[] = [];
@@ -728,7 +728,7 @@ export default function SectorsPage() {
   }, [activeSector, stockSort]);
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: isDark ? "#060a14" : "#f5f7fa", pt: { xs: 3, md: 4 }, pb: 6 }}>
+    <Box sx={{ minHeight: "100vh", bgcolor: isDark ? "#050505" : "#e8e6e3", pt: { xs: 3, md: 4 }, pb: 6 }}>
       <Container maxWidth="xl" sx={{ px: { xs: 1.5, sm: 2, md: 3 } }}>
 
         {/* Header */}
@@ -763,7 +763,7 @@ export default function SectorsPage() {
                 px: { xs: 1.5, sm: 2.5 }, py: 1, cursor: "pointer",
                 fontFamily: '"JetBrains Mono", monospace', fontSize: { xs: "0.65rem", sm: "0.72rem" }, fontWeight: 700,
                 transition: "all 0.15s",
-                color: pageTab === t.key ? (isDark ? "#fff" : "#0c1222") : "text.secondary",
+                color: pageTab === t.key ? (isDark ? "#fff" : "#1c1c1a") : "text.secondary",
                 bgcolor: pageTab === t.key ? `${accent}20` : "transparent",
                 borderBottom: pageTab === t.key ? `2px solid ${accent}` : "2px solid transparent",
                 "&:hover": { bgcolor: pageTab === t.key ? undefined : (isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)") },
@@ -784,7 +784,7 @@ export default function SectorsPage() {
               sx={{
                 p: 2, borderRadius: "14px",
                 border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
-                bgcolor: isDark ? "#060a14" : "#fff",
+                bgcolor: isDark ? "#050505" : "#f0eeeb",
               }}
             >
               <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
@@ -834,7 +834,7 @@ export default function SectorsPage() {
                       <RechartsTooltip
                         contentStyle={{
                           fontFamily: '"JetBrains Mono", monospace', fontSize: "0.62rem",
-                          backgroundColor: isDark ? "#111827" : "#fff",
+                          backgroundColor: isDark ? "#111827" : "#f0eeeb",
                           border: `1px solid ${isDark ? "#333" : "#ddd"}`,
                           borderRadius: 8, maxHeight: 300, overflowY: "auto",
                         }}
@@ -877,7 +877,7 @@ export default function SectorsPage() {
                   sx={{
                     px: 1.5, py: 0.5, cursor: "pointer", borderRadius: 1.5,
                     fontFamily: '"JetBrains Mono", monospace', fontSize: "0.68rem", fontWeight: 600,
-                    color: indexGroup === g.key ? (isDark ? "#fff" : "#0c1222") : "text.secondary",
+                    color: indexGroup === g.key ? (isDark ? "#fff" : "#1c1c1a") : "text.secondary",
                     bgcolor: indexGroup === g.key ? `${accent}20` : "transparent",
                     border: `1px solid ${indexGroup === g.key ? accent + "40" : "transparent"}`,
                     transition: "all 0.15s",
@@ -902,7 +902,7 @@ export default function SectorsPage() {
                   sx={{
                     p: 2, borderRadius: "14px",
                     border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
-                    bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+                    bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
                   }}
                 >
                   <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1.5 }}>
@@ -939,12 +939,12 @@ export default function SectorsPage() {
                       <XAxis dataKey="date" tick={{ fontSize: 9, fontFamily: '"JetBrains Mono", monospace' }} stroke={isDark ? "#444" : "#ccc"} />
                       <YAxis tick={{ fontSize: 10, fontFamily: '"JetBrains Mono", monospace' }} stroke={isDark ? "#444" : "#ccc"} domain={["dataMin - 2", "dataMax + 2"]} />
                       <RechartsTooltip
-                        contentStyle={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.68rem", backgroundColor: isDark ? "#111827" : "#fff", border: `1px solid ${isDark ? "#333" : "#ddd"}`, borderRadius: 8 }}
+                        contentStyle={{ fontFamily: '"JetBrains Mono", monospace', fontSize: "0.68rem", backgroundColor: isDark ? "#111827" : "#f0eeeb", border: `1px solid ${isDark ? "#333" : "#ddd"}`, borderRadius: 8 }}
                         formatter={(value: number) => [`${value.toFixed(2)}`, undefined]}
                       />
                       <ReferenceLine y={100} stroke={isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)"} strokeDasharray="5 5" />
                       {indexGroup === "sectors" && (
-                        <Line type="monotone" dataKey="IHSG" stroke="#d4a843" strokeWidth={2.5} dot={false} strokeDasharray="6 3" opacity={0.6} />
+                        <Line type="monotone" dataKey="IHSG" stroke="#c9a227" strokeWidth={2.5} dot={false} strokeDasharray="6 3" opacity={0.6} />
                       )}
                       {indexData
                         .filter((d) => enabledIndices.has(d.code))
@@ -960,8 +960,8 @@ export default function SectorsPage() {
                   elevation={0}
                   sx={{
                     p: 2, borderRadius: "14px",
-                    border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
-                    bgcolor: isDark ? "#060a14" : "#fff",
+                    border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
+                    bgcolor: isDark ? "#0d0d0d" : "#111111",
                   }}
                 >
                   <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} alignItems={{ sm: "center" }} justifyContent="space-between" sx={{ mb: 2 }}>
@@ -1087,7 +1087,7 @@ export default function SectorsPage() {
                   sx={{
                     borderRadius: "14px", overflow: "hidden",
                     border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
-                    bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+                    bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
                   }}
                 >
                   <Box sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${isDark ? "rgba(107,127,163,0.09)" : "rgba(12,18,34,0.06)"}` }}>
@@ -1156,7 +1156,7 @@ export default function SectorsPage() {
                 border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
                 borderRadius: "14px",
                 overflow: "hidden",
-                bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+                bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
                 position: { lg: "sticky" },
                 top: { lg: 80 },
               }}
@@ -1245,7 +1245,7 @@ export default function SectorsPage() {
                     border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
                     borderRadius: "14px",
                     overflow: "hidden",
-                    bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+                    bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
                   }}
                 >
                   {/* Top band */}
@@ -1404,7 +1404,7 @@ export default function SectorsPage() {
                     border: `1px solid ${isDark ? "rgba(107,127,163,0.12)" : "rgba(12,18,34,0.08)"}`,
                     borderRadius: "14px",
                     overflow: "hidden",
-                    bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#fff",
+                    bgcolor: isDark ? "rgba(255,255,255,0.015)" : "#f5f4f1",
                   }}
                 >
                   {/* List header */}

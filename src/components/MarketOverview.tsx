@@ -77,7 +77,7 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
     });
   }, [records]);
 
-  const textColor = isDark ? "#6b7fa3" : "#546280";
+  const textColor = isDark ? "#737373" : "#737373";
   const gridColor = isDark ? "rgba(107,127,163,0.08)" : "rgba(12,18,34,0.06)";
 
   if (loading) return <MarketOverviewSkeleton />;
@@ -422,7 +422,7 @@ export function MarketOverviewPanel({ stockCode }: MarketOverviewProps) {
               <YAxis tick={{ fill: textColor, fontSize: 10 }} tickFormatter={(v) => formatValue(v)} />
               <RechartsTooltip
                 contentStyle={{
-                  background: isDark ? "#111b30" : "#fff",
+                  background: isDark ? "#141414" : "#f0eeeb",
                   border: `1px solid ${isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)"}`,
                   borderRadius: "8px",
                   fontSize: "12px",

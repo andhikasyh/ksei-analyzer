@@ -6,9 +6,6 @@ import Box from "@mui/material/Box";
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Box className="ambient-glow">
-        <Box className="ambient-glow-extra" />
-      </Box>
       <Container
         maxWidth="xl"
         sx={{

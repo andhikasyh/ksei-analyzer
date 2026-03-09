@@ -28,7 +28,7 @@ const KATEGORI_SHORT: Record<string, string> = {
 };
 
 const KATEGORI_COLORS: Record<string, string> = {
-  "Lebih dari 5%": "#d4a843",
+  "Lebih dari 5%": "#c9a227",
   "Direksi": "#fbbf24",
   "Komisaris": "#8b5cf6",
 };
@@ -114,7 +114,7 @@ export function ShareholderHistoryPanel({ stockCode }: ShareholderHistoryProps) 
       .sort((a, b) => b.persentase - a.persentase);
   }, [records, selectedDate, prevDate]);
 
-  const textColor = isDark ? "#6b7fa3" : "#546280";
+  const textColor = isDark ? "#737373" : "#737373";
 
   if (loading) return <ShareholderSkeleton />;
   if (records.length === 0) return null;
@@ -245,7 +245,7 @@ export function ShareholderHistoryPanel({ stockCode }: ShareholderHistoryProps) 
                           {h.changeShares > 0 ? "+" : ""}{formatShares(h.changeShares)}
                         </Typography>
                       ) : (
-                        <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: "#d4a843", fontSize: "0.6rem", fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: "#c9a227", fontSize: "0.6rem", fontWeight: 600 }}>
                           NEW
                         </Typography>
                       )}

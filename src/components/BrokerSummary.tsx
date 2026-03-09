@@ -214,10 +214,10 @@ export function BrokerSummaryPanel({ stockCode }: BrokerSummaryProps) {
     [rankings]
   );
 
-  const textColor = isDark ? "#6b7fa3" : "#546280";
+  const textColor = isDark ? "#737373" : "#737373";
   const gridColor = isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.05)";
   const tooltipStyle = {
-    background: isDark ? "#0d1526" : "#fff",
+    background: isDark ? "#0d1526" : "#f0eeeb",
     border: `1px solid ${isDark ? "rgba(107,127,163,0.2)" : "#e4e4e7"}`,
     borderRadius: "10px",
     fontSize: "11px",
@@ -871,7 +871,7 @@ function BrokerFlowSection({
           borderRadius: 3,
           border: "1px solid",
           borderColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
-          bgcolor: isDark ? "rgba(255,255,255,0.02)" : "#fff",
+          bgcolor: isDark ? "rgba(255,255,255,0.02)" : "#f5f4f1",
           boxShadow: isDark
             ? "0 4px 24px rgba(0,0,0,0.25)"
             : "0 2px 12px rgba(15,23,42,0.06)",
@@ -1049,7 +1049,7 @@ function BrokerSummarySection({
           overflow: "hidden",
           border: "1px solid",
           borderColor: isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.06)",
-          bgcolor: isDark ? "rgba(255,255,255,0.02)" : "#fff",
+          bgcolor: isDark ? "rgba(255,255,255,0.02)" : "#f5f4f1",
           boxShadow: isDark
             ? "0 4px 24px rgba(0,0,0,0.25)"
             : "0 2px 12px rgba(15,23,42,0.06)",
@@ -1486,7 +1486,7 @@ function BrokerDistributionSection({
           overflow: "hidden",
           border: "1px solid",
           borderColor,
-          bgcolor: isDark ? "rgba(255,255,255,0.02)" : "#fff",
+          bgcolor: isDark ? "rgba(255,255,255,0.02)" : "#f5f4f1",
           boxShadow: isDark
             ? "0 4px 24px rgba(0,0,0,0.25)"
             : "0 2px 12px rgba(15,23,42,0.06)",

@@ -30,9 +30,9 @@ interface FinancialTrendsProps {
 
 function useChartColors(isDark: boolean) {
   return {
-    text: isDark ? "#6b7fa3" : "#546280",
+    text: isDark ? "#737373" : "#737373",
     grid: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
-    bg: isDark ? "#111b30" : "#fff",
+    bg: isDark ? "#141414" : "#f0eeeb",
     border: isDark ? "rgba(107,127,163,0.15)" : "#e4e4e7",
   };
 }
@@ -157,7 +157,7 @@ export function FinancialTrendsPanel({ stockCode }: FinancialTrendsProps) {
                   formatter={(v: number, name: string) => [formatBillion(v), name]}
                 />
                 <Legend wrapperStyle={{ fontSize: "11px" }} iconSize={8} />
-                <Bar dataKey="assets" name="Assets" fill="#d4a843" radius={[2, 2, 0, 0]} />
+                <Bar dataKey="assets" name="Assets" fill="#c9a227" radius={[2, 2, 0, 0]} />
                 <Bar dataKey="liabilities" name="Liabilities" fill="#fb7185" radius={[2, 2, 0, 0]} opacity={0.7} />
                 <Bar dataKey="equity" name="Equity" fill="#34d399" radius={[2, 2, 0, 0]} />
               </BarChart>
@@ -200,7 +200,7 @@ export function FinancialTrendsPanel({ stockCode }: FinancialTrendsProps) {
                 />
                 <Legend wrapperStyle={{ fontSize: "11px" }} iconSize={8} />
                 <Line type="monotone" dataKey="roe" name="ROE" stroke="#34d399" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="roa" name="ROA" stroke="#d4a843" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="roa" name="ROA" stroke="#c9a227" strokeWidth={2} dot={{ r: 3 }} />
                 <Line type="monotone" dataKey="npm" name="NPM" stroke="#fbbf24" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>

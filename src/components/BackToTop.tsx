@@ -42,7 +42,7 @@ export function BackToTop() {
           bgcolor: isDark
             ? "rgba(212,168,67,0.15)"
             : "rgba(161,124,47,0.12)",
-          color: isDark ? "#d4a843" : "#a17c2f",
+          color: isDark ? "#c9a227" : "#c9a227",
           border: 1,
           borderColor: isDark
             ? "rgba(212,168,67,0.25)"

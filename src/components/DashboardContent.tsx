@@ -581,7 +581,7 @@ export function DashboardContent() {
                           fontSize: "0.65rem",
                           fontWeight: foreignFlowRange === r ? 700 : 500,
                           color: foreignFlowRange === r
-                            ? isDark ? "#d4a843" : "#a17c2f"
+                            ? isDark ? "#c9a227" : "#c9a227"
                             : "text.secondary",
                         }}
                       >
@@ -687,7 +687,7 @@ export function DashboardContent() {
                   <RechartsTooltip
                     cursor={{ fill: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)" }}
                     contentStyle={{
-                      background: isDark ? "#0d1425" : "#ffffff",
+                      background: isDark ? "#0d0d0d" : "#f0eeeb",
                       border: `1px solid ${isDark ? "rgba(107,127,163,0.22)" : "rgba(12,18,34,0.12)"}`,
                       borderRadius: "10px",
                       fontFamily: '"JetBrains Mono", monospace',
@@ -874,9 +874,9 @@ export function DashboardContent() {
                                     onClick={(e) => { e.stopPropagation(); toggleWatchlist(m.code); }}
                                     sx={{
                                       p: 0.2,
-                                      color: isWatched(m.code) ? (isDark ? "#d4a843" : "#a17c2f") : "text.secondary",
+                                      color: isWatched(m.code) ? (isDark ? "#c9a227" : "#c9a227") : "text.secondary",
                                       opacity: isWatched(m.code) ? 1 : 0.4,
-                                      "&:hover": { opacity: 1, color: isDark ? "#d4a843" : "#a17c2f" },
+                                      "&:hover": { opacity: 1, color: isDark ? "#c9a227" : "#c9a227" },
                                     }}
                                   >
                                     {isWatched(m.code)

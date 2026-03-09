@@ -757,7 +757,7 @@ function ChartsSection({ report }: { report: MarketIntelligenceReport }) {
   if (!cd) return null;
 
   const gridColor = isDark ? "rgba(107,127,163,0.1)" : "rgba(12,18,34,0.06)";
-  const tooltipBg = isDark ? "#141b2d" : "#fff";
+  const tooltipBg = isDark ? "#141b2d" : "#f0eeeb";
   const tooltipBorder = isDark ? "rgba(107,127,163,0.15)" : "rgba(12,18,34,0.08)";
 
   const sectorBarHeight = Math.max((cd.sectorPerformanceChart?.length ?? 0) * (compact ? 32 : 38), compact ? 200 : 240);
@@ -849,7 +849,7 @@ function ChartsSection({ report }: { report: MarketIntelligenceReport }) {
                                   strokeWidth={1.5}
                                   fill={`url(#${gradId})`}
                                   dot={false}
-                                  activeDot={{ r: 3, fill: lineColor, stroke: isDark ? "#141b2d" : "#fff", strokeWidth: 1.5 }}
+                                  activeDot={{ r: 3, fill: lineColor, stroke: isDark ? "#141b2d" : "#f0eeeb", strokeWidth: 1.5 }}
                                 />
                               </AreaChart>
                             </ResponsiveContainer>
@@ -903,7 +903,7 @@ function ChartsSection({ report }: { report: MarketIntelligenceReport }) {
                       <XAxis dataKey="date" tick={{ fontSize: 10, fill: isDark ? "#9aabbf" : "#6b7a90" }} axisLine={false} tickLine={false} tickFormatter={(v: string) => v.slice(5)} />
                       <YAxis tick={{ fontSize: 10, fill: isDark ? "#9aabbf" : "#6b7a90" }} axisLine={false} tickLine={false} domain={[0, 100]} tickFormatter={(v: number) => `${v}%`} />
                       <Tooltip contentStyle={{ background: tooltipBg, border: `1px solid ${tooltipBorder}`, borderRadius: 8, fontSize: "0.82rem" }} formatter={(v: number) => [`${(v as number).toFixed(1)}%`, "Advancing"]} />
-                      <Area type="monotone" dataKey="value" stroke="#818cf8" strokeWidth={2} fill="url(#breadthGrad)" dot={{ r: 2, fill: "#818cf8", strokeWidth: 0 }} activeDot={{ r: 3.5, fill: "#818cf8", stroke: isDark ? "#141b2d" : "#fff", strokeWidth: 2 }} />
+                      <Area type="monotone" dataKey="value" stroke="#818cf8" strokeWidth={2} fill="url(#breadthGrad)" dot={{ r: 2, fill: "#818cf8", strokeWidth: 0 }} activeDot={{ r: 3.5, fill: "#818cf8", stroke: isDark ? "#141b2d" : "#f0eeeb", strokeWidth: 2 }} />
                       <Line type="monotone" dataKey={() => 50} stroke={isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.1)"} strokeDasharray="6 4" strokeWidth={1} dot={false} />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -1084,7 +1084,7 @@ function CorporateEventsSection({ report }: { report: MarketIntelligenceReport }
     rumor: { bg: "rgba(251,146,60,0.12)", color: "#fb923c" },
     ipo: { bg: "rgba(56,189,248,0.12)", color: "#38bdf8" },
     restructuring: { bg: "rgba(167,139,250,0.12)", color: "#a78bfa" },
-    other: { bg: "rgba(107,127,163,0.1)", color: "#6b7fa3" },
+    other: { bg: "rgba(255,255,255,0.08)", color: "#737373" },
   };
 
   return (

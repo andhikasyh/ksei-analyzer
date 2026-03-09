@@ -30,35 +30,35 @@ export function useColorMode() {
 }
 
 const DARK = {
-  bg: "#060a14",
-  bgPaper: "#0d1425",
-  bgElevated: "#111b30",
-  textPrimary: "#e8edf5",
-  textSecondary: "#6b7fa3",
-  primary: "#d4a843",
-  primaryLight: "#e8c468",
+  bg: "#050505",
+  bgPaper: "#0d0d0d",
+  bgElevated: "#141414",
+  textPrimary: "#f0f0f0",
+  textSecondary: "#737373",
+  primary: "#c9a227",
+  primaryLight: "#e0b83d",
   secondary: "#38bdf8",
-  divider: "rgba(107,127,163,0.10)",
-  success: "#34d399",
-  warning: "#fbbf24",
-  error: "#fb7185",
-  border: "rgba(107,127,163,0.12)",
+  divider: "rgba(255,255,255,0.06)",
+  success: "#22c55e",
+  warning: "#eab308",
+  error: "#ef4444",
+  border: "rgba(255,255,255,0.08)",
 };
 
 const LIGHT = {
-  bg: "#f5f7fa",
-  bgPaper: "#ffffff",
-  bgElevated: "#f0f2f6",
-  textPrimary: "#0c1222",
-  textSecondary: "#546280",
-  primary: "#a17c2f",
-  primaryLight: "#c49a3a",
+  bg: "#e8e6e3",
+  bgPaper: "#f0eeeb",
+  bgElevated: "#f5f4f1",
+  textPrimary: "#1c1c1a",
+  textSecondary: "#5c5a57",
+  primary: "#c9a227",
+  primaryLight: "#e0b83d",
   secondary: "#0369a1",
-  divider: "rgba(12,18,34,0.07)",
-  success: "#059669",
-  warning: "#d97706",
-  error: "#e11d48",
-  border: "rgba(12,18,34,0.08)",
+  divider: "rgba(0,0,0,0.06)",
+  success: "#22c55e",
+  warning: "#eab308",
+  error: "#ef4444",
+  border: "rgba(0,0,0,0.08)",
 };
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -189,8 +189,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
               letterSpacing: "0.06em",
               backgroundColor:
                 mode === "dark"
-                  ? "rgba(13,20,37,0.9)"
-                  : "rgba(240,242,246,0.9)",
+                  ? "rgba(20,20,20,0.95)"
+                  : "rgba(245,244,241,0.98)",
               borderBottom: `1px solid ${p.border}`,
               padding: "8px 12px",
             },
@@ -205,7 +205,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           styleOverrides: {
             tooltip: {
               backgroundColor:
-                mode === "dark" ? DARK.bgElevated : LIGHT.bgPaper,
+                mode === "dark" ? DARK.bgElevated : LIGHT.bgElevated,
               color: p.textPrimary,
               border: `1px solid ${p.border}`,
               fontSize: "0.78rem",
