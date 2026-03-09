@@ -16,6 +16,10 @@ export const metadata: Metadata = {
     "foreign flow IDX",
     "foreign flow saham",
     "dana asing bursa saham",
+    "foreign flow stockbit",
+    "asing net buy sell hari ini",
+    "data asing masuk keluar saham",
+    "tracking dana asing gratis",
   ],
   openGraph: {
     title: `Foreign Flow – Arus Dana Asing | ${SITE_NAME}`,

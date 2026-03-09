@@ -16,6 +16,10 @@ export const metadata: Metadata = {
     "riwayat dividen",
     "Indonesia stock dividends",
     "IDX dividend data",
+    "dividen saham terbaru",
+    "jadwal dividen saham 2025 2026",
+    "saham dividen tinggi BEI",
+    "data dividen gratis",
   ],
   openGraph: {
     title: `Data Dividen Saham Indonesia | ${SITE_NAME}`,

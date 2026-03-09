@@ -17,7 +17,7 @@ const baseUrl = getBaseUrl();
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
-    default: `${SITE_NAME} – Analisis Kepemilikan Saham & Data Pasar Indonesia`,
+    default: `${SITE_NAME} – Analisis Saham Indonesia Gratis | Alternatif Stockbit & RTI`,
     template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -30,12 +30,12 @@ export const metadata: Metadata = {
     alternateLocale: "en_US",
     url: baseUrl,
     siteName: SITE_NAME,
-    title: `${SITE_NAME} – Analisis Kepemilikan Saham & Data Pasar Indonesia`,
+    title: `${SITE_NAME} – Platform Analisis Saham Indonesia Gratis`,
     description: SITE_DESCRIPTION,
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} – Analisis Kepemilikan Saham & Data Pasar Indonesia`,
+    title: `${SITE_NAME} – Analisis Saham KSEI, Screener & Market Intelligence`,
     description: SITE_DESCRIPTION,
   },
   robots: {
@@ -109,7 +109,7 @@ export default function RootLayout({
                     "@type": "Offer",
                     price: "0",
                     priceCurrency: "IDR",
-                    description: "Free tier with optional Pro subscription",
+                    description: "Free Indonesian stock analysis platform - alternative to Stockbit, RTI, IPOT",
                   },
                   audience: {
                     "@type": "Audience",
@@ -124,10 +124,43 @@ export default function RootLayout({
                     "Stock screener with fundamental filters",
                     "Broker activity and market share tracking",
                     "Daily AI-powered market intelligence reports",
-                    "Foreign flow analytics",
-                    "Sector analysis",
-                    "Dividend data",
+                    "Foreign flow analytics and net buy/sell tracking",
+                    "Sector analysis for BEI/IDX",
+                    "Dividend data and yield analysis",
                     "Stock comparison tools",
+                    "Portfolio tracking and watchlist",
+                    "Real-time IHSG, LQ45, IDX30 data",
+                  ],
+                  alternativeHeadline: "Alternatif Stockbit dan RTI untuk analisis saham Indonesia",
+                  keywords: "stockbit alternative, RTI alternative, aplikasi saham gratis, KSEI data, screener saham Indonesia",
+                },
+                {
+                  "@type": "FAQPage",
+                  mainEntity: [
+                    {
+                      "@type": "Question",
+                      name: "Apa itu Gunaa dan bedanya dengan Stockbit?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text: "Gunaa adalah platform analisis saham Indonesia gratis yang fokus pada data kepemilikan KSEI, aktivitas broker, foreign flow, dan AI market intelligence. Berbeda dengan Stockbit yang fokus pada social trading, Gunaa menyediakan analisis mendalam tentang perubahan kepemilikan saham dan pergerakan smart money.",
+                      },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "Apakah Gunaa gratis? Apa bedanya dengan RTI Business?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text: "Ya, Gunaa menyediakan fitur gratis termasuk screener saham, data broker, dan foreign flow. Dibanding RTI Business, Gunaa memiliki fitur unik seperti analisis kepemilikan KSEI dan laporan AI market intelligence harian.",
+                      },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "Bagaimana cara melihat data kepemilikan saham KSEI?",
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text: "Gunaa menyediakan data kepemilikan saham dari KSEI yang diperbarui secara berkala. Anda bisa melihat siapa saja pemegang saham terbesar, perubahan kepemilikan, dan aktivitas investor institusi maupun ritel.",
+                      },
+                    },
                   ],
                 },
               ],

@@ -17,6 +17,11 @@ export const metadata: Metadata = {
     "screener saham KSEI",
     "saham murah Indonesia",
     "valuasi saham BEI",
+    "alternatif stockbit screener",
+    "stock screener gratis",
+    "filter saham gratis",
+    "screener saham seperti stockbit",
+    "tools saham RTI",
   ],
   openGraph: {
     title: `Screener Saham Indonesia | ${SITE_NAME}`,

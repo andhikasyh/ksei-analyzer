@@ -15,10 +15,10 @@ export function getBaseUrl(): string {
 export const SITE_NAME = "Gunaa";
 
 export const SITE_DESCRIPTION =
-  "Platform analisis kepemilikan saham KSEI dan data pasar untuk Bursa Efek Indonesia (BEI/IDX). Screener saham, aktivitas broker, kepemilikan investor, foreign flow, dan laporan market intelligence harian.";
+  "Platform analisis saham Indonesia gratis: data kepemilikan KSEI, screener saham, aktivitas broker, foreign flow, dan AI market intelligence. Alternatif Stockbit, RTI, dan aplikasi saham lainnya untuk investor BEI/IDX.";
 
 export const SITE_DESCRIPTION_EN =
-  "KSEI beneficial ownership analytics and market data for the Indonesian stock exchange (IDX/BEI). Stock screener, broker activity, investor holdings, foreign flow tracking, and daily market intelligence reports.";
+  "Free Indonesian stock analysis platform: KSEI ownership data, stock screener, broker activity, foreign flow, and AI market intelligence. Alternative to Stockbit, RTI, and other IDX/BEI investing apps.";
 
 export const SITE_KEYWORDS = [
   "saham Indonesia",
@@ -50,4 +50,33 @@ export const SITE_KEYWORDS = [
   "IHSG",
   "LQ45",
   "IDX30",
+  "alternatif stockbit",
+  "stockbit alternative",
+  "aplikasi saham gratis",
+  "platform saham Indonesia",
+  "tools saham gratis",
+  "RTI business",
+  "aplikasi investasi saham",
+  "neo BDMN",
+  "neobank saham",
+  "aplikasi trading saham",
+  "analisis teknikal saham",
+  "analisis fundamental saham",
+  "data KSEI terbaru",
+  "cek pemegang saham",
+  "kepemilikan saham KSEI",
+  "data broker saham",
+  "net buy net sell asing",
+  "rekomendasi saham",
+  "saham murah Indonesia",
+  "saham dividen tinggi",
+  "portofolio saham",
+  "watchlist saham",
+  "indopremier",
+  "sekuritas online",
+  "Ajaib",
+  "Bibit saham",
+  "IPOT",
+  "Mandiri Sekuritas",
+  "Mirae Asset",
 ];

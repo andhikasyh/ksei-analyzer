@@ -21,6 +21,11 @@ export const metadata: Metadata = {
     "IDX daily report",
     "stock market insight Indonesia",
     "daily market summary IDX",
+    "analisis saham AI",
+    "AI stock analysis Indonesia",
+    "rekomendasi saham hari ini",
+    "ringkasan pasar saham harian gratis",
+    "laporan saham seperti stockbit",
   ],
   openGraph: {
     title: `Market Intelligence – Laporan Harian Pasar Saham | ${SITE_NAME}`,

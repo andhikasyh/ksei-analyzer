@@ -16,6 +16,10 @@ export const metadata: Metadata = {
     "broker activity Indonesia",
     "broker dealer BEI",
     "volume transaksi broker",
+    "data broker stockbit",
+    "broker summary IDX",
+    "net buy sell broker",
+    "analisis broker saham gratis",
   ],
   openGraph: {
     title: `Aktivitas Broker Saham Indonesia | ${SITE_NAME}`,
