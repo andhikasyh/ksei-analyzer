@@ -13,7 +13,14 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { mode } = useColorMode();
   const symbol = `IDX:${stockCode}`;
-  const [width, setWidth] = useState(800);
+  const [width, setWidth] = useState(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -21,19 +28,26 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
 
     const observer = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width;
-      if (w && w > 0) setWidth(Math.floor(w));
+      if (!w || w < 100) return;
+      const rounded = Math.floor(w / 20) * 20;
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        if (mountedRef.current) setWidth(rounded);
+      }, 300);
     });
     observer.observe(wrapper);
-    setWidth(Math.floor(wrapper.clientWidth));
+    setWidth(Math.floor((wrapper.clientWidth || 800) / 20) * 20);
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, []);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container || width < 100) return;
 
-    container.innerHTML = "";
     const widgetDiv = document.createElement("div");
     widgetDiv.className = "tradingview-widget-container__widget";
     container.appendChild(widgetDiv);
@@ -41,7 +55,7 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
-    script.async = false;
+    script.async = true;
     script.textContent = JSON.stringify({
       width,
       height: 420,
@@ -66,7 +80,14 @@ function TradingViewChartInner({ stockCode }: TradingViewChartProps) {
     widgetDiv.appendChild(script);
 
     return () => {
-      if (containerRef.current) containerRef.current.innerHTML = "";
+      try {
+        const iframes = container.querySelectorAll("iframe");
+        iframes.forEach((iframe) => {
+          iframe.removeAttribute("src");
+          iframe.remove();
+        });
+      } catch (_) { /* suppress TradingView iframe cleanup errors */ }
+      container.innerHTML = "";
     };
   }, [symbol, mode, width]);
 
