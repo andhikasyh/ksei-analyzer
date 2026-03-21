@@ -19,22 +19,30 @@ const EXEMPT_PATHS = ["/terms", "/privacy", "/auth"];
 const sections = [
   {
     title: "For Informational Purposes Only",
+    titleId: "Hanya untuk Tujuan Informasi",
     body: "All content on this platform — including algorithm-generated analyses, market intelligence reports, charts, and data visualizations — is provided strictly for educational and research purposes. Nothing on this platform constitutes financial advice, investment advice, or a recommendation to buy, sell, or hold any security or asset.",
+    bodyId: "Seluruh konten di platform ini — termasuk analisis algoritmik, laporan market intelligence, grafik, dan visualisasi data — disediakan semata-mata untuk tujuan edukasi dan penelitian. Tidak ada konten yang merupakan nasihat keuangan, saran investasi, atau rekomendasi untuk membeli, menjual, atau menahan efek maupun aset apapun.",
     accent: "rgba(201,168,76,0.5)",
   },
   {
     title: "No Liability",
+    titleId: "Tanpa Tanggung Jawab",
     body: "Gunaa and its operators make no representations or warranties regarding the accuracy, completeness, or timeliness of any information. We accept no liability whatsoever for any financial losses, damages, or adverse consequences — direct or indirect — arising from your use of or reliance on any content on this platform.",
+    bodyId: "Gunaa dan pengelolanya tidak membuat pernyataan atau jaminan mengenai keakuratan, kelengkapan, atau ketepatan waktu informasi yang tersedia. Kami tidak bertanggung jawab atas kerugian finansial, kerusakan, atau dampak negatif apapun — langsung maupun tidak langsung — yang timbul dari penggunaan atau ketergantungan Anda pada konten di platform ini.",
     accent: "rgba(251,113,133,0.55)",
   },
   {
     title: "Your Decision, Your Responsibility",
+    titleId: "Keputusan Anda, Tanggung Jawab Anda",
     body: "Any investment or trading decision you make is entirely your own responsibility. You should always conduct independent due diligence and consult a licensed financial advisor before committing capital. All investments carry inherent risk, including the possible loss of your entire principal.",
+    bodyId: "Setiap keputusan investasi atau perdagangan yang Anda buat sepenuhnya merupakan tanggung jawab Anda sendiri. Selalu lakukan analisis mandiri dan konsultasikan dengan penasihat keuangan berlisensi sebelum menempatkan modal. Semua investasi mengandung risiko, termasuk kemungkinan kehilangan seluruh modal Anda.",
     accent: "rgba(201,168,76,0.5)",
   },
   {
     title: "Analytical Limitations",
+    titleId: "Keterbatasan Analitik",
     body: "Analyses are generated algorithmically from structured data and publicly available information. They are not predictions of future performance, may contain errors or omissions, and should be treated as a starting point for research only — not as a definitive investment guide.",
+    bodyId: "Analisis dihasilkan secara algoritmik dari data terstruktur dan informasi yang tersedia untuk umum. Bukan merupakan prediksi kinerja masa depan, dapat mengandung kesalahan atau ketidaklengkapan, dan harus diperlakukan hanya sebagai titik awal penelitian — bukan panduan investasi yang definitif.",
     accent: "rgba(129,140,248,0.45)",
   },
 ];
@@ -67,6 +75,9 @@ export function ConsentModal() {
   };
 
   if (!open) return null;
+
+  const bodyColor = isDark ? "rgba(232,237,245,0.72)" : "rgba(12,18,34,0.68)";
+  const bodyColorMuted = isDark ? "rgba(232,237,245,0.48)" : "rgba(12,18,34,0.46)";
 
   return (
     <Dialog
@@ -130,28 +141,42 @@ export function ConsentModal() {
           </Stack>
           <Typography
             sx={{
-              fontSize: { xs: "1.3rem", sm: "1.5rem" },
+              fontSize: { xs: "1.25rem", sm: "1.45rem" },
               fontWeight: 800,
               color: "#f5f0e8",
               fontFamily: '"Outfit", sans-serif',
               letterSpacing: "-0.025em",
               lineHeight: 1.15,
-              mb: 1,
+              mb: 0.4,
             }}
           >
             Before You Continue
           </Typography>
           <Typography
             sx={{
-              fontSize: "0.78rem",
-              color: "rgba(255,255,255,0.45)",
-              fontFamily: '"Plus Jakarta Sans", sans-serif',
-              lineHeight: 1.5,
+              fontSize: { xs: "1rem", sm: "1.15rem" },
+              fontWeight: 600,
+              color: "rgba(245,240,232,0.55)",
+              fontFamily: '"Outfit", sans-serif',
+              letterSpacing: "-0.015em",
+              lineHeight: 1.2,
+              mb: 1.25,
             }}
           >
-            Gunaa is a data analytics platform for Indonesian Exchange
-            (BEI/IDX) securities. Please read and acknowledge the following
-            before accessing any content.
+            Sebelum Melanjutkan
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: "0.75rem",
+              color: "rgba(255,255,255,0.4)",
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              lineHeight: 1.55,
+            }}
+          >
+            Gunaa is a data analytics platform for Indonesian Exchange (BEI/IDX) securities.{" "}
+            <Box component="span" sx={{ color: "rgba(255,255,255,0.28)" }}>
+              Gunaa adalah platform analitik data untuk efek yang tercatat di Bursa Efek Indonesia (BEI/IDX).
+            </Box>
           </Typography>
         </Box>
 
@@ -163,7 +188,7 @@ export function ConsentModal() {
             bgcolor: isDark ? "#0c1222" : "#fafaf8",
           }}
         >
-          <Stack spacing={2.25}>
+          <Stack spacing={2.5}>
             {sections.map((s, i) => (
               <Box
                 key={i}
@@ -172,30 +197,58 @@ export function ConsentModal() {
                   borderLeft: `2px solid ${s.accent}`,
                 }}
               >
+                {/* Title bilingual */}
+                <Stack direction="row" spacing={1} alignItems="baseline" mb={0.5} flexWrap="wrap">
+                  <Typography
+                    sx={{
+                      fontSize: "0.65rem",
+                      fontWeight: 700,
+                      color: isDark ? "rgba(232,237,245,0.55)" : "rgba(12,18,34,0.5)",
+                      fontFamily: '"JetBrains Mono", monospace',
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {s.title}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontSize: "0.6rem",
+                      fontWeight: 600,
+                      color: isDark ? "rgba(232,237,245,0.3)" : "rgba(12,18,34,0.3)",
+                      fontFamily: '"JetBrains Mono", monospace',
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    / {s.titleId}
+                  </Typography>
+                </Stack>
+
+                {/* English body */}
                 <Typography
                   sx={{
-                    fontSize: "0.65rem",
-                    fontWeight: 700,
-                    mb: 0.4,
-                    color: isDark ? "rgba(232,237,245,0.5)" : "rgba(12,18,34,0.45)",
-                    fontFamily: '"JetBrains Mono", monospace',
-                    letterSpacing: "0.08em",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {s.title}
-                </Typography>
-                <Typography
-                  sx={{
-                    fontSize: "0.8rem",
-                    color: isDark
-                      ? "rgba(232,237,245,0.72)"
-                      : "rgba(12,18,34,0.68)",
-                    lineHeight: 1.7,
+                    fontSize: "0.78rem",
+                    color: bodyColor,
+                    lineHeight: 1.68,
                     fontFamily: '"Plus Jakarta Sans", sans-serif',
+                    mb: 0.75,
                   }}
                 >
                   {s.body}
+                </Typography>
+
+                {/* Indonesian body */}
+                <Typography
+                  sx={{
+                    fontSize: "0.75rem",
+                    color: bodyColorMuted,
+                    lineHeight: 1.65,
+                    fontFamily: '"Plus Jakarta Sans", sans-serif',
+                    fontStyle: "italic",
+                  }}
+                >
+                  {s.bodyId}
                 </Typography>
               </Box>
             ))}
@@ -218,17 +271,19 @@ export function ConsentModal() {
                 : "rgba(0,0,0,0.07)",
             }}
           />
+
+          {/* Bilingual agreement text */}
           <Typography
             sx={{
-              fontSize: "0.72rem",
+              fontSize: "0.71rem",
               color: isDark ? "rgba(232,237,245,0.45)" : "rgba(12,18,34,0.5)",
-              mb: 2,
+              mb: 0.75,
               lineHeight: 1.7,
               fontFamily: '"Plus Jakarta Sans", sans-serif',
             }}
           >
-            By clicking below, you confirm you are 18 years of age or older,
-            have read and understood this disclaimer, and agree to our{" "}
+            By clicking below, you confirm you are 18 years of age or older, have read and
+            understood this disclaimer, and agree to our{" "}
             <Box
               component="a"
               href="/terms"
@@ -260,6 +315,50 @@ export function ConsentModal() {
             </Box>
             .
           </Typography>
+          <Typography
+            sx={{
+              fontSize: "0.68rem",
+              color: isDark ? "rgba(232,237,245,0.3)" : "rgba(12,18,34,0.35)",
+              mb: 2,
+              lineHeight: 1.7,
+              fontFamily: '"Plus Jakarta Sans", sans-serif',
+              fontStyle: "italic",
+            }}
+          >
+            Dengan mengklik tombol di bawah, Anda menyatakan berusia 18 tahun atau lebih, telah
+            membaca dan memahami disclaimer ini, serta menyetujui{" "}
+            <Box
+              component="a"
+              href="/terms"
+              target="_blank"
+              rel="noopener"
+              sx={{
+                color: isDark ? "rgba(201,168,76,0.6)" : "rgba(161,124,47,0.65)",
+                textDecoration: "none",
+                fontWeight: 600,
+                "&:hover": { textDecoration: "underline" },
+              }}
+            >
+              Syarat &amp; Ketentuan
+            </Box>{" "}
+            dan{" "}
+            <Box
+              component="a"
+              href="/privacy"
+              target="_blank"
+              rel="noopener"
+              sx={{
+                color: isDark ? "rgba(201,168,76,0.6)" : "rgba(161,124,47,0.65)",
+                textDecoration: "none",
+                fontWeight: 600,
+                "&:hover": { textDecoration: "underline" },
+              }}
+            >
+              Kebijakan Privasi
+            </Box>{" "}
+            kami.
+          </Typography>
+
           <Button
             fullWidth
             onClick={handleAgree}
@@ -268,12 +367,13 @@ export function ConsentModal() {
               borderRadius: "10px",
               textTransform: "none",
               fontWeight: 700,
-              fontSize: "0.9rem",
+              fontSize: "0.88rem",
               fontFamily: '"Outfit", sans-serif',
               letterSpacing: "-0.01em",
               background: "linear-gradient(135deg, #c9a227 0%, #d4b45c 100%)",
               color: "#0c1222",
               boxShadow: "0 4px 20px rgba(201,168,76,0.35)",
+              lineHeight: 1.3,
               "&:hover": {
                 background: "linear-gradient(135deg, #d4b45c 0%, #e0c070 100%)",
                 boxShadow: "0 6px 28px rgba(201,168,76,0.45)",
@@ -283,6 +383,18 @@ export function ConsentModal() {
             }}
           >
             I Understand & Agree to Continue
+            <Box
+              component="span"
+              sx={{
+                display: "block",
+                fontSize: "0.72rem",
+                fontWeight: 500,
+                opacity: 0.7,
+                letterSpacing: "0",
+              }}
+            >
+              Saya Mengerti &amp; Setuju Melanjutkan
+            </Box>
           </Button>
         </Box>
       </DialogContent>
