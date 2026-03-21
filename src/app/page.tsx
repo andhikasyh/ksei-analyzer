@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: `${SITE_NAME} – Platform Analisis Saham Indonesia Gratis | Alternatif Stockbit & RTI`,
     description:
-      "Analisis data kepemilikan KSEI, screener saham, aktivitas broker, foreign flow, dan AI market intelligence untuk investor BEI/IDX. Gratis dan lengkap.",
+      "Analisis data kepemilikan KSEI, screener saham, aktivitas broker, foreign flow, dan market intelligence untuk investor BEI/IDX. Gratis dan lengkap.",
     url: baseUrl,
   },
 };

@@ -116,7 +116,7 @@ export default function TermsOfServicePage() {
 
       <Typography sx={sectionHeading}>1. Description of Service</Typography>
       <Typography sx={paragraph}>
-        {SITE_NAME} is a financial data platform that provides analysis of KSEI beneficial ownership data, IDX stock market information, broker activity tracking, stock screening, investor portfolio analysis, and AI-powered market intelligence for the Indonesian stock exchange.
+        {SITE_NAME} is a financial data platform that provides analysis of KSEI beneficial ownership data, IDX stock market information, broker activity tracking, stock screening, investor portfolio analysis, and market intelligence for the Indonesian stock exchange.
       </Typography>
 
       <Typography sx={sectionHeading}>2. Acceptance of Terms</Typography>
@@ -141,7 +141,7 @@ export default function TermsOfServicePage() {
 
       <Typography sx={sectionHeading}>4. Subscriptions & Payments</Typography>
       <Typography sx={paragraph}>
-        {SITE_NAME} offers both free and paid (Pro) subscription tiers. Pro subscriptions provide access to additional features including advanced analytics, AI-powered chat, and detailed market reports.
+        {SITE_NAME} offers both free and paid (Pro) subscription tiers. Pro subscriptions provide access to additional features including advanced analytics, smart chat, and detailed market reports.
       </Typography>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75, mb: 2 }}>
         {[
@@ -181,7 +181,7 @@ export default function TermsOfServicePage() {
 
       <Typography sx={sectionHeading}>6. Data Accuracy</Typography>
       <Typography sx={paragraph}>
-        While we strive to provide accurate and up-to-date information sourced from KSEI, IDX, and other official sources, we do not warrant the completeness, reliability, or accuracy of any data presented on the platform. Market data may be delayed, and AI-generated analysis may contain inaccuracies. Users should verify critical information through official channels before making decisions.
+        While we strive to provide accurate and up-to-date information sourced from KSEI, IDX, and other official sources, we do not warrant the completeness, reliability, or accuracy of any data presented on the platform. Market data may be delayed, and algorithmically generated analysis may contain inaccuracies. Users should verify critical information through official channels before making decisions.
       </Typography>
 
       <Typography sx={sectionHeading}>7. Acceptable Use</Typography>

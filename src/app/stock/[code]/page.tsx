@@ -393,7 +393,7 @@ export default function StockDetailPage() {
           <Tab label="News" />
           <Tab label="Fundamentals" />
           <Tab label="Ownership" />
-          <Tab label="AI Analysis" />
+          <Tab label="Smart Analysis" />
           <Tab label="Brokers" />
         </Tabs>
       </Paper>

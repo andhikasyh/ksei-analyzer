@@ -7,7 +7,6 @@ import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import Chip from "@mui/material/Chip";
 import CircularProgress from "@mui/material/CircularProgress";
 import IconButton from "@mui/material/IconButton";
 import TextField from "@mui/material/TextField";
@@ -19,6 +18,9 @@ import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import CheckIcon from "@mui/icons-material/Check";
 import SendIcon from "@mui/icons-material/Send";
 import PersonIcon from "@mui/icons-material/Person";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import { useProContext, MAX_FREE_TRIES } from "@/lib/pro-context";
+import { ProPaywallModal } from "@/components/ProPaywallModal";
 
 interface AIAnalyzerProps {
   stockCode: string;
@@ -255,14 +257,28 @@ function useMarkdownStyles(isDark: boolean, accentColor: string) {
 export function AIAnalyzerPanel({ stockCode }: AIAnalyzerProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
+  const { isPro, user, insightTries, consumeInsightTry } = useProContext();
   const [state, setState] = useState<StreamState>("idle");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [streamingContent, setStreamingContent] = useState("");
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
   const [followUp, setFollowUp] = useState("");
+  const [paywallOpen, setPaywallOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Gate check: returns true if allowed, false if paywall opened
+  const checkAccess = useCallback((): boolean => {
+    if (isPro) return true;
+    if (user) {
+      setPaywallOpen(true);
+      return false;
+    }
+    if (consumeInsightTry()) return true;
+    setPaywallOpen(true);
+    return false;
+  }, [isPro, user, consumeInsightTry]);
 
   useEffect(() => {
     if (scrollRef.current && (state === "streaming" || state === "loading")) {
@@ -354,24 +370,28 @@ export function AIAnalyzerPanel({ stockCode }: AIAnalyzerProps) {
   );
 
   const runInitialAnalysis = useCallback(() => {
+    if (!checkAccess()) return;
     const userMsg: ChatMessage = {
       role: "user",
       content: "Analyze this stock comprehensively.",
     };
     setMessages([userMsg]);
     streamResponse([userMsg]);
-  }, [streamResponse]);
+  }, [streamResponse, checkAccess]);
 
   const sendFollowUp = useCallback(() => {
     const text = followUp.trim();
     if (!text || state === "streaming" || state === "loading") return;
-
+    if (!isPro) {
+      setPaywallOpen(true);
+      return;
+    }
     const userMsg: ChatMessage = { role: "user", content: text };
     const newMessages = [...messages, userMsg];
     setMessages(newMessages);
     setFollowUp("");
     streamResponse(newMessages);
-  }, [followUp, messages, state, streamResponse]);
+  }, [followUp, messages, state, streamResponse, isPro]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -416,7 +436,99 @@ export function AIAnalyzerPanel({ stockCode }: AIAnalyzerProps) {
   const borderColor = isDark ? "rgba(201,168,76,0.12)" : "rgba(161,124,47,0.1)";
   const mdStyles = useMarkdownStyles(isDark, accentColor);
 
+  // Gated state: logged-in non-Pro OR guest who used free try
+  const isGated = !isPro && (!!user || insightTries >= MAX_FREE_TRIES);
+  const hasFreeTrialLeft = !isPro && !user && insightTries < MAX_FREE_TRIES;
+
   if (state === "idle" && messages.length === 0) {
+    if (isGated) {
+      return (
+        <>
+          <Paper
+            sx={{
+              p: { xs: 3, md: 5 },
+              borderRadius: 3,
+              textAlign: "center",
+              border: `1px solid ${borderColor}`,
+              background: isDark
+                ? "linear-gradient(135deg, rgba(201,168,76,0.05) 0%, rgba(12,18,34,0.0) 100%)"
+                : "linear-gradient(135deg, rgba(161,124,47,0.04) 0%, transparent 100%)",
+            }}
+          >
+            <Box
+              sx={{
+                width: 52,
+                height: 52,
+                borderRadius: "50%",
+                bgcolor: isDark ? "rgba(107,127,163,0.08)" : "rgba(12,18,34,0.04)",
+                border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)"}`,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mx: "auto",
+                mb: 2,
+              }}
+            >
+              <LockOutlinedIcon sx={{ fontSize: 22, color: accentColor }} />
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
+              Smart Stock Analysis
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.secondary",
+                mb: 0.75,
+                maxWidth: 400,
+                mx: "auto",
+                lineHeight: 1.6,
+              }}
+            >
+              {user
+                ? "Upgrade to Pro to run unlimited smart stock analyses with follow-up questions."
+                : "You've used your free analysis. Sign in and upgrade to Pro for unlimited access."}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{
+                color: isDark ? "rgba(201,168,76,0.6)" : "rgba(161,124,47,0.7)",
+                fontSize: "0.68rem",
+                fontFamily: '"JetBrains Mono", monospace',
+                display: "block",
+                mb: 3,
+              }}
+            >
+              {user ? "PRO REQUIRED" : "1 FREE ANALYSIS USED"}
+            </Typography>
+            <Button
+              variant="contained"
+              onClick={() => setPaywallOpen(true)}
+              startIcon={<AutoAwesomeIcon />}
+              sx={{
+                px: 4,
+                py: 1.2,
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "0.9rem",
+                bgcolor: accentColor,
+                color: isDark ? "#0c1222" : "#fff",
+                "&:hover": { bgcolor: isDark ? "#d4b45c" : "#8a6a27" },
+              }}
+            >
+              {user ? "Upgrade to Pro" : "Sign In & Upgrade"}
+            </Button>
+          </Paper>
+          <ProPaywallModal
+            open={paywallOpen}
+            onClose={() => setPaywallOpen(false)}
+            initialMode={user ? "pro" : "login"}
+            reason="insight"
+          />
+        </>
+      );
+    }
+
     return (
       <Paper
         sx={{
@@ -446,21 +558,34 @@ export function AIAnalyzerPanel({ stockCode }: AIAnalyzerProps) {
           variant="h6"
           sx={{ fontWeight: 700, mb: 0.5 }}
         >
-          AI Stock Analysis
+          Smart Stock Analysis
         </Typography>
         <Typography
           variant="body2"
           sx={{
             color: "text.secondary",
-            mb: 3,
+            mb: hasFreeTrialLeft ? 1.5 : 3,
             maxWidth: 420,
             mx: "auto",
             lineHeight: 1.6,
           }}
         >
-          Get a clear, easy-to-understand stock analysis powered by Claude Sonnet 4.6.
-          Includes a score, buy/sell recommendation, and you can ask follow-up questions.
+          Get a clear, easy-to-understand stock analysis with a score, buy/sell recommendation, and follow-up questions.
         </Typography>
+        {hasFreeTrialLeft && (
+          <Typography
+            variant="caption"
+            sx={{
+              display: "block",
+              mb: 2.5,
+              color: isDark ? "rgba(201,168,76,0.7)" : "rgba(161,124,47,0.8)",
+              fontSize: "0.68rem",
+              fontFamily: '"JetBrains Mono", monospace',
+            }}
+          >
+            1 FREE ANALYSIS REMAINING — PRO FOR UNLIMITED
+          </Typography>
+        )}
         <Button
           variant="contained"
           onClick={runInitialAnalysis}
@@ -506,6 +631,7 @@ export function AIAnalyzerPanel({ stockCode }: AIAnalyzerProps) {
   const isStreamingFollowUp = isWorking && assistantMessages.length > 0;
 
   return (
+    <>
     <Paper
       sx={{
         borderRadius: 3,
@@ -530,20 +656,8 @@ export function AIAnalyzerPanel({ stockCode }: AIAnalyzerProps) {
           variant="caption"
           sx={{ color: accentColor, fontWeight: 600, letterSpacing: 0.5 }}
         >
-          AI ANALYSIS
+          ANALYSIS
         </Typography>
-        <Chip
-          label="Claude Sonnet 4.6"
-          size="small"
-          sx={{
-            fontSize: "0.6rem",
-            height: 18,
-            fontWeight: 600,
-            bgcolor: isDark ? "rgba(201,168,76,0.12)" : "rgba(161,124,47,0.08)",
-            color: accentColor,
-            fontFamily: '"JetBrains Mono", monospace',
-          }}
-        />
         <Box sx={{ flex: 1 }} />
 
         {isWorking && (
@@ -774,65 +888,107 @@ export function AIAnalyzerPanel({ stockCode }: AIAnalyzerProps) {
             bgcolor: isDark ? "rgba(107,127,163,0.02)" : "rgba(12,18,34,0.01)",
           }}
         >
-          <TextField
-            fullWidth
-            size="small"
-            placeholder={`Ask about ${stockCode} or other IDX stocks...`}
-            value={followUp}
-            onChange={(e) => setFollowUp(e.target.value)}
-            onKeyDown={handleKeyDown}
-            multiline
-            maxRows={3}
-            slotProps={{
-              input: {
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      size="small"
-                      onClick={sendFollowUp}
-                      disabled={!followUp.trim()}
-                      sx={{
-                        color: followUp.trim() ? accentColor : "text.disabled",
-                      }}
-                    >
-                      <SendIcon sx={{ fontSize: 18 }} />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              },
-            }}
-            sx={{
-              "& .MuiOutlinedInput-root": {
+          {!isPro ? (
+            <Box
+              onClick={() => setPaywallOpen(true)}
+              sx={{
+                py: 1.5,
+                px: 2,
                 borderRadius: 2,
-                fontSize: "0.85rem",
-                bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)",
-                "& fieldset": {
-                  borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+                border: `1px solid ${isDark ? "rgba(201,168,76,0.12)" : "rgba(161,124,47,0.1)"}`,
+                bgcolor: isDark ? "rgba(201,168,76,0.04)" : "rgba(161,124,47,0.03)",
+                cursor: "pointer",
+                textAlign: "center",
+                transition: "border-color 0.2s",
+                "&:hover": {
+                  borderColor: isDark ? "rgba(201,168,76,0.25)" : "rgba(161,124,47,0.22)",
                 },
-                "&:hover fieldset": {
-                  borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)",
-                },
-                "&.Mui-focused fieldset": {
-                  borderColor: accentColor,
-                  borderWidth: 1,
-                },
-              },
-            }}
-          />
-          <Typography
-            variant="caption"
-            sx={{
-              color: "text.disabled",
-              fontSize: "0.6rem",
-              mt: 0.5,
-              display: "block",
-              textAlign: "center",
-            }}
-          >
-            Responses are scoped to Indonesian stock market (BEI/IDX) data only
-          </Typography>
+              }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center" justifyContent="center">
+                <LockOutlinedIcon sx={{ fontSize: 14, color: accentColor }} />
+                <Typography
+                  sx={{
+                    fontSize: "0.75rem",
+                    fontWeight: 600,
+                    color: accentColor,
+                    fontFamily: '"Plus Jakarta Sans", sans-serif',
+                  }}
+                >
+                  Upgrade to Pro to ask follow-up questions
+                </Typography>
+              </Stack>
+            </Box>
+          ) : (
+            <>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder={`Ask about ${stockCode} or other IDX stocks...`}
+                value={followUp}
+                onChange={(e) => setFollowUp(e.target.value)}
+                onKeyDown={handleKeyDown}
+                multiline
+                maxRows={3}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          size="small"
+                          onClick={sendFollowUp}
+                          disabled={!followUp.trim()}
+                          sx={{
+                            color: followUp.trim() ? accentColor : "text.disabled",
+                          }}
+                        >
+                          <SendIcon sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    fontSize: "0.85rem",
+                    bgcolor: isDark ? "rgba(107,127,163,0.04)" : "rgba(12,18,34,0.02)",
+                    "& fieldset": {
+                      borderColor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)",
+                    },
+                    "&:hover fieldset": {
+                      borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)",
+                    },
+                    "&.Mui-focused fieldset": {
+                      borderColor: accentColor,
+                      borderWidth: 1,
+                    },
+                  },
+                }}
+              />
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "text.disabled",
+                  fontSize: "0.6rem",
+                  mt: 0.5,
+                  display: "block",
+                  textAlign: "center",
+                }}
+              >
+                Responses are scoped to Indonesian stock market (BEI/IDX) data only
+              </Typography>
+            </>
+          )}
         </Box>
       )}
     </Paper>
+    <ProPaywallModal
+      open={paywallOpen}
+      onClose={() => setPaywallOpen(false)}
+      initialMode={user ? "pro" : "login"}
+      reason="insight"
+    />
+    </>
   );
 }

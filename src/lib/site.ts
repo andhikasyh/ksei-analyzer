@@ -15,10 +15,10 @@ export function getBaseUrl(): string {
 export const SITE_NAME = "Gunaa";
 
 export const SITE_DESCRIPTION =
-  "Platform analisis saham Indonesia gratis: data kepemilikan KSEI, screener saham, aktivitas broker, foreign flow, dan AI market intelligence. Alternatif Stockbit, RTI, dan aplikasi saham lainnya untuk investor BEI/IDX.";
+  "Platform analisis saham Indonesia gratis: data kepemilikan KSEI, screener saham, aktivitas broker, foreign flow, dan market intelligence. Alternatif Stockbit, RTI, dan aplikasi saham lainnya untuk investor BEI/IDX.";
 
 export const SITE_DESCRIPTION_EN =
-  "Free Indonesian stock analysis platform: KSEI ownership data, stock screener, broker activity, foreign flow, and AI market intelligence. Alternative to Stockbit, RTI, and other IDX/BEI investing apps.";
+  "Free Indonesian stock analysis platform: KSEI ownership data, stock screener, broker activity, foreign flow, and smart market intelligence. Alternative to Stockbit, RTI, and other IDX/BEI investing apps.";
 
 export const SITE_KEYWORDS = [
   "saham Indonesia",

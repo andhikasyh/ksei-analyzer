@@ -351,7 +351,7 @@ export function MarketChat({ context, placeholder: placeholderProp, compact, sha
             color: "text.primary",
           }}
         >
-          AI Chat — Pro Only
+          Smart Market Chat — Pro Only
         </Typography>
         <Typography
           sx={{

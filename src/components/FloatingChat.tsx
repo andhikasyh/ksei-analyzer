@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTheme } from "@mui/material/styles";
 import { usePathname } from "next/navigation";
 import { useLocale } from "@/lib/locale-context";
+import { useProContext, MAX_FREE_TRIES } from "@/lib/pro-context";
 import Box from "@mui/material/Box";
 import Fab from "@mui/material/Fab";
 import IconButton from "@mui/material/IconButton";
@@ -11,16 +12,35 @@ import Slide from "@mui/material/Slide";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CloseIcon from "@mui/icons-material/Close";
 import { MarketChat } from "@/components/MarketChat";
+import { ProPaywallModal } from "@/components/ProPaywallModal";
 
 export function FloatingChat() {
   const theme = useTheme();
   const { t } = useLocale();
   const isDark = theme.palette.mode === "dark";
   const pathname = usePathname();
+  const { isPro, user, chatTries, consumeChatTry } = useProContext();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [paywallOpen, setPaywallOpen] = useState(false);
 
   useEffect(() => setMounted(true), []);
+
+  // Locked when: logged-in non-Pro, or guest who has used their free try
+  const isLocked = !isPro && (!!user || chatTries >= MAX_FREE_TRIES);
+
+  const handleLockedAttempt = useCallback((): boolean => {
+    if (isPro) return false;
+    if (user) {
+      setPaywallOpen(true);
+      return true;
+    }
+    // guest: try to consume free try
+    const allowed = consumeChatTry();
+    if (allowed) return false;
+    setPaywallOpen(true);
+    return true;
+  }, [isPro, user, consumeChatTry]);
 
   const isIntelligentPage = pathname.startsWith("/intelligent");
   if (isIntelligentPage) return null;
@@ -77,6 +97,8 @@ export function FloatingChat() {
               compact
               sharp
               placeholder={t("chat.placeholderStocks")}
+              locked={isLocked}
+              onLockedAttempt={handleLockedAttempt}
             />
           </Box>
         </Box>
@@ -121,6 +143,13 @@ export function FloatingChat() {
           <AutoAwesomeIcon sx={{ fontSize: 20 }} />
         )}
       </Fab>
+
+      <ProPaywallModal
+        open={paywallOpen}
+        onClose={() => setPaywallOpen(false)}
+        initialMode={user ? "pro" : "login"}
+        reason="chat"
+      />
     </>
   );
 }

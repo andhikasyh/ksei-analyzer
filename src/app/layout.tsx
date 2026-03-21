@@ -9,6 +9,7 @@ import { BackToTop } from "@/components/BackToTop";
 import { Footer } from "@/components/Footer";
 import { ProProvider } from "@/lib/pro-context";
 import { LocaleProvider } from "@/lib/locale-context";
+import { ConsentModal } from "@/components/ConsentModal";
 import { getBaseUrl, SITE_NAME, SITE_DESCRIPTION, SITE_DESCRIPTION_EN, SITE_KEYWORDS } from "@/lib/site";
 import "./globals.css";
 
@@ -123,7 +124,7 @@ export default function RootLayout({
                     "KSEI beneficial ownership analysis",
                     "Stock screener with fundamental filters",
                     "Broker activity and market share tracking",
-                    "Daily AI-powered market intelligence reports",
+                    "Daily smart market intelligence reports",
                     "Foreign flow analytics and net buy/sell tracking",
                     "Sector analysis for BEI/IDX",
                     "Dividend data and yield analysis",
@@ -142,7 +143,7 @@ export default function RootLayout({
                       name: "Apa itu Gunaa dan bedanya dengan Stockbit?",
                       acceptedAnswer: {
                         "@type": "Answer",
-                        text: "Gunaa adalah platform analisis saham Indonesia gratis yang fokus pada data kepemilikan KSEI, aktivitas broker, foreign flow, dan AI market intelligence. Berbeda dengan Stockbit yang fokus pada social trading, Gunaa menyediakan analisis mendalam tentang perubahan kepemilikan saham dan pergerakan smart money.",
+                        text: "Gunaa adalah platform analisis saham Indonesia gratis yang fokus pada data kepemilikan KSEI, aktivitas broker, foreign flow, dan market intelligence. Berbeda dengan Stockbit yang fokus pada social trading, Gunaa menyediakan analisis mendalam tentang perubahan kepemilikan saham dan pergerakan smart money.",
                       },
                     },
                     {
@@ -150,7 +151,7 @@ export default function RootLayout({
                       name: "Apakah Gunaa gratis? Apa bedanya dengan RTI Business?",
                       acceptedAnswer: {
                         "@type": "Answer",
-                        text: "Ya, Gunaa menyediakan fitur gratis termasuk screener saham, data broker, dan foreign flow. Dibanding RTI Business, Gunaa memiliki fitur unik seperti analisis kepemilikan KSEI dan laporan AI market intelligence harian.",
+                        text: "Ya, Gunaa menyediakan fitur gratis termasuk screener saham, data broker, dan foreign flow. Dibanding RTI Business, Gunaa memiliki fitur unik seperti analisis kepemilikan KSEI dan laporan market intelligence harian.",
                       },
                     },
                     {
@@ -173,6 +174,7 @@ export default function RootLayout({
           <ProProvider>
             <LocaleProvider>
               <Navbar />
+              <ConsentModal />
               <LayoutShell>{children}</LayoutShell>
               <Footer />
               <FloatingChat />

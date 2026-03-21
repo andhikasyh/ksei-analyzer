@@ -144,7 +144,7 @@ export default function PrivacyPolicyPage() {
           "Provide, maintain, and improve our platform and services",
           "Process subscriptions and manage your account",
           "Send transactional communications related to your account",
-          "Generate market intelligence reports and AI-powered analysis",
+          "Generate market intelligence reports and analysis",
           "Analyze usage patterns to enhance user experience",
           "Detect, prevent, and address technical issues or abuse",
         ].map((item) => (
@@ -160,7 +160,7 @@ export default function PrivacyPolicyPage() {
         {[
           "Supabase -- authentication and database hosting",
           "Vercel -- application hosting and analytics",
-          "Anthropic -- AI-powered market analysis and chat features",
+          "Anthropic -- market analysis and smart chat backend",
           "Mayar -- payment processing for Pro subscriptions",
         ].map((item) => (
           <Typography key={item} sx={listItem}>{item}</Typography>
